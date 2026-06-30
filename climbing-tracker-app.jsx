@@ -56,6 +56,75 @@ function formatTargetSummary(ex) {
   return `${ex.sets} × ${ex.reps} reps`;
 }
 
+function mergeById(existing, incoming) {
+  const result = [...existing];
+  incoming.forEach(item => {
+    if (!item) return;
+    const withId = item.id ? item : { ...item, id: uid() };
+    const idx = result.findIndex(e => e.id === withId.id);
+    if (idx >= 0) result[idx] = withId; else result.push(withId);
+  });
+  return result;
+}
+
+const LLM_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
+
+Output ONLY raw JSON (no markdown code fences, no commentary, no trailing commas) matching this exact shape:
+
+{
+  "exercises": [ <Exercise>, ... ],
+  "routines": [ <Routine>, ... ]
+}
+
+Exercise objects use one of three "type" values:
+
+1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "reps",
+  "sets": <integer, number of sets>,
+  "reps": <integer, target reps per set>
+}
+
+2) "weighted" - sets of reps with a weight, either added to bodyweight (weighted pull-up belt, weight vest) or an absolute total weight (barbell, dumbbell, machine):
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "weighted",
+  "sets": <integer>,
+  "reps": <integer, target reps per set>,
+  "weight": <number, kg>,
+  "weightMode": "added" | "total"
+}
+Use "added" when the weight is extra load on top of the climber's own bodyweight. Use "total" when it's the full weight being lifted.
+
+3) "interval" - timed work/rest sets, e.g. hangboard repeaters, dead hangs, plank holds, rest-pause finger boarding:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "interval",
+  "workSec": <integer, seconds of work per set>,
+  "restSec": <integer, seconds of rest between sets>,
+  "sets": <integer, number of work/rest cycles>
+}
+
+Routine objects group exercises into an ordered sequence to perform together:
+{
+  "id": "<unique string>",
+  "name": "<routine name>",
+  "exerciseIds": ["<id of an exercise in the exercises array>", ...]
+}
+
+Rules:
+- Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
+- Every id referenced in a routine's "exerciseIds" must also appear as an exercise in the "exercises" array of the same JSON.
+- Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
+- Do not invent extra fields, do not wrap the JSON in markdown fences, output nothing but the JSON object.
+- Unless told otherwise, pick sensible default sets/reps/weights/durations for an intermediate climber.
+
+Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
+
 function formatPerformedSummary(step) {
   const p = step.performed;
   if (p.type === "weighted") {
@@ -451,7 +520,7 @@ function SessionRunner({ session, onCancel, onStepComplete }) {
   );
 }
 
-const TABS = ["Exercises", "Routines", "History"];
+const TABS = ["Exercises", "Routines", "History", "Settings"];
 
 function ClimbingTrackerApp() {
   const [tab, setTab] = useState("Exercises");
@@ -554,18 +623,23 @@ function ClimbingTrackerApp() {
 
   // Export / import
   const fileInputRef = useRef(null);
-  const [transferMode, setTransferMode] = useState(null);
+  const [transferMode, setTransferMode] = useState(null); // null | "export" | "import"
+  const [transferScope, setTransferScope] = useState("all"); // "all" | "partial" (exercises + routines only)
   const [transferText, setTransferText] = useState("");
   const [copied, setCopied] = useState(false);
   const [importError, setImportError] = useState("");
+  const [llmCopied, setLlmCopied] = useState(false);
 
-  const openExport = () => {
-    setTransferText(JSON.stringify({ exercises, routines, history }, null, 2));
+  const openExport = (scope) => {
+    const payload = scope === "all" ? { exercises, routines, history } : { exercises, routines };
+    setTransferText(JSON.stringify(payload, null, 2));
+    setTransferScope(scope);
     setCopied(false);
     setTransferMode("export");
   };
-  const openImport = () => {
+  const openImport = (scope) => {
     setTransferText("");
+    setTransferScope(scope);
     setImportError("");
     setTransferMode("import");
   };
@@ -584,16 +658,21 @@ function ClimbingTrackerApp() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `climbing-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `climbing-tracker-${transferScope === "all" ? "all" : "exercises-routines"}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
   const applyImport = (text) => {
     try {
       const data = JSON.parse(text || transferText);
-      if (Array.isArray(data.exercises)) setExercises(data.exercises);
-      if (Array.isArray(data.routines)) setRoutines(data.routines);
-      if (Array.isArray(data.history)) setHistory(data.history);
+      if (transferScope === "all") {
+        if (Array.isArray(data.exercises)) setExercises(data.exercises);
+        if (Array.isArray(data.routines)) setRoutines(data.routines);
+        if (Array.isArray(data.history)) setHistory(data.history);
+      } else {
+        if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
+        if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
+      }
       setTransferMode(null);
       setImportError("");
     } catch {
@@ -611,6 +690,25 @@ function ClimbingTrackerApp() {
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const copyLlmGuidance = async () => {
+    try {
+      await navigator.clipboard.writeText(LLM_GUIDANCE);
+      setLlmCopied(true);
+      setTimeout(() => setLlmCopied(false), 2000);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = LLM_GUIDANCE;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setLlmCopied(true);
+      setTimeout(() => setLlmCopied(false), 2000);
+    }
   };
 
   if (activeSession) {
@@ -746,14 +844,39 @@ function ClimbingTrackerApp() {
               <button style={s.deleteBtn} onClick={() => deleteHistoryEntry(h.id)}>&times;</button>
             </div>
           ))}
+        </div>
+      )}
 
-          <div style={s.exportSection}>
-            <div style={{ ...s.label, marginBottom: 10 }}>Transfer data</div>
-            <div style={s.exportRow}>
-              <button style={s.exportBtn} onClick={openExport}>Export</button>
-              <button style={s.exportBtn} onClick={openImport}>Import</button>
+      {tab === "Settings" && (
+        <div style={s.page}>
+          <div style={s.settingsSection}>
+            <div style={{ ...s.label, marginBottom: 10 }}>Generate with AI</div>
+            <div style={s.exportHint}>
+              Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want
+              (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then
+              paste the JSON it gives you into "Import exercises &amp; routines" below.
             </div>
-            <div style={s.exportHint}>Move exercises, routines and history between devices.</div>
+            <button style={{ ...s.exportBtn, marginTop: 10 }} onClick={copyLlmGuidance}>
+              {llmCopied ? "Copied!" : "Copy AI prompt"}
+            </button>
+          </div>
+
+          <div style={s.settingsSection}>
+            <div style={{ ...s.label, marginBottom: 10 }}>Exercises &amp; routines</div>
+            <div style={s.exportRow}>
+              <button style={s.exportBtn} onClick={() => openExport("partial")}>Export</button>
+              <button style={s.exportBtn} onClick={() => openImport("partial")}>Import</button>
+            </div>
+            <div style={s.exportHint}>Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones — nothing is deleted.</div>
+          </div>
+
+          <div style={s.settingsSection}>
+            <div style={{ ...s.label, marginBottom: 10 }}>All data</div>
+            <div style={s.exportRow}>
+              <button style={s.exportBtn} onClick={() => openExport("all")}>Export</button>
+              <button style={s.exportBtn} onClick={() => openImport("all")}>Import</button>
+            </div>
+            <div style={s.exportHint}>Full backup, including history. Importing replaces everything currently stored.</div>
           </div>
         </div>
       )}
@@ -762,7 +885,9 @@ function ClimbingTrackerApp() {
         <div style={s.overlay} onClick={() => setTransferMode(null)}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
             <div style={s.modalHeader}>
-              <span style={s.modalTitle}>{transferMode === "export" ? "Export" : "Import"}</span>
+              <span style={s.modalTitle}>
+                {transferMode === "export" ? "Export" : "Import"} {transferScope === "all" ? "all data" : "exercises & routines"}
+              </span>
               <button style={s.modalClose} onClick={() => setTransferMode(null)}>&times;</button>
             </div>
 
@@ -905,7 +1030,7 @@ const s = {
     marginBottom: 16, display: "block",
   },
   historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
-  exportSection: { marginTop: 32, paddingTop: 20, borderTop: "1px solid #222" },
+  settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
   exportRow: { display: "flex", gap: 8 },
   exportHint: { fontSize: 12, color: "#555", marginTop: 8 },
   overlay: {
