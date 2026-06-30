@@ -48,6 +48,74 @@
     if (ex.type === "interval") return `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
     return `${ex.sets} \xD7 ${ex.reps} reps`;
   }
+  function mergeById(existing, incoming) {
+    const result = [...existing];
+    incoming.forEach((item) => {
+      if (!item) return;
+      const withId = item.id ? item : { ...item, id: uid() };
+      const idx = result.findIndex((e) => e.id === withId.id);
+      if (idx >= 0) result[idx] = withId;
+      else result.push(withId);
+    });
+    return result;
+  }
+  const LLM_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
+
+Output ONLY raw JSON (no markdown code fences, no commentary, no trailing commas) matching this exact shape:
+
+{
+  "exercises": [ <Exercise>, ... ],
+  "routines": [ <Routine>, ... ]
+}
+
+Exercise objects use one of three "type" values:
+
+1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "reps",
+  "sets": <integer, number of sets>,
+  "reps": <integer, target reps per set>
+}
+
+2) "weighted" - sets of reps with a weight, either added to bodyweight (weighted pull-up belt, weight vest) or an absolute total weight (barbell, dumbbell, machine):
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "weighted",
+  "sets": <integer>,
+  "reps": <integer, target reps per set>,
+  "weight": <number, kg>,
+  "weightMode": "added" | "total"
+}
+Use "added" when the weight is extra load on top of the climber's own bodyweight. Use "total" when it's the full weight being lifted.
+
+3) "interval" - timed work/rest sets, e.g. hangboard repeaters, dead hangs, plank holds, rest-pause finger boarding:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "interval",
+  "workSec": <integer, seconds of work per set>,
+  "restSec": <integer, seconds of rest between sets>,
+  "sets": <integer, number of work/rest cycles>
+}
+
+Routine objects group exercises into an ordered sequence to perform together:
+{
+  "id": "<unique string>",
+  "name": "<routine name>",
+  "exerciseIds": ["<id of an exercise in the exercises array>", ...]
+}
+
+Rules:
+- Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
+- Every id referenced in a routine's "exerciseIds" must also appear as an exercise in the "exercises" array of the same JSON.
+- Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
+- Do not invent extra fields, do not wrap the JSON in markdown fences, output nothing but the JSON object.
+- Unless told otherwise, pick sensible default sets/reps/weights/durations for an intermediate climber.
+
+Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
   function formatPerformedSummary(step) {
     const p = step.performed;
     if (p.type === "weighted") {
@@ -309,7 +377,7 @@
     const isRoutine = session.kind === "routine";
     return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), isRoutine && /* @__PURE__ */ React.createElement("div", { style: s.sessionProgress }, "Step ", session.stepIndex + 1, " / ", session.steps.length)), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, isRoutine ? session.refName : "Exercise"), /* @__PURE__ */ React.createElement("div", { style: s.sessionExerciseName }, exercise.name), exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }) : /* @__PURE__ */ React.createElement(SetsRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }));
   }
-  const TABS = ["Exercises", "Routines", "History"];
+  const TABS = ["Exercises", "Routines", "History", "Settings"];
   function ClimbingTrackerApp() {
     const [tab, setTab] = useState("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
@@ -400,16 +468,21 @@
     const clearHistory = () => setHistory([]);
     const fileInputRef = useRef(null);
     const [transferMode, setTransferMode] = useState(null);
+    const [transferScope, setTransferScope] = useState("all");
     const [transferText, setTransferText] = useState("");
     const [copied, setCopied] = useState(false);
     const [importError, setImportError] = useState("");
-    const openExport = () => {
-      setTransferText(JSON.stringify({ exercises, routines, history }, null, 2));
+    const [llmCopied, setLlmCopied] = useState(false);
+    const openExport = (scope) => {
+      const payload = scope === "all" ? { exercises, routines, history } : { exercises, routines };
+      setTransferText(JSON.stringify(payload, null, 2));
+      setTransferScope(scope);
       setCopied(false);
       setTransferMode("export");
     };
-    const openImport = () => {
+    const openImport = (scope) => {
       setTransferText("");
+      setTransferScope(scope);
       setImportError("");
       setTransferMode("import");
     };
@@ -433,16 +506,21 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `climbing-tracker-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`;
+      a.download = `climbing-tracker-${transferScope === "all" ? "all" : "exercises-routines"}-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     };
     const applyImport = (text) => {
       try {
         const data = JSON.parse(text || transferText);
-        if (Array.isArray(data.exercises)) setExercises(data.exercises);
-        if (Array.isArray(data.routines)) setRoutines(data.routines);
-        if (Array.isArray(data.history)) setHistory(data.history);
+        if (transferScope === "all") {
+          if (Array.isArray(data.exercises)) setExercises(data.exercises);
+          if (Array.isArray(data.routines)) setRoutines(data.routines);
+          if (Array.isArray(data.history)) setHistory(data.history);
+        } else {
+          if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
+          if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
+        }
         setTransferMode(null);
         setImportError("");
       } catch {
@@ -461,6 +539,24 @@
       };
       reader.readAsText(file);
       e.target.value = "";
+    };
+    const copyLlmGuidance = async () => {
+      try {
+        await navigator.clipboard.writeText(LLM_GUIDANCE);
+        setLlmCopied(true);
+        setTimeout(() => setLlmCopied(false), 2e3);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = LLM_GUIDANCE;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setLlmCopied(true);
+        setTimeout(() => setLlmCopied(false), 2e3);
+      }
     };
     if (activeSession) {
       return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement(SessionRunner, { session: activeSession, onCancel: cancelSession, onStepComplete: completeStep }));
@@ -498,7 +594,7 @@
         },
         "Add"
       ))));
-    })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: clearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date)), h.steps.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" ? `${step.exerciseName}: ` : "", formatPerformedSummary(step)))), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteHistoryEntry(h.id) }, "\xD7"))), /* @__PURE__ */ React.createElement("div", { style: s.exportSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Transfer data"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: openExport }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: openImport }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Move exercises, routines and history between devices."))), transferMode && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setTransferMode(null) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, transferMode === "export" ? "Export" : "Import"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setTransferMode(null) }, "\xD7")), transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: downloadExport }, "Download"))), transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: clearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date)), h.steps.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" ? `${step.exerciseName}: ` : "", formatPerformedSummary(step)))), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteHistoryEntry(h.id) }, "\xD7")))), tab === "Settings" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, 'Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into "Import exercises & routines" below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, marginTop: 10 }, onClick: copyLlmGuidance }, llmCopied ? "Copied!" : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("partial") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones \u2014 nothing is deleted.")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("all") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Full backup, including history. Importing replaces everything currently stored."))), transferMode && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setTransferMode(null) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, transferMode === "export" ? "Export" : "Import", " ", transferScope === "all" ? "all data" : "exercises & routines"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setTransferMode(null) }, "\xD7")), transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: downloadExport }, "Download"))), transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       "textarea",
       {
         style: s.transferArea,
@@ -733,7 +829,7 @@
       display: "block"
     },
     historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
-    exportSection: { marginTop: 32, paddingTop: 20, borderTop: "1px solid #222" },
+    settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
     exportRow: { display: "flex", gap: 8 },
     exportHint: { fontSize: 12, color: "#555", marginTop: 8 },
     overlay: {
