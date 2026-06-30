@@ -1,0 +1,12 @@
+node_modules
+.git
+.wrangler
+package.json
+pnpm-lock.yaml
+build.js
+wrangler.jsonc
+.assetsignore
+.gitignore
+README.md
+LICENSE
+*.jsx
