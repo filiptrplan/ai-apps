@@ -3,8 +3,7 @@
   const STORAGE_KEYS = {
     exercises: "climbing-tracker-exercises",
     routines: "climbing-tracker-routines",
-    history: "climbing-tracker-history",
-    bodyweight: "climbing-tracker-bodyweight"
+    history: "climbing-tracker-history"
   };
   function uid() {
     return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -316,7 +315,6 @@
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
-    const [bodyweight, setBodyweight] = useStorage(STORAGE_KEYS.bodyweight, "");
     const [activeSession, setActiveSession] = useState(null);
     const [formOpen, setFormOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -406,7 +404,7 @@
     const [copied, setCopied] = useState(false);
     const [importError, setImportError] = useState("");
     const openExport = () => {
-      setTransferText(JSON.stringify({ exercises, routines, history, bodyweight }, null, 2));
+      setTransferText(JSON.stringify({ exercises, routines, history }, null, 2));
       setCopied(false);
       setTransferMode("export");
     };
@@ -445,7 +443,6 @@
         if (Array.isArray(data.exercises)) setExercises(data.exercises);
         if (Array.isArray(data.routines)) setRoutines(data.routines);
         if (Array.isArray(data.history)) setHistory(data.history);
-        if (data.bodyweight !== void 0) setBodyweight(data.bodyweight);
         setTransferMode(null);
         setImportError("");
       } catch {
@@ -468,17 +465,7 @@
     if (activeSession) {
       return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement(SessionRunner, { session: activeSession, onCancel: cancelSession, onStepComplete: completeStep }));
     }
-    return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement("div", { style: s.tabs }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t, onClick: () => setTab(t), style: { ...s.tab, ...tab === t ? s.tabActive : {} } }, t, t === "History" && history.length > 0 ? ` (${history.length})` : ""))), tab === "Exercises" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.bwRow }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Bodyweight"), /* @__PURE__ */ React.createElement("div", { style: s.numFieldInputWrap }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        style: s.numFieldInput,
-        type: "number",
-        min: 0,
-        step: 0.1,
-        value: bodyweight,
-        onChange: (e) => setBodyweight(e.target.value === "" ? "" : parseFloat(e.target.value))
-      }
-    ), /* @__PURE__ */ React.createElement("span", { style: s.numFieldSuffix }, "kg"))), !formOpen && /* @__PURE__ */ React.createElement("button", { style: s.addBtn, onClick: openNewExercise }, "+ New exercise"), formOpen && /* @__PURE__ */ React.createElement(ExerciseForm, { draft, onChange: setDraft, onSave: saveExercise, onCancel: () => setFormOpen(false) }), exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises yet. Add one to get started."), exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startExercise(ex) }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => openEditExercise(ex) }, "Edit"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteExercise(ex.id) }, "\xD7"))))), tab === "Routines" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.presetForm }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement("div", { style: s.tabs }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t, onClick: () => setTab(t), style: { ...s.tab, ...tab === t ? s.tabActive : {} } }, t, t === "History" && history.length > 0 ? ` (${history.length})` : ""))), tab === "Exercises" && /* @__PURE__ */ React.createElement("div", { style: s.page }, !formOpen && /* @__PURE__ */ React.createElement("button", { style: s.addBtn, onClick: openNewExercise }, "+ New exercise"), formOpen && /* @__PURE__ */ React.createElement(ExerciseForm, { draft, onChange: setDraft, onSave: saveExercise, onCancel: () => setFormOpen(false) }), exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises yet. Add one to get started."), exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startExercise(ex) }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => openEditExercise(ex) }, "Edit"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteExercise(ex.id) }, "\xD7"))))), tab === "Routines" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.presetForm }, /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.input,
@@ -559,16 +546,6 @@
     tabActive: { color: "#E8E8E8", borderBottomColor: "#E8E8E8" },
     page: { padding: "20px 16px" },
     label: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-    bwRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "10px 12px",
-      marginBottom: 18,
-      background: "#1A1A1A",
-      border: "1px solid #282828",
-      borderRadius: 10
-    },
     numField: { flex: 1, minWidth: 0 },
     numFieldInputWrap: {
       display: "flex",

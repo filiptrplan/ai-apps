@@ -4,7 +4,6 @@ const STORAGE_KEYS = {
   exercises: "climbing-tracker-exercises",
   routines: "climbing-tracker-routines",
   history: "climbing-tracker-history",
-  bodyweight: "climbing-tracker-bodyweight",
 };
 
 function uid() {
@@ -459,7 +458,6 @@ function ClimbingTrackerApp() {
   const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
   const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
   const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
-  const [bodyweight, setBodyweight] = useStorage(STORAGE_KEYS.bodyweight, "");
 
   const [activeSession, setActiveSession] = useState(null);
 
@@ -562,7 +560,7 @@ function ClimbingTrackerApp() {
   const [importError, setImportError] = useState("");
 
   const openExport = () => {
-    setTransferText(JSON.stringify({ exercises, routines, history, bodyweight }, null, 2));
+    setTransferText(JSON.stringify({ exercises, routines, history }, null, 2));
     setCopied(false);
     setTransferMode("export");
   };
@@ -596,7 +594,6 @@ function ClimbingTrackerApp() {
       if (Array.isArray(data.exercises)) setExercises(data.exercises);
       if (Array.isArray(data.routines)) setRoutines(data.routines);
       if (Array.isArray(data.history)) setHistory(data.history);
-      if (data.bodyweight !== undefined) setBodyweight(data.bodyweight);
       setTransferMode(null);
       setImportError("");
     } catch {
@@ -636,21 +633,6 @@ function ClimbingTrackerApp() {
 
       {tab === "Exercises" && (
         <div style={s.page}>
-          <div style={s.bwRow}>
-            <label style={s.label}>Bodyweight</label>
-            <div style={s.numFieldInputWrap}>
-              <input
-                style={s.numFieldInput}
-                type="number"
-                min={0}
-                step={0.1}
-                value={bodyweight}
-                onChange={e => setBodyweight(e.target.value === "" ? "" : parseFloat(e.target.value))}
-              />
-              <span style={s.numFieldSuffix}>kg</span>
-            </div>
-          </div>
-
           {!formOpen && <button style={s.addBtn} onClick={openNewExercise}>+ New exercise</button>}
           {formOpen && (
             <ExerciseForm draft={draft} onChange={setDraft} onSave={saveExercise} onCancel={() => setFormOpen(false)} />
@@ -835,11 +817,6 @@ const s = {
   tabActive: { color: "#E8E8E8", borderBottomColor: "#E8E8E8" },
   page: { padding: "20px 16px" },
   label: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-  bwRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "10px 12px", marginBottom: 18, background: "#1A1A1A",
-    border: "1px solid #282828", borderRadius: 10,
-  },
   numField: { flex: 1, minWidth: 0 },
   numFieldInputWrap: {
     display: "flex", alignItems: "center", gap: 6, marginTop: 6,
