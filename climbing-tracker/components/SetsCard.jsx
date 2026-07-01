@@ -11,9 +11,15 @@ export function SetsCard({ exercise, onChange }) {
   const targetSets = exercise.sets || 1;
   const restSec = exercise.restSec || 0;
   const isWeighted = exercise.type === "weighted";
-  const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0, done: false });
+  // A routine step can specify a per-set target pattern (e.g. 2x12 then
+  // 1x24, via exercise.targetSets); fall back to a uniform pattern from the
+  // exercise's own reps/weight otherwise.
+  const makeRow = (i) => {
+    const t = exercise.targetSets && exercise.targetSets[i];
+    return { reps: t ? t.reps : (exercise.reps || 0), weight: t ? (t.weight ?? exercise.weight ?? 0) : (exercise.weight || 0), done: false };
+  };
 
-  const [rows, setRows] = useState(() => Array.from({ length: targetSets }, makeRow));
+  const [rows, setRows] = useState(() => Array.from({ length: targetSets }, (_, i) => makeRow(i)));
   const [restRowIndex, setRestRowIndex] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(restSec);
   const [restPaused, setRestPaused] = useState(false);

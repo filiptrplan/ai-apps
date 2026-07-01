@@ -15,6 +15,7 @@ import { LLM_GUIDANCE } from "./llmGuidance.js";
 import { s } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
+import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
 
 const { useState, useEffect, useRef } = React;
@@ -66,8 +67,7 @@ export function ClimbingTrackerApp() {
 
   // Routine state
   const [newRoutineName, setNewRoutineName] = useState("");
-  const [expandedRoutineId, setExpandedRoutineId] = useState(null);
-  const [routineAddSelect, setRoutineAddSelect] = useState({});
+  const [editingRoutineId, setEditingRoutineId] = useState(null);
 
   // One-time migration for routines saved before per-step sets/rest overrides existed.
   useEffect(() => {
@@ -86,16 +86,14 @@ export function ClimbingTrackerApp() {
     const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
     setRoutines([...routines, r]);
     setNewRoutineName("");
-    setExpandedRoutineId(r.id);
+    setEditingRoutineId(r.id);
   };
   const deleteRoutine = (id) => setRoutines(routines.filter(r => r.id !== id));
+  const renameRoutine = (id, name) => setRoutines(routines.map(r => r.id === id ? { ...r, name } : r));
   const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
-    const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null };
+    const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null, targetSets: null };
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
-  };
-  const updateRoutineStep = (routineId, idx, patch) => {
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
   };
   const updateRoutineStepById = (routineId, stepId, patch) => {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
@@ -129,7 +127,8 @@ export function ClimbingTrackerApp() {
       if (!ex) return null;
       return {
         ...ex,
-        sets: step.sets ?? ex.sets,
+        sets: step.targetSets ? step.targetSets.length : (step.sets ?? ex.sets),
+        targetSets: step.targetSets ?? null,
         restSec: step.restSec ?? (ex.restSec ?? 0),
         restAfterSec: step.restAfterSec ?? 0,
         routineStepId: step.id,
@@ -194,6 +193,10 @@ export function ClimbingTrackerApp() {
   // override while reps came from the exercise itself - so apply whichever
   // patch is non-empty to wherever it actually lives.
   const applyDrift = (drift) => {
+    if (drift.targetSetsPatch) {
+      updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+      return;
+    }
     if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
       updateRoutineStepById(drift.routine.id, drift.routineStep.id, drift.routinePatch);
     }
@@ -318,6 +321,25 @@ export function ClimbingTrackerApp() {
     );
   }
 
+  const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
+  if (editingRoutine) {
+    return (
+      <div style={s.root}>
+        <RoutineEditPage
+          routine={editingRoutine}
+          exercises={exercises}
+          onBack={() => setEditingRoutineId(null)}
+          onRename={name => renameRoutine(editingRoutine.id, name)}
+          onAddStep={exerciseId => addStepToRoutine(editingRoutine.id, exerciseId)}
+          onUpdateStep={(stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch)}
+          onRemoveStep={idx => removeFromRoutine(editingRoutine.id, idx)}
+          onMoveStep={(idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)}
+        />
+        <ConfirmModal confirm={confirm} onCancel={() => setConfirm(null)} />
+      </div>
+    );
+  }
+
   return (
     <div style={s.root}>
       <div style={s.tabs}>
@@ -376,99 +398,27 @@ export function ClimbingTrackerApp() {
 
           {routines.length === 0 && <p style={s.empty}>No routines yet. Create one and add exercises to it.</p>}
           {routines.map(r => {
-            const expanded = expandedRoutineId === r.id;
-            const resolved = r.steps.map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) })).filter(x => x.exercise);
+            const stepCount = r.steps.filter(step => exercises.some(e => e.id === step.exerciseId)).length;
             return (
-              <div key={r.id} style={s.card}>
-                <div style={s.listItem}>
-                  <div style={s.listMain} onClick={() => setExpandedRoutineId(expanded ? null : r.id)}>
-                    <div style={s.listTitle}>{r.name}</div>
-                    <div style={s.listMeta}>{resolved.length} exercise{resolved.length === 1 ? "" : "s"}</div>
-                  </div>
-                  <div style={s.listActions}>
-                    <button style={s.smallBtn} onClick={() => startRoutine(r)} disabled={resolved.length === 0}>Start</button>
-                    <button
-                      style={s.deleteBtn}
-                      onClick={() => requestConfirm(
-                        "Delete routine?",
-                        `Delete "${r.name}"? This cannot be undone.`,
-                        () => deleteRoutine(r.id)
-                      )}
-                    >
-                      &times;
-                    </button>
-                  </div>
+              <div key={r.id} style={s.listItem}>
+                <div style={s.listMain}>
+                  <div style={s.listTitle}>{r.name}</div>
+                  <div style={s.listMeta}>{stepCount} exercise{stepCount === 1 ? "" : "s"}</div>
                 </div>
-
-                {expanded && (
-                  <div style={s.routineEditor}>
-                    {resolved.map(({ step, exercise: ex }, i) => (
-                      <div key={step.id} style={s.routineStepRow}>
-                        <div style={s.routineStepMain}>
-                          <span style={s.routineStepName}>{i + 1}. {ex.name}</span>
-                          <div style={s.routineStepOverrides}>
-                            <label style={s.routineStepFieldLabel}>
-                              Sets
-                              <input
-                                style={s.routineStepInput}
-                                type="number"
-                                min={1}
-                                value={step.sets ?? ex.sets}
-                                onChange={e => updateRoutineStep(r.id, i, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                              />
-                            </label>
-                            <label style={s.routineStepFieldLabel}>
-                              Rest (s)
-                              <input
-                                style={s.routineStepInput}
-                                type="number"
-                                min={0}
-                                value={step.restSec ?? (ex.restSec ?? 0)}
-                                onChange={e => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                              />
-                            </label>
-                            <label style={s.routineStepFieldLabel}>
-                              Rest after (s)
-                              <input
-                                style={s.routineStepInput}
-                                type="number"
-                                min={0}
-                                value={step.restAfterSec ?? 0}
-                                onChange={e => updateRoutineStep(r.id, i, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <div style={s.listActions}>
-                          <button style={s.tinyBtn} onClick={() => moveInRoutine(r.id, i, -1)} disabled={i === 0}>&uarr;</button>
-                          <button style={s.tinyBtn} onClick={() => moveInRoutine(r.id, i, 1)} disabled={i === resolved.length - 1}>&darr;</button>
-                          <button style={s.deleteBtn} onClick={() => removeFromRoutine(r.id, i)}>&times;</button>
-                        </div>
-                      </div>
-                    ))}
-                    {exercises.length === 0 ? (
-                      <p style={s.empty}>No exercises defined yet.</p>
-                    ) : (
-                      <div style={s.routineAddRow}>
-                        <select
-                          style={s.select}
-                          value={routineAddSelect[r.id] || ""}
-                          onChange={e => setRoutineAddSelect({ ...routineAddSelect, [r.id]: e.target.value })}
-                        >
-                          <option value="">Add exercise&hellip;</option>
-                          {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                        </select>
-                        <button
-                          style={s.saveBtn}
-                          onClick={() => { addStepToRoutine(r.id, routineAddSelect[r.id]); setRoutineAddSelect({ ...routineAddSelect, [r.id]: "" }); }}
-                          disabled={!routineAddSelect[r.id]}
-                        >
-                          Add
-                        </button>
-                      </div>
+                <div style={s.listActions}>
+                  <button style={s.smallBtn} onClick={() => startRoutine(r)} disabled={stepCount === 0}>Start</button>
+                  <button style={s.smallBtnGhost} onClick={() => setEditingRoutineId(r.id)}>Edit</button>
+                  <button
+                    style={s.deleteBtn}
+                    onClick={() => requestConfirm(
+                      "Delete routine?",
+                      `Delete "${r.name}"? This cannot be undone.`,
+                      () => deleteRoutine(r.id)
                     )}
-                  </div>
-                )}
+                  >
+                    &times;
+                  </button>
+                </div>
               </div>
             );
           })}

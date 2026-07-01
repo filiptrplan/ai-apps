@@ -1,4 +1,3 @@
-/* SW_NETWORK_FIRST_TEST_MARKER */
 (() => {
   // climbing-tracker/storage.js
   var { useState } = React;
@@ -45,8 +44,12 @@
   }
   function formatTargetSummary(ex) {
     const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
-    if (ex.type === "weighted") return `${ex.sets} \xD7 ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
     if (ex.type === "interval") return `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
+    if (ex.targetSets) {
+      const isWeighted = ex.type === "weighted";
+      return `${ex.targetSets.length} sets: ${formatSetsPattern(ex.targetSets, isWeighted)}${isWeighted ? "" : " reps"}${restPart}`;
+    }
+    if (ex.type === "weighted") return `${ex.sets} \xD7 ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
     return `${ex.sets} \xD7 ${ex.reps} reps${restPart}`;
   }
   function formatDate(iso) {
@@ -137,6 +140,15 @@
   function uniformValue(values) {
     return values.length > 0 && values.every((v) => v === values[0]) ? values[0] : null;
   }
+  function resolveStepTargetSets(step, ex) {
+    var _a;
+    if (step.targetSets) return step.targetSets;
+    const count = (_a = step.sets) != null ? _a : ex.sets;
+    return Array.from({ length: count }, () => ({ reps: ex.reps, weight: ex.weight }));
+  }
+  function formatSetsPattern(sets, isWeighted) {
+    return sets.map((row) => isWeighted ? `${row.reps}\xD7${row.weight}kg` : `${row.reps}`).join(", ");
+  }
   function computeTemplateDrift(entry, step, exercises, routines) {
     var _a, _b, _c;
     const ex = exercises.find((e) => e.id === step.exerciseId);
@@ -147,6 +159,22 @@
       routine = routines.find((r) => r.id === entry.refId) || null;
       routineStep = routine && step.routineStepId ? routine.steps.find((s2) => s2.id === step.routineStepId) || null : null;
     }
+    const p = step.performed;
+    if (routineStep && routineStep.targetSets && p.type !== "interval") {
+      const isWeighted = p.type === "weighted";
+      const previous = routineStep.targetSets;
+      const changed = previous.length !== p.sets.length || p.sets.some((row, i) => {
+        var _a2;
+        const t = previous[i];
+        if (!t) return true;
+        if (row.reps !== t.reps) return true;
+        if (isWeighted && row.weight !== ((_a2 = t.weight) != null ? _a2 : 0)) return true;
+        return false;
+      });
+      if (!changed) return null;
+      const targetSetsPatch = p.sets.map((row) => isWeighted ? { reps: row.reps, weight: row.weight } : { reps: row.reps });
+      return { exercise: ex, routine, routineStep, isWeighted, previousTargetSets: previous, targetSetsPatch };
+    }
     const target = {
       sets: routineStep ? (_a = routineStep.sets) != null ? _a : ex.sets : ex.sets,
       reps: ex.reps,
@@ -154,7 +182,6 @@
       workSec: ex.workSec,
       restSec: routineStep ? (_c = routineStep.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0 : ex.restSec
     };
-    const p = step.performed;
     const patch = {};
     if (p.type === "interval") {
       if (p.targetSets !== target.sets) patch.sets = p.targetSets;
@@ -179,6 +206,9 @@
     return { exercise: ex, routine, routineStep, target, patch, routinePatch, exercisePatch };
   }
   function formatDriftSummary(drift) {
+    if (drift.targetSetsPatch) {
+      return `Sets: ${formatSetsPattern(drift.previousTargetSets, drift.isWeighted)} \u2192 ${formatSetsPattern(drift.targetSetsPatch, drift.isWeighted)}`;
+    }
     const { target, patch } = drift;
     const parts = [];
     if ("sets" in patch) parts.push(`Sets: ${target.sets}\u2192${patch.sets}`);
@@ -239,10 +269,15 @@ Routine objects group exercises into an ordered sequence of steps to perform tog
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null> },
     ...
   ]
 }
+
+For "reps" and "weighted" exercise steps only, "targetSets" can specify a heterogeneous per-set pattern instead of a uniform "sets" count - e.g. a pyramid of 2 sets of 12 reps then 1 set of 24 reps. When present it fully replaces "sets" (and "reps"/"weight") for that step. Leave it null for a plain uniform sets x reps target. Format: an array with one entry per set, in order:
+- "reps" type: [ { "reps": <integer> }, ... ]
+- "weighted" type: [ { "reps": <integer>, "weight": <number, kg> }, ... ]
+Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"restSec" overrides above.
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
@@ -466,18 +501,6 @@ Now generate the exercises and/or routines described by the user's request that 
       letterSpacing: "0.04em"
     },
     presetForm: { display: "flex", gap: 8, marginBottom: 16 },
-    routineEditor: { marginTop: 6, paddingTop: 10, borderTop: "1px solid #232323" },
-    routineStepRow: {
-      display: "flex",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      padding: "10px 0",
-      gap: 8,
-      borderBottom: "1px solid #1E1E1E"
-    },
-    routineStepMain: { minWidth: 0, flex: 1 },
-    routineStepName: { fontSize: 14, color: "#DDD", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-    routineStepOverrides: { display: "flex", gap: 14, marginTop: 8 },
     routineStepFieldLabel: {
       display: "flex",
       flexDirection: "column",
@@ -809,8 +832,12 @@ Now generate the exercises and/or routines described by the user's request that 
     const targetSets = exercise.sets || 1;
     const restSec = exercise.restSec || 0;
     const isWeighted = exercise.type === "weighted";
-    const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0, done: false });
-    const [rows, setRows] = useState2(() => Array.from({ length: targetSets }, makeRow));
+    const makeRow = (i) => {
+      var _a, _b;
+      const t = exercise.targetSets && exercise.targetSets[i];
+      return { reps: t ? t.reps : exercise.reps || 0, weight: t ? (_b = (_a = t.weight) != null ? _a : exercise.weight) != null ? _b : 0 : exercise.weight || 0, done: false };
+    };
+    const [rows, setRows] = useState2(() => Array.from({ length: targetSets }, (_, i) => makeRow(i)));
     const [restRowIndex, setRestRowIndex] = useState2(null);
     const [restTimeLeft, setRestTimeLeft] = useState2(restSec);
     const [restPaused, setRestPaused] = useState2(false);
@@ -1117,6 +1144,107 @@ Now generate the exercises and/or routines described by the user's request that 
     ), interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: s.interRestBanner }, /* @__PURE__ */ React.createElement("span", { style: s.interRestLabel }, "Rest before next exercise: ", formatTime(interRest.timeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: toggleInterRestPause }, interRest.paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: skipInterRest }, "Skip")))), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: onFinish }, "Finish workout"));
   }
 
+  // climbing-tracker/components/SetTargetsEditor.jsx
+  function SetTargetsEditor({ sets, isWeighted, onChange }) {
+    const updateRow = (i, patch) => onChange(sets.map((row, idx) => idx === i ? { ...row, ...patch } : row));
+    const removeRow = (i) => onChange(sets.filter((_, idx) => idx !== i));
+    const addRow = () => onChange([...sets, { ...sets[sets.length - 1] || { reps: 10, weight: 0 } }]);
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.setsTable }, /* @__PURE__ */ React.createElement("div", { style: s.setsHeaderRow }, /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Set"), /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Reps"), isWeighted && /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Weight (kg)"), /* @__PURE__ */ React.createElement("span", { style: { ...s.setsHeaderCell, width: 28 } })), sets.map((row, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.setsRow }, /* @__PURE__ */ React.createElement("span", { style: s.setsIndex }, i + 1), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.setsInput,
+        type: "number",
+        min: 0,
+        value: row.reps,
+        onChange: (e) => updateRow(i, { reps: e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0 })
+      }
+    ), isWeighted && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.setsInput,
+        type: "number",
+        min: 0,
+        step: 0.5,
+        value: row.weight,
+        onChange: (e) => updateRow(i, { weight: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })
+      }
+    ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: sets.length <= 1 }, "\xD7")))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"));
+  }
+
+  // climbing-tracker/components/RoutineEditPage.jsx
+  var { useState: useState6 } = React;
+  function RoutineEditPage({ routine, exercises, onBack, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+    const [addSelect, setAddSelect] = useState6("");
+    const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
+    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onBack }, "Back"), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, "Edit routine")), /* @__PURE__ */ React.createElement("input", { style: s.input, value: routine.name, onChange: (e) => onRename(e.target.value), placeholder: "Routine name" }), resolved.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises in this routine yet."), resolved.map(({ step, exercise: ex }, i) => {
+      var _a, _b, _c, _d, _e, _f, _g;
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeaderMain }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, i + 1, ". ", ex.name)), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => onRemoveStep(i) }, "\xD7"))), ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Sets", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          style: s.routineStepInput,
+          type: "number",
+          min: 1,
+          value: (_a = step.sets) != null ? _a : ex.sets,
+          onChange: (e) => onUpdateStep(step.id, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+        }
+      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest (s)", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          style: s.routineStepInput,
+          type: "number",
+          min: 0,
+          value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
+          onChange: (e) => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+        }
+      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after (s)", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          style: s.routineStepInput,
+          type: "number",
+          min: 0,
+          value: (_d = step.restAfterSec) != null ? _d : 0,
+          onChange: (e) => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+        }
+      ))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        SetTargetsEditor,
+        {
+          sets: resolveStepTargetSets(step, ex),
+          isWeighted: ex.type === "weighted",
+          onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
+        }
+      ), /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest between sets (s)", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          style: s.routineStepInput,
+          type: "number",
+          min: 0,
+          value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0,
+          onChange: (e) => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+        }
+      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after exercise (s)", /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          style: s.routineStepInput,
+          type: "number",
+          min: 0,
+          value: (_g = step.restAfterSec) != null ? _g : 0,
+          onChange: (e) => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+        }
+      )))));
+    }), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement("select", { style: s.select, value: addSelect, onChange: (e) => setAddSelect(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Add exercise\u2026"), exercises.map((ex) => /* @__PURE__ */ React.createElement("option", { key: ex.id, value: ex.id }, ex.name))), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        style: s.saveBtn,
+        onClick: () => {
+          onAddStep(addSelect);
+          setAddSelect("");
+        },
+        disabled: !addSelect
+      },
+      "Add"
+    )));
+  }
+
   // climbing-tracker/components/ConfirmModal.jsx
   function ConfirmModal({ confirm, onCancel }) {
     if (!confirm) return null;
@@ -1127,21 +1255,21 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState6, useEffect: useEffect4, useRef: useRef4 } = React;
+  var { useState: useState7, useEffect: useEffect4, useRef: useRef4 } = React;
   var TABS = ["Exercises", "Routines", "History", "Settings"];
   function ClimbingTrackerApp() {
-    const [tab, setTab] = useState6("Exercises");
+    const [tab, setTab] = useState7("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
-    const [activeSession, setActiveSession] = useState6(null);
-    const [confirm, setConfirm] = useState6(null);
+    const [activeSession, setActiveSession] = useState7(null);
+    const [confirm, setConfirm] = useState7(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
     };
-    const [formOpen, setFormOpen] = useState6(false);
-    const [editingId, setEditingId] = useState6(null);
-    const [draft, setDraft] = useState6({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState7(false);
+    const [editingId, setEditingId] = useState7(null);
+    const [draft, setDraft] = useState7({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -1165,9 +1293,8 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [newRoutineName, setNewRoutineName] = useState6("");
-    const [expandedRoutineId, setExpandedRoutineId] = useState6(null);
-    const [routineAddSelect, setRoutineAddSelect] = useState6({});
+    const [newRoutineName, setNewRoutineName] = useState7("");
+    const [editingRoutineId, setEditingRoutineId] = useState7(null);
     useEffect4(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
@@ -1182,16 +1309,14 @@ Now generate the exercises and/or routines described by the user's request that 
       const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
       setRoutines([...routines, r]);
       setNewRoutineName("");
-      setExpandedRoutineId(r.id);
+      setEditingRoutineId(r.id);
     };
     const deleteRoutine = (id) => setRoutines(routines.filter((r) => r.id !== id));
+    const renameRoutine = (id, name) => setRoutines(routines.map((r) => r.id === id ? { ...r, name } : r));
     const addStepToRoutine = (routineId, exerciseId) => {
       if (!exerciseId) return;
-      const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null };
+      const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null, targetSets: null };
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
-    };
-    const updateRoutineStep = (routineId, idx, patch) => {
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
     };
     const updateRoutineStepById = (routineId, stepId, patch) => {
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
@@ -1216,14 +1341,15 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const startRoutine = (r) => {
       const exs = r.steps.map((step) => {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         const ex = exercises.find((e) => e.id === step.exerciseId);
         if (!ex) return null;
         return {
           ...ex,
-          sets: (_a = step.sets) != null ? _a : ex.sets,
-          restSec: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
-          restAfterSec: (_d = step.restAfterSec) != null ? _d : 0,
+          sets: step.targetSets ? step.targetSets.length : (_a = step.sets) != null ? _a : ex.sets,
+          targetSets: (_b = step.targetSets) != null ? _b : null,
+          restSec: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0,
+          restAfterSec: (_e = step.restAfterSec) != null ? _e : 0,
           routineStepId: step.id
         };
       }).filter(Boolean);
@@ -1270,8 +1396,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState6([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState6(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState7([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState7(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
@@ -1284,6 +1410,10 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
     };
     const applyDrift = (drift) => {
+      if (drift.targetSetsPatch) {
+        updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+        return;
+      }
       if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
         updateRoutineStepById(drift.routine.id, drift.routineStep.id, drift.routinePatch);
       }
@@ -1297,12 +1427,12 @@ Now generate the exercises and/or routines described by the user's request that 
       setPostSessionDrifts(postSessionDrifts.filter((d) => driftKey(d) !== driftKey(drift)));
     };
     const fileInputRef = useRef4(null);
-    const [transferMode, setTransferMode] = useState6(null);
-    const [transferScope, setTransferScope] = useState6("all");
-    const [transferText, setTransferText] = useState6("");
-    const [copied, setCopied] = useState6(false);
-    const [importError, setImportError] = useState6("");
-    const [llmCopied, setLlmCopied] = useState6(false);
+    const [transferMode, setTransferMode] = useState7(null);
+    const [transferScope, setTransferScope] = useState7("all");
+    const [transferText, setTransferText] = useState7("");
+    const [copied, setCopied] = useState7(false);
+    const [importError, setImportError] = useState7("");
+    const [llmCopied, setLlmCopied] = useState7(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -1403,6 +1533,22 @@ Now generate the exercises and/or routines described by the user's request that 
     if (activeSession) {
       return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement(SessionPage, { session: activeSession, onCancel: requestCancelSession, onLogChange: handleLogChange, onFinish: finishSession }), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
     }
+    const editingRoutine = editingRoutineId ? routines.find((r) => r.id === editingRoutineId) : null;
+    if (editingRoutine) {
+      return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement(
+        RoutineEditPage,
+        {
+          routine: editingRoutine,
+          exercises,
+          onBack: () => setEditingRoutineId(null),
+          onRename: (name) => renameRoutine(editingRoutine.id, name),
+          onAddStep: (exerciseId) => addStepToRoutine(editingRoutine.id, exerciseId),
+          onUpdateStep: (stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch),
+          onRemoveStep: (idx) => removeFromRoutine(editingRoutine.id, idx),
+          onMoveStep: (idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)
+        }
+      ), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    }
     return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement("div", { style: s.tabs }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t, onClick: () => setTab(t), style: { ...s.tab, ...tab === t ? s.tabActive : {} } }, t, t === "History" && history.length > 0 ? ` (${history.length})` : ""))), tab === "Exercises" && /* @__PURE__ */ React.createElement("div", { style: s.page }, !formOpen && /* @__PURE__ */ React.createElement("button", { style: s.addBtn, onClick: openNewExercise }, "+ New exercise"), formOpen && /* @__PURE__ */ React.createElement(ExerciseForm, { draft, onChange: setDraft, onSave: saveExercise, onCancel: () => setFormOpen(false) }), exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises yet. Add one to get started."), exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startExercise(ex) }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => openEditExercise(ex) }, "Edit"), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1424,9 +1570,8 @@ Now generate the exercises and/or routines described by the user's request that 
         onKeyDown: (e) => e.key === "Enter" && addRoutine()
       }
     ), /* @__PURE__ */ React.createElement("button", { style: s.saveBtn, onClick: addRoutine, disabled: !newRoutineName.trim() }, "Add")), routines.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No routines yet. Create one and add exercises to it."), routines.map((r) => {
-      const expanded = expandedRoutineId === r.id;
-      const resolved = r.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
-      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedRoutineId(expanded ? null : r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, resolved.length, " exercise", resolved.length === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: resolved.length === 0 }, "Start"), /* @__PURE__ */ React.createElement(
+      const stepCount = r.steps.filter((step) => exercises.some((e) => e.id === step.exerciseId)).length;
+      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, stepCount, " exercise", stepCount === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: stepCount === 0 }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => setEditingRoutineId(r.id) }, "Edit"), /* @__PURE__ */ React.createElement(
         "button",
         {
           style: s.deleteBtn,
@@ -1437,57 +1582,7 @@ Now generate the exercises and/or routines described by the user's request that 
           )
         },
         "\xD7"
-      ))), expanded && /* @__PURE__ */ React.createElement("div", { style: s.routineEditor }, resolved.map(({ step, exercise: ex }, i) => {
-        var _a, _b, _c, _d;
-        return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.routineStepRow }, /* @__PURE__ */ React.createElement("div", { style: s.routineStepMain }, /* @__PURE__ */ React.createElement("span", { style: s.routineStepName }, i + 1, ". ", ex.name), /* @__PURE__ */ React.createElement("div", { style: s.routineStepOverrides }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Sets", /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            style: s.routineStepInput,
-            type: "number",
-            min: 1,
-            value: (_a = step.sets) != null ? _a : ex.sets,
-            onChange: (e) => updateRoutineStep(r.id, i, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-          }
-        )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest (s)", /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            style: s.routineStepInput,
-            type: "number",
-            min: 0,
-            value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
-            onChange: (e) => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-          }
-        )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after (s)", /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            style: s.routineStepInput,
-            type: "number",
-            min: 0,
-            value: (_d = step.restAfterSec) != null ? _d : 0,
-            onChange: (e) => updateRoutineStep(r.id, i, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-          }
-        )))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, 1), disabled: i === resolved.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeFromRoutine(r.id, i) }, "\xD7")));
-      }), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement(
-        "select",
-        {
-          style: s.select,
-          value: routineAddSelect[r.id] || "",
-          onChange: (e) => setRoutineAddSelect({ ...routineAddSelect, [r.id]: e.target.value })
-        },
-        /* @__PURE__ */ React.createElement("option", { value: "" }, "Add exercise\u2026"),
-        exercises.map((ex) => /* @__PURE__ */ React.createElement("option", { key: ex.id, value: ex.id }, ex.name))
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          style: s.saveBtn,
-          onClick: () => {
-            addStepToRoutine(r.id, routineAddSelect[r.id]);
-            setRoutineAddSelect({ ...routineAddSelect, [r.id]: "" });
-          },
-          disabled: !routineAddSelect[r.id]
-        },
-        "Add"
-      ))));
+      )));
     })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: requestClearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => {
       const expanded = expandedHistoryId === h.id;
       return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedHistoryId(expanded ? null : h.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : ""), h.steps.map((step, i) => {

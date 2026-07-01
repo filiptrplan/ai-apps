@@ -18,8 +18,14 @@ export function formatWeightLabel(weightMode, weight) {
 
 export function formatTargetSummary(ex) {
   const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
-  if (ex.type === "weighted") return `${ex.sets} × ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
   if (ex.type === "interval") return `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`;
+  // A routine step can give this exercise a heterogeneous per-set pattern
+  // (e.g. 2x12 then 1x24) instead of a uniform sets x reps target.
+  if (ex.targetSets) {
+    const isWeighted = ex.type === "weighted";
+    return `${ex.targetSets.length} sets: ${formatSetsPattern(ex.targetSets, isWeighted)}${isWeighted ? "" : " reps"}${restPart}`;
+  }
+  if (ex.type === "weighted") return `${ex.sets} × ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
   return `${ex.sets} × ${ex.reps} reps${restPart}`;
 }
 
@@ -127,14 +133,29 @@ function uniformValue(values) {
   return values.length > 0 && values.every(v => v === values[0]) ? values[0] : null;
 }
 
+// A routine step can define a per-set target pattern (e.g. 2x12 then 1x24)
+// via step.targetSets, which fully replaces the plain sets-count override for
+// reps/weighted exercises. Resolves what to actually show/edit: the step's
+// own pattern if it has one, otherwise a uniform pattern derived from the
+// legacy sets-count override (or the exercise's own defaults).
+export function resolveStepTargetSets(step, ex) {
+  if (step.targetSets) return step.targetSets;
+  const count = step.sets ?? ex.sets;
+  return Array.from({ length: count }, () => ({ reps: ex.reps, weight: ex.weight }));
+}
+
+export function formatSetsPattern(sets, isWeighted) {
+  return sets.map(row => isWeighted ? `${row.reps}×${row.weight}kg` : `${row.reps}`).join(", ");
+}
+
 // Compares a logged history step against the values that actually applied
-// during that session - a routine step's sets/restSec overrides when this
-// came from a routine (matching how startRoutine() resolves them), falling
-// back to the exercise's own defaults otherwise (standalone exercise, or a
-// routine/step that's since been deleted). Returns null if there's no
-// (unambiguous) difference. Used to offer an "Update" action from History
-// and the post-session prompt, which can patch the routine step, the
-// exercise, or both - whichever the differing fields actually live on.
+// during that session - a routine step's targetSets/sets/restSec overrides
+// when this came from a routine (matching how startRoutine() resolves
+// them), falling back to the exercise's own defaults otherwise (standalone
+// exercise, or a routine/step that's since been deleted). Returns null if
+// there's no (unambiguous) difference. Used to offer an "Update" action from
+// History and the post-session prompt, which can patch the routine step,
+// the exercise, or both - whichever the differing fields actually live on.
 export function computeTemplateDrift(entry, step, exercises, routines) {
   const ex = exercises.find(e => e.id === step.exerciseId);
   if (!ex) return null;
@@ -148,8 +169,32 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
       : null;
   }
 
-  // sets/restSec can be overridden per routine step; reps/weight/workSec
-  // have no routine-level override and always come from the exercise.
+  const p = step.performed;
+
+  // A routine step with an explicit per-set pattern is compared position by
+  // position - no "uniform value" heuristic needed since there's a specific
+  // target for every set. Any difference just becomes "make the pattern
+  // match what was actually performed."
+  if (routineStep && routineStep.targetSets && p.type !== "interval") {
+    const isWeighted = p.type === "weighted";
+    const previous = routineStep.targetSets;
+    const changed = previous.length !== p.sets.length || p.sets.some((row, i) => {
+      const t = previous[i];
+      if (!t) return true;
+      if (row.reps !== t.reps) return true;
+      if (isWeighted && row.weight !== (t.weight ?? 0)) return true;
+      return false;
+    });
+    if (!changed) return null;
+    const targetSetsPatch = p.sets.map(row => isWeighted ? { reps: row.reps, weight: row.weight } : { reps: row.reps });
+    return { exercise: ex, routine, routineStep, isWeighted, previousTargetSets: previous, targetSetsPatch };
+  }
+
+  // Legacy comparison: a single uniform sets-count + reps/weight default,
+  // resolved from the routine step's override (if any) or the exercise's
+  // own saved values. sets/restSec can be overridden per routine step;
+  // reps/weight/workSec have no routine-level override and always come
+  // from the exercise.
   const target = {
     sets: routineStep ? (routineStep.sets ?? ex.sets) : ex.sets,
     reps: ex.reps,
@@ -158,7 +203,6 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
     restSec: routineStep ? (routineStep.restSec ?? (ex.restSec ?? 0)) : ex.restSec,
   };
 
-  const p = step.performed;
   const patch = {};
 
   if (p.type === "interval") {
@@ -188,6 +232,9 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
 }
 
 export function formatDriftSummary(drift) {
+  if (drift.targetSetsPatch) {
+    return `Sets: ${formatSetsPattern(drift.previousTargetSets, drift.isWeighted)} → ${formatSetsPattern(drift.targetSetsPatch, drift.isWeighted)}`;
+  }
   const { target, patch } = drift;
   const parts = [];
   if ("sets" in patch) parts.push(`Sets: ${target.sets}→${patch.sets}`);
