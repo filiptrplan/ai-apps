@@ -7,6 +7,8 @@ import {
   mergeById,
   stripCodeFence,
   buildPerformedFromLog,
+  computeTemplateDrift,
+  formatDriftSummary,
 } from "./format.js";
 import { LLM_GUIDANCE } from "./llmGuidance.js";
 import { s } from "./styles.js";
@@ -174,6 +176,9 @@ export function ClimbingTrackerApp() {
   const clearHistory = () => setHistory([]);
   const requestClearHistory = () => {
     requestConfirm("Clear all history?", "All logged workouts will be permanently deleted. This cannot be undone.", clearHistory, "Clear all");
+  };
+  const updateExerciseTemplate = (exerciseId, patch) => {
+    setExercises(exercises.map(e => e.id === exerciseId ? { ...e, ...patch } : e));
   };
 
   // Export / import
@@ -455,11 +460,22 @@ export function ClimbingTrackerApp() {
                   {h.refName} <span style={s.kindBadge}>{h.kind === "routine" ? "Routine" : "Exercise"}</span>
                 </div>
                 <div style={s.listMeta}>{formatDate(h.date)}</div>
-                {h.steps.map((step, i) => (
-                  <div key={i} style={s.historyStep}>
-                    {h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}
-                  </div>
-                ))}
+                {h.steps.map((step, i) => {
+                  const drift = computeTemplateDrift(step, exercises);
+                  return (
+                    <div key={i} style={s.historyStep}>
+                      <div>{h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}</div>
+                      {drift && (
+                        <div style={s.driftRow}>
+                          <span style={s.driftText}>Differs from template ({formatDriftSummary(drift)})</span>
+                          <button style={s.driftBtn} onClick={() => updateExerciseTemplate(drift.exercise.id, drift.patch)}>
+                            Update template
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <button style={s.deleteBtn} onClick={() => requestDeleteHistoryEntry(h.id)}>&times;</button>
             </div>

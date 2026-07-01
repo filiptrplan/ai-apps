@@ -1,14 +1,20 @@
 import { s } from "../styles.js";
 import { formatTime } from "../format.js";
 import { sounds, getAudioCtx } from "../sounds.js";
+import { NumberField } from "./NumberField.jsx";
 
 const { useState, useEffect, useRef } = React;
 
 // Reports its progress live via onChange (rather than a one-shot onComplete)
 // so the containing page can read the current completedSets at any time,
-// including mid-timer, when the workout is finished.
+// including mid-timer, when the workout is finished. Work/rest/sets are
+// editable while idle (before Start), so a routine's timer values can be
+// tweaked for this session without leaving to edit the exercise/routine.
 export function IntervalCard({ exercise, onChange }) {
   const [phase, setPhase] = useState("idle"); // idle | work | rest | done
+  const [workSec, setWorkSec] = useState(exercise.workSec);
+  const [restSec, setRestSec] = useState(exercise.restSec);
+  const [totalSets, setTotalSets] = useState(exercise.sets);
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(exercise.workSec);
   const [paused, setPaused] = useState(false);
@@ -17,8 +23,19 @@ export function IntervalCard({ exercise, onChange }) {
   const currentSetRef = useRef(1);
   const timeLeftRef = useRef(exercise.workSec);
   const completedRef = useRef(0);
+  const configRef = useRef({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets });
 
-  const report = () => onChange({ type: "interval", completedSets: completedRef.current });
+  useEffect(() => {
+    configRef.current = { workSec, restSec, totalSets };
+  }, [workSec, restSec, totalSets]);
+
+  const report = () => onChange({
+    type: "interval",
+    completedSets: completedRef.current,
+    workSec: configRef.current.workSec,
+    restSec: configRef.current.restSec,
+    targetSets: configRef.current.totalSets,
+  });
 
   const clearTick = () => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
@@ -36,7 +53,7 @@ export function IntervalCard({ exercise, onChange }) {
       if (phaseRef.current === "work") {
         completedRef.current += 1;
         report();
-        if (currentSetRef.current >= exercise.sets) {
+        if (currentSetRef.current >= configRef.current.totalSets) {
           phaseRef.current = "done";
           setPhase("done");
           clearTick();
@@ -44,17 +61,17 @@ export function IntervalCard({ exercise, onChange }) {
           return;
         }
         phaseRef.current = "rest";
-        timeLeftRef.current = exercise.restSec;
+        timeLeftRef.current = configRef.current.restSec;
         setPhase("rest");
-        setTimeLeft(exercise.restSec);
+        setTimeLeft(configRef.current.restSec);
         sounds.restStart();
       } else if (phaseRef.current === "rest") {
         currentSetRef.current += 1;
         phaseRef.current = "work";
-        timeLeftRef.current = exercise.workSec;
+        timeLeftRef.current = configRef.current.workSec;
         setPhase("work");
         setCurrentSet(currentSetRef.current);
-        setTimeLeft(exercise.workSec);
+        setTimeLeft(configRef.current.workSec);
         sounds.workStart();
       }
     } else {
@@ -67,11 +84,11 @@ export function IntervalCard({ exercise, onChange }) {
     getAudioCtx();
     phaseRef.current = "work";
     currentSetRef.current = 1;
-    timeLeftRef.current = exercise.workSec;
+    timeLeftRef.current = configRef.current.workSec;
     completedRef.current = 0;
     setPhase("work");
     setCurrentSet(1);
-    setTimeLeft(exercise.workSec);
+    setTimeLeft(configRef.current.workSec);
     setPaused(false);
     sounds.workStart();
     intervalRef.current = setInterval(runTick, 1000);
@@ -82,10 +99,10 @@ export function IntervalCard({ exercise, onChange }) {
     completedRef.current = 0;
     phaseRef.current = "idle";
     currentSetRef.current = 1;
-    timeLeftRef.current = exercise.workSec;
+    timeLeftRef.current = configRef.current.workSec;
     setPhase("idle");
     setCurrentSet(1);
-    setTimeLeft(exercise.workSec);
+    setTimeLeft(configRef.current.workSec);
     setPaused(false);
     report();
   };
@@ -104,20 +121,20 @@ export function IntervalCard({ exercise, onChange }) {
     if (phaseRef.current === "rest") {
       currentSetRef.current += 1;
       phaseRef.current = "work";
-      timeLeftRef.current = exercise.workSec;
+      timeLeftRef.current = configRef.current.workSec;
       setPhase("work");
       setCurrentSet(currentSetRef.current);
-      setTimeLeft(exercise.workSec);
+      setTimeLeft(configRef.current.workSec);
     } else if (phaseRef.current === "work") {
       completedRef.current += 1;
       report();
-      if (currentSetRef.current >= exercise.sets) {
+      if (currentSetRef.current >= configRef.current.totalSets) {
         finishNow();
       } else {
         phaseRef.current = "rest";
-        timeLeftRef.current = exercise.restSec;
+        timeLeftRef.current = configRef.current.restSec;
         setPhase("rest");
-        setTimeLeft(exercise.restSec);
+        setTimeLeft(configRef.current.restSec);
       }
     }
   };
@@ -127,29 +144,37 @@ export function IntervalCard({ exercise, onChange }) {
   const running = phase === "work" || phase === "rest";
   const phaseColor = phase === "work" ? "#D9A441" : phase === "rest" ? "#3A9E6E" : "#888";
   const phaseBg = phase === "work" ? "rgba(217,164,65,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
-  const completed = phase === "done" ? (completedRef.current >= exercise.sets ? exercise.sets : completedRef.current) : completedRef.current;
+  const completed = phase === "done" ? (completedRef.current >= totalSets ? totalSets : completedRef.current) : completedRef.current;
 
   return (
     <div>
+      {phase === "idle" && (
+        <div style={s.fieldRow}>
+          <NumberField label="Work" value={workSec} onChange={setWorkSec} min={1} suffix="s" />
+          <NumberField label="Rest" value={restSec} onChange={setRestSec} min={0} suffix="s" />
+          <NumberField label="Sets" value={totalSets} onChange={setTotalSets} min={1} />
+        </div>
+      )}
+
       <div style={{ ...s.timerBox, background: phaseBg }}>
         {phase === "idle" && (
           <>
-            <div style={s.timerDigits}>{formatTime(exercise.workSec)}</div>
-            <div style={s.timerSub}>{exercise.sets} sets &middot; {formatTime(exercise.workSec)} on &middot; {formatTime(exercise.restSec)} off</div>
+            <div style={s.timerDigits}>{formatTime(workSec)}</div>
+            <div style={s.timerSub}>{totalSets} sets &middot; {formatTime(workSec)} on &middot; {formatTime(restSec)} off</div>
           </>
         )}
         {running && (
           <>
             <div style={{ ...s.phaseLabel, color: phaseColor }}>{phase.toUpperCase()}</div>
             <div style={{ ...s.timerDigits, color: phaseColor }}>{formatTime(timeLeft)}</div>
-            <div style={s.timerSub}>Set {currentSet} / {exercise.sets}</div>
+            <div style={s.timerSub}>Set {currentSet} / {totalSets}</div>
             {paused && <div style={{ ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 }}>PAUSED</div>}
           </>
         )}
         {phase === "done" && (
           <>
             <div style={{ ...s.phaseLabel, color: "#3A9E6E" }}>DONE</div>
-            <div style={s.timerSub}>{completed} / {exercise.sets} sets completed</div>
+            <div style={s.timerSub}>{completed} / {totalSets} sets completed</div>
           </>
         )}
       </div>
