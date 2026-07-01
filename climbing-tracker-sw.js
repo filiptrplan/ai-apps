@@ -1,5 +1,10 @@
 const CACHE_NAME = "climbing-tracker-v1";
 const ASSETS = [
+  // The site serves this page at the extensionless path in production
+  // (Cloudflare's asset serving redirects the .html path away from it), so
+  // cache both forms - the extensionless one matches what start_url/scope
+  // and real navigations actually request.
+  "./climbing-tracker",
   "./climbing-tracker.html",
   "./climbing-tracker-app.js",
   "./climbing-tracker/manifest.json",
