@@ -49,6 +49,11 @@
     if (ex.type === "interval") return `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
     return `${ex.sets} \xD7 ${ex.reps} reps${restPart}`;
   }
+  function stripCodeFence(text) {
+    const trimmed = text.trim();
+    const match = trimmed.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/);
+    return match ? match[1] : trimmed;
+  }
   function mergeById(existing, incoming) {
     const result = [...existing];
     incoming.forEach((item) => {
@@ -62,7 +67,7 @@
   }
   const LLM_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
 
-Output ONLY raw JSON (no markdown code fences, no commentary, no trailing commas) matching this exact shape:
+Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
 
 {
   "exercises": [ <Exercise>, ... ],
@@ -124,7 +129,7 @@ Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
 - Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
-- Do not invent extra fields, do not wrap the JSON in markdown fences, output nothing but the JSON object.
+- Do not invent extra fields. Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
 - Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
@@ -348,7 +353,7 @@ Now generate the exercises and/or routines described by the user's request that 
         value: row.weight,
         onChange: (e) => updateRow(i, { weight: e.target.value })
       }
-    ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: rows.length <= 1 }, "\xD7")), restRowIndex === i && /* @__PURE__ */ React.createElement("div", { style: s.restInline }, /* @__PURE__ */ React.createElement("span", { style: s.restInlineLabel }, "Rest ", formatTime(restTimeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: toggleRestPause }, restPaused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: skipRest }, "Skip"))))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"));
+    ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: rows.length <= 1 }, "\xD7")), restRowIndex === i && /* @__PURE__ */ React.createElement("div", { style: s.restInline }, /* @__PURE__ */ React.createElement("span", { style: s.restInlineLabel }, "Rest ", formatTime(restTimeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: toggleRestPause }, restPaused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: skipRest }, "Skip"))))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"));
   }
   function IntervalCard({ exercise, onChange }) {
     const [phase, setPhase] = useState("idle");
@@ -659,7 +664,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const applyImport = (text) => {
       try {
-        const data = JSON.parse(text || transferText);
+        const data = JSON.parse(stripCodeFence(text || transferText));
         if (transferScope === "all") {
           if (Array.isArray(data.exercises)) setExercises(data.exercises);
           if (Array.isArray(data.routines)) setRoutines(data.routines);
@@ -952,6 +957,17 @@ Now generate the exercises and/or routines described by the user's request that 
       color: "#CCC",
       fontSize: 12,
       cursor: "pointer"
+    },
+    restBtn: {
+      padding: "5px 10px",
+      borderRadius: 6,
+      border: "1px solid #333",
+      background: "#1A1A1A",
+      color: "#CCC",
+      fontSize: 12,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      flexShrink: 0
     },
     deleteBtn: {
       width: 30,
