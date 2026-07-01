@@ -5,11 +5,13 @@ runtime build step required.
 
 ## Adding an app
 
-Each app is a single React component written in JSX (`<name>-app.jsx`),
+Each app has an entry point written in JSX at the repo root (`<name>-app.jsx`),
 compiled to a plain `React.createElement`-based bundle (`<name>-app.js`)
 that's loaded directly by `<name>.html` alongside the React/ReactDOM UMD
 scripts. The compiled `.js` file is committed, so the site needs no build
-step to deploy.
+step to deploy. If an app grows large, its entry point can `import`/`export`
+from sibling files or a subdirectory (e.g. `<name>/`) — esbuild bundles
+everything into the single committed `<name>-app.js`.
 
 To compile `.jsx` sources after editing them:
 
