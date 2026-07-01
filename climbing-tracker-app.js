@@ -114,16 +114,14 @@ Routine objects group exercises into an ordered sequence of steps to perform tog
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null> },
     ...
   ]
 }
 
-IMPORTANT - what "restSec" actually does (read this carefully, it is easy to misuse):
-"restSec" is a countdown timer that fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when "sets" for that step is 2 or more. There is no concept of "rest between different exercises" anywhere in this app - when a session moves from one exercise/step to the next there is never an automatic pause. Concretely:
-- If a step has "sets": 1, its "restSec" is completely inert and will never fire, no matter what number you put there (for "interval" exercises, a rest phase only ever happens between the 1st, 2nd, 3rd, etc. work cycle of that SAME timer, so with "sets": 1 there is only one work cycle and the rest phase never triggers either).
-- Do NOT model a "circuit" (e.g. "3 rounds of 5 exercises") as 15 separate one-set steps in the hope that "restSec" will create breaks between the different exercises in each round - it will not, those rest values will silently do nothing. If you want repeated rounds of a circuit, repeating each exercise as its own step multiple times in the desired order is fine for capturing the exercise ORDER, just do not set "restSec" on those steps expecting it to pause between exercises - leave it 0/null and mention in your reply (outside the JSON, if there is room) that this app does not yet support timed rest between different exercises, only between repeated sets of one exercise.
-- Only set a step's "restSec" above 0 when you also give that same step "sets" of 2 or more, e.g. to have a genuine rest countdown between the reps/weighted sets of one exercise, or between the work cycles of one interval exercise.
+IMPORTANT - there are TWO different kinds of rest, don't mix them up:
+- "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
+- "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise in the routine. This is what to use for circuits/supersets, e.g. "3 rounds of 5 exercises with 20s between each exercise" - give every step in the round "restAfterSec": 20 (except it is harmless to leave it on the very last step too, since it is simply never shown after the last card). Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
@@ -163,6 +161,14 @@ Now generate the exercises and/or routines described by the user's request that 
       targetReps: exercise.reps,
       sets: doneRows.map((r) => ({ reps: Number(r.reps) || 0 }))
     };
+  }
+  function isStepComplete(exercise, log) {
+    if (!log) return false;
+    if (exercise.type === "interval") {
+      return (log.completedSets || 0) >= (exercise.sets || 1);
+    }
+    const rows = log.rows || [];
+    return rows.length > 0 && rows.every((r) => r.done);
   }
   function formatPerformedSummary(step) {
     const p = step.performed;
@@ -477,7 +483,52 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     const [order, setOrder] = useState(() => session.exercises.map((_, i) => i));
+    const completedRef = useRef(session.exercises.map(() => false));
+    const [interRest, setInterRest] = useState(null);
+    const intervalRef = useRef(null);
+    const timeLeftRef = useRef(0);
+    const clearTick = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    const tick = () => {
+      timeLeftRef.current -= 1;
+      if (timeLeftRef.current <= 0) {
+        clearTick();
+        sounds.workStart();
+        setInterRest(null);
+      } else {
+        setInterRest((r) => r && { ...r, timeLeft: timeLeftRef.current });
+        if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
+      }
+    };
+    const startInterRest = (afterPos, restAfterSec) => {
+      clearTick();
+      timeLeftRef.current = restAfterSec;
+      setInterRest({ afterPos, timeLeft: restAfterSec, paused: false });
+      sounds.restStart();
+      intervalRef.current = setInterval(tick, 1e3);
+    };
+    const skipInterRest = () => {
+      clearTick();
+      setInterRest(null);
+    };
+    const toggleInterRestPause = () => {
+      setInterRest((r) => {
+        if (!r) return r;
+        if (r.paused) {
+          intervalRef.current = setInterval(tick, 1e3);
+          return { ...r, paused: false };
+        }
+        clearTick();
+        return { ...r, paused: true };
+      });
+    };
+    useEffect(() => () => clearTick(), []);
     const moveCard = (position, dir) => {
+      skipInterRest();
       setOrder((o) => {
         const arr = [...o];
         const j = position + dir;
@@ -486,17 +537,27 @@ Now generate the exercises and/or routines described by the user's request that 
         return arr;
       });
     };
-    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, session.kind === "routine" ? session.refName : "Exercise")), order.map((exIdx, position) => /* @__PURE__ */ React.createElement(
+    const handleCardChange = (exIdx, log) => {
+      onLogChange(exIdx, log);
+      const exercise = session.exercises[exIdx];
+      const wasComplete = completedRef.current[exIdx];
+      const nowComplete = isStepComplete(exercise, log);
+      completedRef.current[exIdx] = nowComplete;
+      if (nowComplete && !wasComplete && exercise.restAfterSec > 0) {
+        const pos = order.indexOf(exIdx);
+        if (pos !== -1 && pos < order.length - 1) startInterRest(pos, exercise.restAfterSec);
+      }
+    };
+    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, session.kind === "routine" ? session.refName : "Exercise")), order.map((exIdx, position) => /* @__PURE__ */ React.createElement(React.Fragment, { key: exIdx }, /* @__PURE__ */ React.createElement(
       ExerciseCard,
       {
-        key: exIdx,
         exercise: session.exercises[exIdx],
         position,
         total: order.length,
-        onChange: (log) => onLogChange(exIdx, log),
+        onChange: (log) => handleCardChange(exIdx, log),
         onMove: (dir) => moveCard(position, dir)
       }
-    )), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: onFinish }, "Finish workout"));
+    ), interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: s.interRestBanner }, /* @__PURE__ */ React.createElement("span", { style: s.interRestLabel }, "Rest before next exercise: ", formatTime(interRest.timeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: toggleInterRestPause }, interRest.paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: skipInterRest }, "Skip")))), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: onFinish }, "Finish workout"));
   }
   const TABS = ["Exercises", "Routines", "History", "Settings"];
   function ClimbingTrackerApp() {
@@ -539,7 +600,7 @@ Now generate the exercises and/or routines described by the user's request that 
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
           name: r.name,
-          steps: (r.exerciseIds || []).map((exerciseId) => ({ id: uid(), exerciseId, sets: null, restSec: null }))
+          steps: (r.exerciseIds || []).map((exerciseId) => ({ id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null }))
         }));
       }
     }, []);
@@ -553,7 +614,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const deleteRoutine = (id) => setRoutines(routines.filter((r) => r.id !== id));
     const addStepToRoutine = (routineId, exerciseId) => {
       if (!exerciseId) return;
-      const step = { id: uid(), exerciseId, sets: null, restSec: null };
+      const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null };
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
     };
     const updateRoutineStep = (routineId, idx, patch) => {
@@ -579,13 +640,14 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const startRoutine = (r) => {
       const exs = r.steps.map((step) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const ex = exercises.find((e) => e.id === step.exerciseId);
         if (!ex) return null;
         return {
           ...ex,
           sets: (_a = step.sets) != null ? _a : ex.sets,
-          restSec: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0
+          restSec: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
+          restAfterSec: (_d = step.restAfterSec) != null ? _d : 0
         };
       }).filter(Boolean);
       if (exs.length === 0) return;
@@ -726,7 +788,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const expanded = expandedRoutineId === r.id;
       const resolved = r.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
       return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedRoutineId(expanded ? null : r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, resolved.length, " exercise", resolved.length === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: resolved.length === 0 }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteRoutine(r.id) }, "\xD7"))), expanded && /* @__PURE__ */ React.createElement("div", { style: s.routineEditor }, resolved.map(({ step, exercise: ex }, i) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.routineStepRow }, /* @__PURE__ */ React.createElement("div", { style: s.routineStepMain }, /* @__PURE__ */ React.createElement("span", { style: s.routineStepName }, i + 1, ". ", ex.name), /* @__PURE__ */ React.createElement("div", { style: s.routineStepOverrides }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Sets", /* @__PURE__ */ React.createElement(
           "input",
           {
@@ -744,6 +806,15 @@ Now generate the exercises and/or routines described by the user's request that 
             min: 0,
             value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
             onChange: (e) => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+          }
+        )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after (s)", /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            style: s.routineStepInput,
+            type: "number",
+            min: 0,
+            value: (_d = step.restAfterSec) != null ? _d : 0,
+            onChange: (e) => updateRoutineStep(r.id, i, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
           }
         )))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, 1), disabled: i === resolved.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeFromRoutine(r.id, i) }, "\xD7")));
       }), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement(
@@ -1134,6 +1205,17 @@ Now generate the exercises and/or routines described by the user's request that 
       border: "1px solid rgba(58,158,110,0.3)"
     },
     restInlineLabel: { fontSize: 13, color: "#3A9E6E", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
+    interRestBanner: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      margin: "-6px 0 14px",
+      padding: "10px 12px",
+      borderRadius: 10,
+      background: "rgba(217,164,65,0.1)",
+      border: "1px solid rgba(217,164,65,0.35)"
+    },
+    interRestLabel: { fontSize: 13, color: "#D9A441", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
     addSetBtn: {
       width: "100%",
       padding: "10px 0",

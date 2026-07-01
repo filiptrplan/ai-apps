@@ -123,16 +123,14 @@ Routine objects group exercises into an ordered sequence of steps to perform tog
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null> },
     ...
   ]
 }
 
-IMPORTANT - what "restSec" actually does (read this carefully, it is easy to misuse):
-"restSec" is a countdown timer that fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when "sets" for that step is 2 or more. There is no concept of "rest between different exercises" anywhere in this app - when a session moves from one exercise/step to the next there is never an automatic pause. Concretely:
-- If a step has "sets": 1, its "restSec" is completely inert and will never fire, no matter what number you put there (for "interval" exercises, a rest phase only ever happens between the 1st, 2nd, 3rd, etc. work cycle of that SAME timer, so with "sets": 1 there is only one work cycle and the rest phase never triggers either).
-- Do NOT model a "circuit" (e.g. "3 rounds of 5 exercises") as 15 separate one-set steps in the hope that "restSec" will create breaks between the different exercises in each round - it will not, those rest values will silently do nothing. If you want repeated rounds of a circuit, repeating each exercise as its own step multiple times in the desired order is fine for capturing the exercise ORDER, just do not set "restSec" on those steps expecting it to pause between exercises - leave it 0/null and mention in your reply (outside the JSON, if there is room) that this app does not yet support timed rest between different exercises, only between repeated sets of one exercise.
-- Only set a step's "restSec" above 0 when you also give that same step "sets" of 2 or more, e.g. to have a genuine rest countdown between the reps/weighted sets of one exercise, or between the work cycles of one interval exercise.
+IMPORTANT - there are TWO different kinds of rest, don't mix them up:
+- "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
+- "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise in the routine. This is what to use for circuits/supersets, e.g. "3 rounds of 5 exercises with 20s between each exercise" - give every step in the round "restAfterSec": 20 (except it is harmless to leave it on the very last step too, since it is simply never shown after the last card). Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
@@ -175,6 +173,17 @@ function buildPerformedFromLog(exercise, log) {
     targetReps: exercise.reps,
     sets: doneRows.map(r => ({ reps: Number(r.reps) || 0 })),
   };
+}
+
+// Whether every set of this exercise has been ticked/completed, used to
+// trigger the "rest before the next exercise" countdown in a session.
+function isStepComplete(exercise, log) {
+  if (!log) return false;
+  if (exercise.type === "interval") {
+    return (log.completedSets || 0) >= (exercise.sets || 1);
+  }
+  const rows = log.rows || [];
+  return rows.length > 0 && rows.every(r => r.done);
 }
 
 function formatPerformedSummary(step) {
@@ -644,10 +653,54 @@ function ExerciseCard({ exercise, position, total, onChange, onMove }) {
 // can be worked through in whatever order feels right rather than a forced
 // step-by-step sequence. Each card reports its live progress via onLogChange;
 // "Finish workout" reads whatever has been ticked/logged so far.
+//
+// A step can carry a "restAfterSec" (set per-routine-step, see startRoutine):
+// when a card newly becomes fully complete, and it isn't the last card in the
+// current display order, a non-blocking rest countdown appears before the
+// next card - advisory only, it never locks the other cards.
 function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const [order, setOrder] = useState(() => session.exercises.map((_, i) => i));
+  const completedRef = useRef(session.exercises.map(() => false));
+  const [interRest, setInterRest] = useState(null); // { afterPos, timeLeft, paused }
+  const intervalRef = useRef(null);
+  const timeLeftRef = useRef(0);
+
+  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+
+  const tick = () => {
+    timeLeftRef.current -= 1;
+    if (timeLeftRef.current <= 0) {
+      clearTick();
+      sounds.workStart();
+      setInterRest(null);
+    } else {
+      setInterRest(r => r && { ...r, timeLeft: timeLeftRef.current });
+      if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
+    }
+  };
+
+  const startInterRest = (afterPos, restAfterSec) => {
+    clearTick();
+    timeLeftRef.current = restAfterSec;
+    setInterRest({ afterPos, timeLeft: restAfterSec, paused: false });
+    sounds.restStart();
+    intervalRef.current = setInterval(tick, 1000);
+  };
+
+  const skipInterRest = () => { clearTick(); setInterRest(null); };
+  const toggleInterRestPause = () => {
+    setInterRest(r => {
+      if (!r) return r;
+      if (r.paused) { intervalRef.current = setInterval(tick, 1000); return { ...r, paused: false }; }
+      clearTick();
+      return { ...r, paused: true };
+    });
+  };
+
+  useEffect(() => () => clearTick(), []);
 
   const moveCard = (position, dir) => {
+    skipInterRest();
     setOrder(o => {
       const arr = [...o];
       const j = position + dir;
@@ -657,6 +710,18 @@ function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     });
   };
 
+  const handleCardChange = (exIdx, log) => {
+    onLogChange(exIdx, log);
+    const exercise = session.exercises[exIdx];
+    const wasComplete = completedRef.current[exIdx];
+    const nowComplete = isStepComplete(exercise, log);
+    completedRef.current[exIdx] = nowComplete;
+    if (nowComplete && !wasComplete && exercise.restAfterSec > 0) {
+      const pos = order.indexOf(exIdx);
+      if (pos !== -1 && pos < order.length - 1) startInterRest(pos, exercise.restAfterSec);
+    }
+  };
+
   return (
     <div style={s.page}>
       <div style={s.sessionTopBar}>
@@ -664,14 +729,22 @@ function SessionPage({ session, onCancel, onLogChange, onFinish }) {
         <div style={s.sessionTitle}>{session.kind === "routine" ? session.refName : "Exercise"}</div>
       </div>
       {order.map((exIdx, position) => (
-        <ExerciseCard
-          key={exIdx}
-          exercise={session.exercises[exIdx]}
-          position={position}
-          total={order.length}
-          onChange={log => onLogChange(exIdx, log)}
-          onMove={dir => moveCard(position, dir)}
-        />
+        <React.Fragment key={exIdx}>
+          <ExerciseCard
+            exercise={session.exercises[exIdx]}
+            position={position}
+            total={order.length}
+            onChange={log => handleCardChange(exIdx, log)}
+            onMove={dir => moveCard(position, dir)}
+          />
+          {interRest && interRest.afterPos === position && (
+            <div style={s.interRestBanner}>
+              <span style={s.interRestLabel}>Rest before next exercise: {formatTime(interRest.timeLeft)}</span>
+              <button style={s.restBtn} onClick={toggleInterRestPause}>{interRest.paused ? "Resume" : "Pause"}</button>
+              <button style={s.restBtn} onClick={skipInterRest}>Skip</button>
+            </div>
+          )}
+        </React.Fragment>
       ))}
       <button style={s.startBtn} onClick={onFinish}>Finish workout</button>
     </div>
@@ -728,7 +801,7 @@ function ClimbingTrackerApp() {
       setRoutines(routines.map(r => Array.isArray(r.steps) ? r : {
         id: r.id,
         name: r.name,
-        steps: (r.exerciseIds || []).map(exerciseId => ({ id: uid(), exerciseId, sets: null, restSec: null })),
+        steps: (r.exerciseIds || []).map(exerciseId => ({ id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null })),
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -744,7 +817,7 @@ function ClimbingTrackerApp() {
   const deleteRoutine = (id) => setRoutines(routines.filter(r => r.id !== id));
   const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
-    const step = { id: uid(), exerciseId, sets: null, restSec: null };
+    const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null };
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
   };
   const updateRoutineStep = (routineId, idx, patch) => {
@@ -781,6 +854,7 @@ function ClimbingTrackerApp() {
         ...ex,
         sets: step.sets ?? ex.sets,
         restSec: step.restSec ?? (ex.restSec ?? 0),
+        restAfterSec: step.restAfterSec ?? 0,
       };
     }).filter(Boolean);
     if (exs.length === 0) return;
@@ -1000,6 +1074,16 @@ function ClimbingTrackerApp() {
                                 min={0}
                                 value={step.restSec ?? (ex.restSec ?? 0)}
                                 onChange={e => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                              />
+                            </label>
+                            <label style={s.routineStepFieldLabel}>
+                              Rest after (s)
+                              <input
+                                style={s.routineStepInput}
+                                type="number"
+                                min={0}
+                                value={step.restAfterSec ?? 0}
+                                onChange={e => updateRoutineStep(r.id, i, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
                               />
                             </label>
                           </div>
@@ -1322,6 +1406,12 @@ const s = {
     border: "1px solid rgba(58,158,110,0.3)",
   },
   restInlineLabel: { fontSize: 13, color: "#3A9E6E", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
+  interRestBanner: {
+    display: "flex", alignItems: "center", gap: 8, margin: "-6px 0 14px",
+    padding: "10px 12px", borderRadius: 10, background: "rgba(217,164,65,0.1)",
+    border: "1px solid rgba(217,164,65,0.35)",
+  },
+  interRestLabel: { fontSize: 13, color: "#D9A441", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
   addSetBtn: {
     width: "100%", padding: "10px 0", borderRadius: 8, border: "1px dashed #444",
     background: "transparent", color: "#CCC", fontSize: 13, fontWeight: 600, cursor: "pointer",
