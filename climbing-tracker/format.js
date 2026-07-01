@@ -57,7 +57,8 @@ export function mergeById(existing, incoming) {
 export function isStepComplete(exercise, log) {
   if (!log) return false;
   if (exercise.type === "interval") {
-    return (log.completedSets || 0) >= (exercise.sets || 1);
+    const target = log.targetSets ?? exercise.sets ?? 1;
+    return (log.completedSets || 0) >= target;
   }
   const rows = log.rows || [];
   return rows.length > 0 && rows.every(r => r.done);
@@ -65,15 +66,17 @@ export function isStepComplete(exercise, log) {
 
 // Turns a card's live log into a history "performed" record, or null if
 // nothing was actually logged (so untouched cards are dropped silently).
+// For interval exercises, work/rest/sets are read from the log (not the
+// exercise prop) since IntervalCard lets those be edited before starting.
 export function buildPerformedFromLog(exercise, log) {
   if (!log) return null;
   if (exercise.type === "interval") {
     if (!log.completedSets) return null;
     return {
       type: "interval",
-      workSec: exercise.workSec,
-      restSec: exercise.restSec,
-      targetSets: exercise.sets,
+      workSec: log.workSec ?? exercise.workSec,
+      restSec: log.restSec ?? exercise.restSec,
+      targetSets: log.targetSets ?? exercise.sets,
       completedSets: log.completedSets,
     };
   }
@@ -106,4 +109,49 @@ export function formatPerformedSummary(step) {
     return `${p.completedSets}/${p.targetSets} sets · ${p.workSec}s on / ${p.restSec}s off`;
   }
   return `${p.sets.length} sets: ` + p.sets.map(s => s.reps).join(", ") + " reps";
+}
+
+// A value is "uniform" across an array when every entry matches the first -
+// used below to only suggest a new reps/weight default when every logged set
+// actually agrees on one number (a mixed pyramid set is left alone).
+function uniformValue(values) {
+  return values.length > 0 && values.every(v => v === values[0]) ? values[0] : null;
+}
+
+// Compares a logged history step against the CURRENT exercise definition and
+// returns { exercise, patch } describing how the exercise's own template
+// differs from what was actually logged, or null if there's no (unambiguous)
+// difference. Used to offer an "Update template" action from History.
+export function computeTemplateDrift(step, exercises) {
+  const ex = exercises.find(e => e.id === step.exerciseId);
+  if (!ex) return null;
+  const p = step.performed;
+  const patch = {};
+
+  if (p.type === "interval") {
+    if (p.targetSets !== ex.sets) patch.sets = p.targetSets;
+    if (p.workSec !== ex.workSec) patch.workSec = p.workSec;
+    if (p.restSec !== ex.restSec) patch.restSec = p.restSec;
+  } else {
+    if (p.sets.length !== ex.sets) patch.sets = p.sets.length;
+    const reps = uniformValue(p.sets.map(row => row.reps));
+    if (reps !== null && reps !== ex.reps) patch.reps = reps;
+    if (p.type === "weighted") {
+      const weight = uniformValue(p.sets.map(row => row.weight));
+      if (weight !== null && weight !== ex.weight) patch.weight = weight;
+    }
+  }
+
+  return Object.keys(patch).length > 0 ? { exercise: ex, patch } : null;
+}
+
+export function formatDriftSummary(drift) {
+  const { exercise: ex, patch } = drift;
+  const parts = [];
+  if ("sets" in patch) parts.push(`Sets: ${ex.sets}→${patch.sets}`);
+  if ("reps" in patch) parts.push(`Reps: ${ex.reps}→${patch.reps}`);
+  if ("weight" in patch) parts.push(`Weight: ${ex.weight}→${patch.weight}kg`);
+  if ("workSec" in patch) parts.push(`Work: ${ex.workSec}s→${patch.workSec}s`);
+  if ("restSec" in patch) parts.push(`Rest: ${ex.restSec}s→${patch.restSec}s`);
+  return parts.join(" · ");
 }

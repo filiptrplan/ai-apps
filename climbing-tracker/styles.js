@@ -120,6 +120,12 @@ export const s = {
     marginBottom: 16, display: "block",
   },
   historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
+  driftRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" },
+  driftText: { fontSize: 12, color: "#D9A441" },
+  driftBtn: {
+    padding: "3px 9px", borderRadius: 6, border: "1px solid #D9A441",
+    background: "rgba(217,164,65,0.12)", color: "#D9A441", fontSize: 12, fontWeight: 600, cursor: "pointer",
+  },
   settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
   exportRow: { display: "flex", gap: 8 },
   exportHint: { fontSize: 12, color: "#555", marginTop: 8 },

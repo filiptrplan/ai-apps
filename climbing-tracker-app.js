@@ -74,22 +74,25 @@
     return result;
   }
   function isStepComplete(exercise, log) {
+    var _a, _b;
     if (!log) return false;
     if (exercise.type === "interval") {
-      return (log.completedSets || 0) >= (exercise.sets || 1);
+      const target = (_b = (_a = log.targetSets) != null ? _a : exercise.sets) != null ? _b : 1;
+      return (log.completedSets || 0) >= target;
     }
     const rows = log.rows || [];
     return rows.length > 0 && rows.every((r) => r.done);
   }
   function buildPerformedFromLog(exercise, log) {
+    var _a, _b, _c;
     if (!log) return null;
     if (exercise.type === "interval") {
       if (!log.completedSets) return null;
       return {
         type: "interval",
-        workSec: exercise.workSec,
-        restSec: exercise.restSec,
-        targetSets: exercise.sets,
+        workSec: (_a = log.workSec) != null ? _a : exercise.workSec,
+        restSec: (_b = log.restSec) != null ? _b : exercise.restSec,
+        targetSets: (_c = log.targetSets) != null ? _c : exercise.sets,
         completedSets: log.completedSets
       };
     }
@@ -121,6 +124,39 @@
       return `${p.completedSets}/${p.targetSets} sets \xB7 ${p.workSec}s on / ${p.restSec}s off`;
     }
     return `${p.sets.length} sets: ` + p.sets.map((s2) => s2.reps).join(", ") + " reps";
+  }
+  function uniformValue(values) {
+    return values.length > 0 && values.every((v) => v === values[0]) ? values[0] : null;
+  }
+  function computeTemplateDrift(step, exercises) {
+    const ex = exercises.find((e) => e.id === step.exerciseId);
+    if (!ex) return null;
+    const p = step.performed;
+    const patch = {};
+    if (p.type === "interval") {
+      if (p.targetSets !== ex.sets) patch.sets = p.targetSets;
+      if (p.workSec !== ex.workSec) patch.workSec = p.workSec;
+      if (p.restSec !== ex.restSec) patch.restSec = p.restSec;
+    } else {
+      if (p.sets.length !== ex.sets) patch.sets = p.sets.length;
+      const reps = uniformValue(p.sets.map((row) => row.reps));
+      if (reps !== null && reps !== ex.reps) patch.reps = reps;
+      if (p.type === "weighted") {
+        const weight = uniformValue(p.sets.map((row) => row.weight));
+        if (weight !== null && weight !== ex.weight) patch.weight = weight;
+      }
+    }
+    return Object.keys(patch).length > 0 ? { exercise: ex, patch } : null;
+  }
+  function formatDriftSummary(drift) {
+    const { exercise: ex, patch } = drift;
+    const parts = [];
+    if ("sets" in patch) parts.push(`Sets: ${ex.sets}\u2192${patch.sets}`);
+    if ("reps" in patch) parts.push(`Reps: ${ex.reps}\u2192${patch.reps}`);
+    if ("weight" in patch) parts.push(`Weight: ${ex.weight}\u2192${patch.weight}kg`);
+    if ("workSec" in patch) parts.push(`Work: ${ex.workSec}s\u2192${patch.workSec}s`);
+    if ("restSec" in patch) parts.push(`Rest: ${ex.restSec}s\u2192${patch.restSec}s`);
+    return parts.join(" \xB7 ");
   }
 
   // climbing-tracker/llmGuidance.js
@@ -446,6 +482,18 @@ Now generate the exercises and/or routines described by the user's request that 
       display: "block"
     },
     historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
+    driftRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" },
+    driftText: { fontSize: 12, color: "#D9A441" },
+    driftBtn: {
+      padding: "3px 9px",
+      borderRadius: 6,
+      border: "1px solid #D9A441",
+      background: "rgba(217,164,65,0.12)",
+      color: "#D9A441",
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
     settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
     exportRow: { display: "flex", gap: 8 },
     exportHint: { fontSize: 12, color: "#555", marginTop: 8 },
@@ -823,6 +871,9 @@ Now generate the exercises and/or routines described by the user's request that 
   var { useState: useState3, useEffect: useEffect2, useRef: useRef2 } = React;
   function IntervalCard({ exercise, onChange }) {
     const [phase, setPhase] = useState3("idle");
+    const [workSec, setWorkSec] = useState3(exercise.workSec);
+    const [restSec, setRestSec] = useState3(exercise.restSec);
+    const [totalSets, setTotalSets] = useState3(exercise.sets);
     const [currentSet, setCurrentSet] = useState3(1);
     const [timeLeft, setTimeLeft] = useState3(exercise.workSec);
     const [paused, setPaused] = useState3(false);
@@ -831,7 +882,17 @@ Now generate the exercises and/or routines described by the user's request that 
     const currentSetRef = useRef2(1);
     const timeLeftRef = useRef2(exercise.workSec);
     const completedRef = useRef2(0);
-    const report = () => onChange({ type: "interval", completedSets: completedRef.current });
+    const configRef = useRef2({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets });
+    useEffect2(() => {
+      configRef.current = { workSec, restSec, totalSets };
+    }, [workSec, restSec, totalSets]);
+    const report = () => onChange({
+      type: "interval",
+      completedSets: completedRef.current,
+      workSec: configRef.current.workSec,
+      restSec: configRef.current.restSec,
+      targetSets: configRef.current.totalSets
+    });
     const clearTick = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -849,7 +910,7 @@ Now generate the exercises and/or routines described by the user's request that 
         if (phaseRef.current === "work") {
           completedRef.current += 1;
           report();
-          if (currentSetRef.current >= exercise.sets) {
+          if (currentSetRef.current >= configRef.current.totalSets) {
             phaseRef.current = "done";
             setPhase("done");
             clearTick();
@@ -857,17 +918,17 @@ Now generate the exercises and/or routines described by the user's request that 
             return;
           }
           phaseRef.current = "rest";
-          timeLeftRef.current = exercise.restSec;
+          timeLeftRef.current = configRef.current.restSec;
           setPhase("rest");
-          setTimeLeft(exercise.restSec);
+          setTimeLeft(configRef.current.restSec);
           sounds.restStart();
         } else if (phaseRef.current === "rest") {
           currentSetRef.current += 1;
           phaseRef.current = "work";
-          timeLeftRef.current = exercise.workSec;
+          timeLeftRef.current = configRef.current.workSec;
           setPhase("work");
           setCurrentSet(currentSetRef.current);
-          setTimeLeft(exercise.workSec);
+          setTimeLeft(configRef.current.workSec);
           sounds.workStart();
         }
       } else {
@@ -879,11 +940,11 @@ Now generate the exercises and/or routines described by the user's request that 
       getAudioCtx();
       phaseRef.current = "work";
       currentSetRef.current = 1;
-      timeLeftRef.current = exercise.workSec;
+      timeLeftRef.current = configRef.current.workSec;
       completedRef.current = 0;
       setPhase("work");
       setCurrentSet(1);
-      setTimeLeft(exercise.workSec);
+      setTimeLeft(configRef.current.workSec);
       setPaused(false);
       sounds.workStart();
       intervalRef.current = setInterval(runTick, 1e3);
@@ -893,10 +954,10 @@ Now generate the exercises and/or routines described by the user's request that 
       completedRef.current = 0;
       phaseRef.current = "idle";
       currentSetRef.current = 1;
-      timeLeftRef.current = exercise.workSec;
+      timeLeftRef.current = configRef.current.workSec;
       setPhase("idle");
       setCurrentSet(1);
-      setTimeLeft(exercise.workSec);
+      setTimeLeft(configRef.current.workSec);
       setPaused(false);
       report();
     };
@@ -913,20 +974,20 @@ Now generate the exercises and/or routines described by the user's request that 
       if (phaseRef.current === "rest") {
         currentSetRef.current += 1;
         phaseRef.current = "work";
-        timeLeftRef.current = exercise.workSec;
+        timeLeftRef.current = configRef.current.workSec;
         setPhase("work");
         setCurrentSet(currentSetRef.current);
-        setTimeLeft(exercise.workSec);
+        setTimeLeft(configRef.current.workSec);
       } else if (phaseRef.current === "work") {
         completedRef.current += 1;
         report();
-        if (currentSetRef.current >= exercise.sets) {
+        if (currentSetRef.current >= configRef.current.totalSets) {
           finishNow();
         } else {
           phaseRef.current = "rest";
-          timeLeftRef.current = exercise.restSec;
+          timeLeftRef.current = configRef.current.restSec;
           setPhase("rest");
-          setTimeLeft(exercise.restSec);
+          setTimeLeft(configRef.current.restSec);
         }
       }
     };
@@ -934,8 +995,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const running = phase === "work" || phase === "rest";
     const phaseColor = phase === "work" ? "#D9A441" : phase === "rest" ? "#3A9E6E" : "#888";
     const phaseBg = phase === "work" ? "rgba(217,164,65,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
-    const completed = phase === "done" ? completedRef.current >= exercise.sets ? exercise.sets : completedRef.current : completedRef.current;
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: phaseBg } }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(exercise.workSec)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, exercise.sets, " sets \xB7 ", formatTime(exercise.workSec), " on \xB7 ", formatTime(exercise.restSec), " off")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: phaseColor } }, phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " / ", exercise.sets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", exercise.sets, " sets completed"))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: start }, "Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skip }, "Skip"), /* @__PURE__ */ React.createElement("button", { style: s.stopBtn, onClick: finishNow }, "Finish now")), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: restart }, "Restart")));
+    const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
+    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: phaseBg } }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " sets \xB7 ", formatTime(workSec), " on \xB7 ", formatTime(restSec), " off")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: phaseColor } }, phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " / ", totalSets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets completed"))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: start }, "Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skip }, "Skip"), /* @__PURE__ */ React.createElement("button", { style: s.stopBtn, onClick: finishNow }, "Finish now")), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: restart }, "Restart")));
   }
 
   // climbing-tracker/components/ExerciseCard.jsx
@@ -1180,6 +1241,9 @@ Now generate the exercises and/or routines described by the user's request that 
     const requestClearHistory = () => {
       requestConfirm("Clear all history?", "All logged workouts will be permanently deleted. This cannot be undone.", clearHistory, "Clear all");
     };
+    const updateExerciseTemplate = (exerciseId, patch) => {
+      setExercises(exercises.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
+    };
     const fileInputRef = useRef4(null);
     const [transferMode, setTransferMode] = useState6(null);
     const [transferScope, setTransferScope] = useState6("all");
@@ -1372,7 +1436,10 @@ Now generate the exercises and/or routines described by the user's request that 
         },
         "Add"
       ))));
-    })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: requestClearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date)), h.steps.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" ? `${step.exerciseName}: ` : "", formatPerformedSummary(step)))), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => requestDeleteHistoryEntry(h.id) }, "\xD7")))), tab === "Settings" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, 'Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into "Import exercises & routines" below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, marginTop: 10 }, onClick: copyLlmGuidance }, llmCopied ? "Copied!" : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("partial") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones \u2014 nothing is deleted.")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("all") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Full backup, including history. Importing replaces everything currently stored."))), transferMode && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setTransferMode(null) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, transferMode === "export" ? "Export" : "Import", " ", transferScope === "all" ? "all data" : "exercises & routines"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setTransferMode(null) }, "\xD7")), transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: downloadExport }, "Download"))), transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: requestClearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date)), h.steps.map((step, i) => {
+      const drift = computeTemplateDrift(step, exercises);
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, /* @__PURE__ */ React.createElement("div", null, h.kind === "routine" ? `${step.exerciseName}: ` : "", formatPerformedSummary(step)), drift && /* @__PURE__ */ React.createElement("div", { style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, "Differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => updateExerciseTemplate(drift.exercise.id, drift.patch) }, "Update template")));
+    })), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => requestDeleteHistoryEntry(h.id) }, "\xD7")))), tab === "Settings" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, 'Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into "Import exercises & routines" below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, marginTop: 10 }, onClick: copyLlmGuidance }, llmCopied ? "Copied!" : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("partial") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones \u2014 nothing is deleted.")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("all") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Full backup, including history. Importing replaces everything currently stored."))), transferMode && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setTransferMode(null) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, transferMode === "export" ? "Export" : "Import", " ", transferScope === "all" ? "all data" : "exercises & routines"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setTransferMode(null) }, "\xD7")), transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: downloadExport }, "Download"))), transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       "textarea",
       {
         style: s.transferArea,
