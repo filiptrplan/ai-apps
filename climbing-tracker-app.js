@@ -1239,9 +1239,12 @@ Now generate the exercises and/or routines described by the user's request that 
           steps: results
         };
         setHistory([entry, ...history]);
+        const drifts = results.map((step) => computeTemplateDrift(step, exercises)).filter(Boolean);
+        if (drifts.length > 0) setPostSessionDrifts(drifts);
       }
       setActiveSession(null);
     };
+    const [postSessionDrifts, setPostSessionDrifts] = useState6([]);
     const [expandedHistoryId, setExpandedHistoryId] = useState6(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
     const requestDeleteHistoryEntry = (id) => {
@@ -1253,6 +1256,10 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const updateExerciseTemplate = (exerciseId, patch) => {
       setExercises(exercises.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
+    };
+    const applyPostSessionDrift = (drift) => {
+      updateExerciseTemplate(drift.exercise.id, drift.patch);
+      setPostSessionDrifts(postSessionDrifts.filter((d) => d.exercise.id !== drift.exercise.id));
     };
     const fileInputRef = useRef4(null);
     const [transferMode, setTransferMode] = useState6(null);
@@ -1476,7 +1483,7 @@ Now generate the exercises and/or routines described by the user's request that 
     ), importError && /* @__PURE__ */ React.createElement("div", { style: s.importError }, importError), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => applyImport(), disabled: !transferText.trim() }, "Apply"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => {
       var _a;
       return (_a = fileInputRef.current) == null ? void 0 : _a.click();
-    } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, "Update exercise templates?"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setPostSessionDrifts([]) }, "\xD7")), /* @__PURE__ */ React.createElement("p", { style: s.confirmMessage }, "What you just logged differs from the saved exercise settings."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: drift.exercise.id, style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => setPostSessionDrifts([]) }, "Done")))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx

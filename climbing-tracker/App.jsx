@@ -167,10 +167,13 @@ export function ClimbingTrackerApp() {
         steps: results,
       };
       setHistory([entry, ...history]);
+      const drifts = results.map(step => computeTemplateDrift(step, exercises)).filter(Boolean);
+      if (drifts.length > 0) setPostSessionDrifts(drifts);
     }
     setActiveSession(null);
   };
 
+  const [postSessionDrifts, setPostSessionDrifts] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
   const requestDeleteHistoryEntry = (id) => {
@@ -182,6 +185,10 @@ export function ClimbingTrackerApp() {
   };
   const updateExerciseTemplate = (exerciseId, patch) => {
     setExercises(exercises.map(e => e.id === exerciseId ? { ...e, ...patch } : e));
+  };
+  const applyPostSessionDrift = (drift) => {
+    updateExerciseTemplate(drift.exercise.id, drift.patch);
+    setPostSessionDrifts(postSessionDrifts.filter(d => d.exercise.id !== drift.exercise.id));
   };
 
   // Export / import
@@ -565,6 +572,27 @@ export function ClimbingTrackerApp() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {postSessionDrifts.length > 0 && (
+        <div style={s.overlay} onClick={() => setPostSessionDrifts([])}>
+          <div style={s.modal} onClick={e => e.stopPropagation()}>
+            <div style={s.modalHeader}>
+              <span style={s.modalTitle}>Update exercise templates?</span>
+              <button style={s.modalClose} onClick={() => setPostSessionDrifts([])}>&times;</button>
+            </div>
+            <p style={s.confirmMessage}>What you just logged differs from the saved exercise settings.</p>
+            {postSessionDrifts.map(drift => (
+              <div key={drift.exercise.id} style={s.driftRow}>
+                <span style={s.driftText}>{drift.exercise.name}: {formatDriftSummary(drift)}</span>
+                <button style={s.driftBtn} onClick={() => applyPostSessionDrift(drift)}>Update</button>
+              </div>
+            ))}
+            <div style={s.modalActions}>
+              <button style={{ ...s.exportBtn, flex: 1 }} onClick={() => setPostSessionDrifts([])}>Done</button>
+            </div>
           </div>
         </div>
       )}
