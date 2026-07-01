@@ -97,6 +97,9 @@ export function ClimbingTrackerApp() {
   const updateRoutineStep = (routineId, idx, patch) => {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
   };
+  const updateRoutineStepById = (routineId, stepId, patch) => {
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
+  };
   const removeFromRoutine = (routineId, idx) => {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
   };
@@ -129,6 +132,7 @@ export function ClimbingTrackerApp() {
         sets: step.sets ?? ex.sets,
         restSec: step.restSec ?? (ex.restSec ?? 0),
         restAfterSec: step.restAfterSec ?? 0,
+        routineStepId: step.id,
       };
     }).filter(Boolean);
     if (exs.length === 0) return;
@@ -154,7 +158,7 @@ export function ClimbingTrackerApp() {
     const results = [];
     current.exercises.forEach((ex, i) => {
       const performed = buildPerformedFromLog(ex, sessionLogsRef.current[i]);
-      if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed });
+      if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed, routineStepId: ex.routineStepId });
     });
     if (results.length > 0) {
       const entry = {
@@ -167,7 +171,7 @@ export function ClimbingTrackerApp() {
         steps: results,
       };
       setHistory([entry, ...history]);
-      const drifts = results.map(step => computeTemplateDrift(step, exercises)).filter(Boolean);
+      const drifts = entry.steps.map(step => computeTemplateDrift(entry, step, exercises, routines)).filter(Boolean);
       if (drifts.length > 0) setPostSessionDrifts(drifts);
     }
     setActiveSession(null);
@@ -186,9 +190,21 @@ export function ClimbingTrackerApp() {
   const updateExerciseTemplate = (exerciseId, patch) => {
     setExercises(exercises.map(e => e.id === exerciseId ? { ...e, ...patch } : e));
   };
+  // A drift can span both places at once - e.g. sets came from a routine
+  // override while reps came from the exercise itself - so apply whichever
+  // patch is non-empty to wherever it actually lives.
+  const applyDrift = (drift) => {
+    if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
+      updateRoutineStepById(drift.routine.id, drift.routineStep.id, drift.routinePatch);
+    }
+    if (Object.keys(drift.exercisePatch).length > 0) {
+      updateExerciseTemplate(drift.exercise.id, drift.exercisePatch);
+    }
+  };
+  const driftKey = (drift) => drift.routineStep ? drift.routineStep.id : drift.exercise.id;
   const applyPostSessionDrift = (drift) => {
-    updateExerciseTemplate(drift.exercise.id, drift.patch);
-    setPostSessionDrifts(postSessionDrifts.filter(d => d.exercise.id !== drift.exercise.id));
+    applyDrift(drift);
+    setPostSessionDrifts(postSessionDrifts.filter(d => driftKey(d) !== driftKey(drift)));
   };
 
   // Export / import
@@ -476,7 +492,7 @@ export function ClimbingTrackerApp() {
                   </div>
 
                   {h.steps.map((step, i) => {
-                    const drift = computeTemplateDrift(step, exercises);
+                    const drift = computeTemplateDrift(h, step, exercises, routines);
                     if (!drift) return null;
                     return (
                       <div key={`drift-${i}`} style={s.driftRow}>
@@ -485,7 +501,7 @@ export function ClimbingTrackerApp() {
                         </span>
                         <button
                           style={s.driftBtn}
-                          onClick={e => { e.stopPropagation(); updateExerciseTemplate(drift.exercise.id, drift.patch); }}
+                          onClick={e => { e.stopPropagation(); applyDrift(drift); }}
                         >
                           Update template
                         </button>
@@ -587,9 +603,9 @@ export function ClimbingTrackerApp() {
               <span style={s.modalTitle}>Update exercise templates?</span>
               <button style={s.modalClose} onClick={() => setPostSessionDrifts([])}>&times;</button>
             </div>
-            <p style={s.confirmMessage}>What you just logged differs from the saved exercise settings.</p>
+            <p style={s.confirmMessage}>What you just logged differs from the saved settings.</p>
             {postSessionDrifts.map(drift => (
-              <div key={drift.exercise.id} style={s.driftRow}>
+              <div key={driftKey(drift)} style={s.driftRow}>
                 <span style={s.driftText}>{drift.exercise.name}: {formatDriftSummary(drift)}</span>
                 <button style={s.driftBtn} onClick={() => applyPostSessionDrift(drift)}>Update</button>
               </div>

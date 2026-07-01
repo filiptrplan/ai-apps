@@ -1,3 +1,4 @@
+/* SW_NETWORK_FIRST_TEST_MARKER */
 (() => {
   // climbing-tracker/storage.js
   var { useState } = React;
@@ -136,34 +137,55 @@
   function uniformValue(values) {
     return values.length > 0 && values.every((v) => v === values[0]) ? values[0] : null;
   }
-  function computeTemplateDrift(step, exercises) {
+  function computeTemplateDrift(entry, step, exercises, routines) {
+    var _a, _b, _c;
     const ex = exercises.find((e) => e.id === step.exerciseId);
     if (!ex) return null;
+    let routine = null;
+    let routineStep = null;
+    if (entry.kind === "routine") {
+      routine = routines.find((r) => r.id === entry.refId) || null;
+      routineStep = routine && step.routineStepId ? routine.steps.find((s2) => s2.id === step.routineStepId) || null : null;
+    }
+    const target = {
+      sets: routineStep ? (_a = routineStep.sets) != null ? _a : ex.sets : ex.sets,
+      reps: ex.reps,
+      weight: ex.weight,
+      workSec: ex.workSec,
+      restSec: routineStep ? (_c = routineStep.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0 : ex.restSec
+    };
     const p = step.performed;
     const patch = {};
     if (p.type === "interval") {
-      if (p.targetSets !== ex.sets) patch.sets = p.targetSets;
-      if (p.workSec !== ex.workSec) patch.workSec = p.workSec;
-      if (p.restSec !== ex.restSec) patch.restSec = p.restSec;
+      if (p.targetSets !== target.sets) patch.sets = p.targetSets;
+      if (p.workSec !== target.workSec) patch.workSec = p.workSec;
+      if (p.restSec !== target.restSec) patch.restSec = p.restSec;
     } else {
-      if (p.sets.length !== ex.sets) patch.sets = p.sets.length;
+      if (p.sets.length !== target.sets) patch.sets = p.sets.length;
       const reps = uniformValue(p.sets.map((row) => row.reps));
-      if (reps !== null && reps !== ex.reps) patch.reps = reps;
+      if (reps !== null && reps !== target.reps) patch.reps = reps;
       if (p.type === "weighted") {
         const weight = uniformValue(p.sets.map((row) => row.weight));
-        if (weight !== null && weight !== ex.weight) patch.weight = weight;
+        if (weight !== null && weight !== target.weight) patch.weight = weight;
       }
     }
-    return Object.keys(patch).length > 0 ? { exercise: ex, patch } : null;
+    if (Object.keys(patch).length === 0) return null;
+    const routinePatch = {};
+    const exercisePatch = {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (routineStep && (key === "sets" || key === "restSec")) routinePatch[key] = value;
+      else exercisePatch[key] = value;
+    }
+    return { exercise: ex, routine, routineStep, target, patch, routinePatch, exercisePatch };
   }
   function formatDriftSummary(drift) {
-    const { exercise: ex, patch } = drift;
+    const { target, patch } = drift;
     const parts = [];
-    if ("sets" in patch) parts.push(`Sets: ${ex.sets}\u2192${patch.sets}`);
-    if ("reps" in patch) parts.push(`Reps: ${ex.reps}\u2192${patch.reps}`);
-    if ("weight" in patch) parts.push(`Weight: ${ex.weight}\u2192${patch.weight}kg`);
-    if ("workSec" in patch) parts.push(`Work: ${ex.workSec}s\u2192${patch.workSec}s`);
-    if ("restSec" in patch) parts.push(`Rest: ${ex.restSec}s\u2192${patch.restSec}s`);
+    if ("sets" in patch) parts.push(`Sets: ${target.sets}\u2192${patch.sets}`);
+    if ("reps" in patch) parts.push(`Reps: ${target.reps}\u2192${patch.reps}`);
+    if ("weight" in patch) parts.push(`Weight: ${target.weight}\u2192${patch.weight}kg`);
+    if ("workSec" in patch) parts.push(`Work: ${target.workSec}s\u2192${patch.workSec}s`);
+    if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s\u2192${patch.restSec}s`);
     return parts.join(" \xB7 ");
   }
 
@@ -1171,6 +1193,9 @@ Now generate the exercises and/or routines described by the user's request that 
     const updateRoutineStep = (routineId, idx, patch) => {
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
     };
+    const updateRoutineStepById = (routineId, stepId, patch) => {
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
+    };
     const removeFromRoutine = (routineId, idx) => {
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
     };
@@ -1198,7 +1223,8 @@ Now generate the exercises and/or routines described by the user's request that 
           ...ex,
           sets: (_a = step.sets) != null ? _a : ex.sets,
           restSec: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
-          restAfterSec: (_d = step.restAfterSec) != null ? _d : 0
+          restAfterSec: (_d = step.restAfterSec) != null ? _d : 0,
+          routineStepId: step.id
         };
       }).filter(Boolean);
       if (exs.length === 0) return;
@@ -1226,7 +1252,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const results = [];
       current.exercises.forEach((ex, i) => {
         const performed = buildPerformedFromLog(ex, sessionLogsRef.current[i]);
-        if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed });
+        if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed, routineStepId: ex.routineStepId });
       });
       if (results.length > 0) {
         const entry = {
@@ -1239,7 +1265,7 @@ Now generate the exercises and/or routines described by the user's request that 
           steps: results
         };
         setHistory([entry, ...history]);
-        const drifts = results.map((step) => computeTemplateDrift(step, exercises)).filter(Boolean);
+        const drifts = entry.steps.map((step) => computeTemplateDrift(entry, step, exercises, routines)).filter(Boolean);
         if (drifts.length > 0) setPostSessionDrifts(drifts);
       }
       setActiveSession(null);
@@ -1257,9 +1283,18 @@ Now generate the exercises and/or routines described by the user's request that 
     const updateExerciseTemplate = (exerciseId, patch) => {
       setExercises(exercises.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
     };
+    const applyDrift = (drift) => {
+      if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
+        updateRoutineStepById(drift.routine.id, drift.routineStep.id, drift.routinePatch);
+      }
+      if (Object.keys(drift.exercisePatch).length > 0) {
+        updateExerciseTemplate(drift.exercise.id, drift.exercisePatch);
+      }
+    };
+    const driftKey = (drift) => drift.routineStep ? drift.routineStep.id : drift.exercise.id;
     const applyPostSessionDrift = (drift) => {
-      updateExerciseTemplate(drift.exercise.id, drift.patch);
-      setPostSessionDrifts(postSessionDrifts.filter((d) => d.exercise.id !== drift.exercise.id));
+      applyDrift(drift);
+      setPostSessionDrifts(postSessionDrifts.filter((d) => driftKey(d) !== driftKey(drift)));
     };
     const fileInputRef = useRef4(null);
     const [transferMode, setTransferMode] = useState6(null);
@@ -1456,7 +1491,7 @@ Now generate the exercises and/or routines described by the user's request that 
     })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: requestClearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => {
       const expanded = expandedHistoryId === h.id;
       return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedHistoryId(expanded ? null : h.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : ""), h.steps.map((step, i) => {
-        const drift = computeTemplateDrift(step, exercises);
+        const drift = computeTemplateDrift(h, step, exercises, routines);
         if (!drift) return null;
         return /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "Differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement(
           "button",
@@ -1464,7 +1499,7 @@ Now generate the exercises and/or routines described by the user's request that 
             style: s.driftBtn,
             onClick: (e) => {
               e.stopPropagation();
-              updateExerciseTemplate(drift.exercise.id, drift.patch);
+              applyDrift(drift);
             }
           },
           "Update template"
@@ -1484,7 +1519,7 @@ Now generate the exercises and/or routines described by the user's request that 
     ), importError && /* @__PURE__ */ React.createElement("div", { style: s.importError }, importError), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => applyImport(), disabled: !transferText.trim() }, "Apply"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => {
       var _a;
       return (_a = fileInputRef.current) == null ? void 0 : _a.click();
-    } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, "Update exercise templates?"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setPostSessionDrifts([]) }, "\xD7")), /* @__PURE__ */ React.createElement("p", { style: s.confirmMessage }, "What you just logged differs from the saved exercise settings."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: drift.exercise.id, style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => setPostSessionDrifts([]) }, "Done")))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, "Update exercise templates?"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setPostSessionDrifts([]) }, "\xD7")), /* @__PURE__ */ React.createElement("p", { style: s.confirmMessage }, "What you just logged differs from the saved settings."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => setPostSessionDrifts([]) }, "Done")))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx

@@ -33,10 +33,31 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Stale-while-revalidate: serve from cache instantly when available, and
-// refresh the cache in the background so the app still updates over time.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  if (event.request.url.startsWith(self.location.origin)) {
+    // Network-first for the app's own files: always try to get the latest
+    // deploy, and only fall back to the cache when there's no network at
+    // all. Stale-while-revalidate here would show last visit's version
+    // instead of what was just shipped.
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for the cross-origin CDN scripts, which are
+  // pinned by version and effectively immutable - no need to wait on the
+  // network for those.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const network = fetch(event.request)
