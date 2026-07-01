@@ -114,6 +114,12 @@ Routine objects group exercises into an ordered sequence of steps to perform tog
   ]
 }
 
+IMPORTANT - what "restSec" actually does (read this carefully, it is easy to misuse):
+"restSec" is a countdown timer that fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when "sets" for that step is 2 or more. There is no concept of "rest between different exercises" anywhere in this app - when a session moves from one exercise/step to the next there is never an automatic pause. Concretely:
+- If a step has "sets": 1, its "restSec" is completely inert and will never fire, no matter what number you put there (for "interval" exercises, a rest phase only ever happens between the 1st, 2nd, 3rd, etc. work cycle of that SAME timer, so with "sets": 1 there is only one work cycle and the rest phase never triggers either).
+- Do NOT model a "circuit" (e.g. "3 rounds of 5 exercises") as 15 separate one-set steps in the hope that "restSec" will create breaks between the different exercises in each round - it will not, those rest values will silently do nothing. If you want repeated rounds of a circuit, repeating each exercise as its own step multiple times in the desired order is fine for capturing the exercise ORDER, just do not set "restSec" on those steps expecting it to pause between exercises - leave it 0/null and mention in your reply (outside the JSON, if there is room) that this app does not yet support timed rest between different exercises, only between repeated sets of one exercise.
+- Only set a step's "restSec" above 0 when you also give that same step "sets" of 2 or more, e.g. to have a genuine rest countdown between the reps/weighted sets of one exercise, or between the work cycles of one interval exercise.
+
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
 - Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
@@ -318,7 +324,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const toggleDone = (i) => {
       const nowDone = !rows[i].done;
       updateRow(i, { done: nowDone });
-      if (nowDone && restSec > 0) startRest(i);
+      const otherSetsRemain = rows.some((r, idx) => idx !== i && !r.done);
+      if (nowDone && restSec > 0 && otherSetsRemain) startRest(i);
       else if (!nowDone && restRowIndex === i) skipRest();
     };
     const doneCount = rows.filter((r) => r.done).length;
