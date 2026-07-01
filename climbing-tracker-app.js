@@ -36,17 +36,18 @@
     { value: "interval", label: "Interval" }
   ];
   function defaultFieldsForType(type) {
-    if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added" };
+    if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
     if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
-    return { sets: 3, reps: 10 };
+    return { sets: 3, reps: 10, restSec: 0 };
   }
   function formatWeightLabel(weightMode, weight) {
     return weightMode === "added" ? `BW +${weight}kg` : `${weight}kg`;
   }
   function formatTargetSummary(ex) {
-    if (ex.type === "weighted") return `${ex.sets} \xD7 ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}`;
+    const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
+    if (ex.type === "weighted") return `${ex.sets} \xD7 ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
     if (ex.type === "interval") return `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
-    return `${ex.sets} \xD7 ${ex.reps} reps`;
+    return `${ex.sets} \xD7 ${ex.reps} reps${restPart}`;
   }
   function mergeById(existing, incoming) {
     const result = [...existing];
@@ -76,7 +77,8 @@ Exercise objects use one of three "type" values:
   "name": "<exercise name>",
   "type": "reps",
   "sets": <integer, number of sets>,
-  "reps": <integer, target reps per set>
+  "reps": <integer, target reps per set>,
+  "restSec": <integer, seconds of rest between sets, 0 for no timed rest>
 }
 
 2) "weighted" - sets of reps with a weight, either added to bodyweight (weighted pull-up belt, weight vest) or an absolute total weight (barbell, dumbbell, machine):
@@ -87,7 +89,8 @@ Exercise objects use one of three "type" values:
   "sets": <integer>,
   "reps": <integer, target reps per set>,
   "weight": <number, kg>,
-  "weightMode": "added" | "total"
+  "weightMode": "added" | "total",
+  "restSec": <integer, seconds of rest between sets, 0 for no timed rest>
 }
 Use "added" when the weight is extra load on top of the climber's own bodyweight. Use "total" when it's the full weight being lifted.
 
@@ -101,19 +104,22 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "sets": <integer, number of work/rest cycles>
 }
 
-Routine objects group exercises into an ordered sequence to perform together:
+Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
-  "exerciseIds": ["<id of an exercise in the exercises array>", ...]
+  "steps": [
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null> },
+    ...
+  ]
 }
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
-- Every id referenced in a routine's "exerciseIds" must also appear as an exercise in the "exercises" array of the same JSON.
+- Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
 - Do not invent extra fields, do not wrap the JSON in markdown fences, output nothing but the JSON object.
-- Unless told otherwise, pick sensible default sets/reps/weights/durations for an intermediate climber.
+- Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
   function formatPerformedSummary(step) {
@@ -200,7 +206,7 @@ Now generate the exercises and/or routines described by the user's request that 
         onClick: () => set({ type: t.value, ...defaultFieldsForType(t.value) })
       },
       t.label
-    ))), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: s.typeRow }, /* @__PURE__ */ React.createElement(
+    ))), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 })), /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.typeRow }, /* @__PURE__ */ React.createElement(
       "button",
       {
         style: { ...s.typeChip, ...draft.weightMode === "added" ? s.typeChipActive : {} },
@@ -216,7 +222,7 @@ Now generate the exercises and/or routines described by the user's request that 
       "Total weight"
     ))), draft.type === "interval" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 })), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.saveBtn, flex: 1 }, onClick: onSave, disabled: !draft.name.trim() }, "Save"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: onCancel }, "Cancel")));
   }
-  function SetsRunner({ exercise, onComplete }) {
+  function TableSetsRunner({ exercise, onComplete }) {
     const [sets, setSets] = useState(
       () => Array.from({ length: exercise.sets || 1 }, () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 }))
     );
@@ -265,6 +271,99 @@ Now generate the exercises and/or routines described by the user's request that 
         onChange: (e) => updateSet(i, { weight: e.target.value })
       }
     ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeSet(i), disabled: sets.length <= 1 }, "\xD7")))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addSet }, "+ Add set"), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: finish }, "Finish exercise"));
+  }
+  function SequentialSetsRunner({ exercise, onComplete }) {
+    const targetSets = exercise.sets || 1;
+    const restSec = exercise.restSec || 0;
+    const isWeighted = exercise.type === "weighted";
+    const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 });
+    const [phase, setPhase] = useState("log");
+    const [setIndex, setSetIndex] = useState(0);
+    const [current, setCurrent] = useState(makeRow);
+    const [rows, setRows] = useState([]);
+    const rowsRef = useRef([]);
+    const [timeLeft, setTimeLeft] = useState(restSec);
+    const [paused, setPaused] = useState(false);
+    const intervalRef = useRef(null);
+    const timeLeftRef = useRef(restSec);
+    const clearTick = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    const nextSet = () => {
+      setSetIndex((i) => i + 1);
+      setCurrent(makeRow());
+      setPhase("log");
+    };
+    const tick = () => {
+      timeLeftRef.current -= 1;
+      if (timeLeftRef.current <= 0) {
+        clearTick();
+        sounds.workStart();
+        nextSet();
+      } else {
+        setTimeLeft(timeLeftRef.current);
+        if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
+      }
+    };
+    const logSet = () => {
+      const entry = isWeighted ? { reps: Number(current.reps) || 0, weight: Number(current.weight) || 0 } : { reps: Number(current.reps) || 0 };
+      rowsRef.current = [...rowsRef.current, entry];
+      setRows(rowsRef.current);
+      if (setIndex + 1 >= targetSets) {
+        setPhase("review");
+      } else {
+        timeLeftRef.current = restSec;
+        setTimeLeft(restSec);
+        setPaused(false);
+        setPhase("rest");
+        sounds.restStart();
+        intervalRef.current = setInterval(tick, 1e3);
+      }
+    };
+    const skipRest = () => {
+      clearTick();
+      sounds.workStart();
+      nextSet();
+    };
+    const togglePause = () => {
+      if (paused) {
+        intervalRef.current = setInterval(tick, 1e3);
+        setPaused(false);
+      } else {
+        clearTick();
+        setPaused(true);
+      }
+    };
+    useEffect(() => () => clearTick(), []);
+    const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+    const removeRow = (i) => setRows(rows.filter((_, idx) => idx !== i));
+    const addRow = () => setRows([...rows, { ...rows[rows.length - 1] || makeRow() }]);
+    const finish = () => {
+      const performed = isWeighted ? {
+        type: "weighted",
+        weightMode: exercise.weightMode,
+        targetSets,
+        targetReps: exercise.reps,
+        targetWeight: exercise.weight,
+        sets: rows.map((r) => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 }))
+      } : {
+        type: "reps",
+        targetSets,
+        targetReps: exercise.reps,
+        sets: rows.map((r) => ({ reps: Number(r.reps) || 0 }))
+      };
+      onComplete(performed);
+    };
+    if (phase === "log") {
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.setsTarget }, "Set ", setIndex + 1, " / ", targetSets, " \xB7 ", restSec, "s rest after"), /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: current.reps, onChange: (v) => setCurrent({ ...current, reps: v }), min: 0 }), isWeighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: current.weight, onChange: (v) => setCurrent({ ...current, weight: v }), min: 0, step: 0.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: logSet }, "Log set"));
+    }
+    if (phase === "rest") {
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: "rgba(58,158,110,0.08)" } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "REST"), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: "#3A9E6E" } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Next: set ", setIndex + 1, " / ", targetSets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), /* @__PURE__ */ React.createElement("div", { style: s.controls }, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skipRest }, "Skip rest")));
+    }
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.setsTarget }, "All ", targetSets, " sets logged \u2014 review before finishing:"), /* @__PURE__ */ React.createElement("div", { style: s.setsTable }, /* @__PURE__ */ React.createElement("div", { style: s.setsHeaderRow }, /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Set"), /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Reps"), isWeighted && /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Weight (kg)"), /* @__PURE__ */ React.createElement("span", { style: { ...s.setsHeaderCell, width: 28 } })), rows.map((row, i) => /* @__PURE__ */ React.createElement("div", { style: s.setsRow, key: i }, /* @__PURE__ */ React.createElement("span", { style: s.setsIndex }, i + 1), /* @__PURE__ */ React.createElement("input", { style: s.setsInput, type: "number", min: 0, value: row.reps, onChange: (e) => updateRow(i, { reps: e.target.value }) }), isWeighted && /* @__PURE__ */ React.createElement("input", { style: s.setsInput, type: "number", min: 0, step: 0.5, value: row.weight, onChange: (e) => updateRow(i, { weight: e.target.value }) }), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: rows.length <= 1 }, "\xD7")))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: finish }, "Finish exercise"));
   }
   function IntervalRunner({ exercise, onComplete }) {
     const [phase, setPhase] = useState("idle");
@@ -375,7 +474,7 @@ Now generate the exercises and/or routines described by the user's request that 
   function SessionRunner({ session, onCancel, onStepComplete }) {
     const exercise = session.steps[session.stepIndex];
     const isRoutine = session.kind === "routine";
-    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), isRoutine && /* @__PURE__ */ React.createElement("div", { style: s.sessionProgress }, "Step ", session.stepIndex + 1, " / ", session.steps.length)), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, isRoutine ? session.refName : "Exercise"), /* @__PURE__ */ React.createElement("div", { style: s.sessionExerciseName }, exercise.name), exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }) : /* @__PURE__ */ React.createElement(SetsRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }));
+    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), isRoutine && /* @__PURE__ */ React.createElement("div", { style: s.sessionProgress }, "Step ", session.stepIndex + 1, " / ", session.steps.length)), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, isRoutine ? session.refName : "Exercise"), /* @__PURE__ */ React.createElement("div", { style: s.sessionExerciseName }, exercise.name), exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }) : exercise.restSec > 0 ? /* @__PURE__ */ React.createElement(SequentialSetsRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }) : /* @__PURE__ */ React.createElement(TableSetsRunner, { key: session.stepIndex, exercise, onComplete: onStepComplete }));
   }
   const TABS = ["Exercises", "Routines", "History", "Settings"];
   function ClimbingTrackerApp() {
@@ -408,39 +507,61 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const deleteExercise = (id) => {
       setExercises(exercises.filter((e) => e.id !== id));
-      setRoutines(routines.map((r) => ({ ...r, exerciseIds: r.exerciseIds.filter((eid) => eid !== id) })));
+      setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
     const [newRoutineName, setNewRoutineName] = useState("");
     const [expandedRoutineId, setExpandedRoutineId] = useState(null);
     const [routineAddSelect, setRoutineAddSelect] = useState({});
+    useEffect(() => {
+      if (routines.some((r) => !Array.isArray(r.steps))) {
+        setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
+          id: r.id,
+          name: r.name,
+          steps: (r.exerciseIds || []).map((exerciseId) => ({ id: uid(), exerciseId, sets: null, restSec: null }))
+        }));
+      }
+    }, []);
     const addRoutine = () => {
       if (!newRoutineName.trim()) return;
-      const r = { id: uid(), name: newRoutineName.trim(), exerciseIds: [] };
+      const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
       setRoutines([...routines, r]);
       setNewRoutineName("");
       setExpandedRoutineId(r.id);
     };
     const deleteRoutine = (id) => setRoutines(routines.filter((r) => r.id !== id));
-    const addExerciseToRoutine = (routineId, exerciseId) => {
+    const addStepToRoutine = (routineId, exerciseId) => {
       if (!exerciseId) return;
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, exerciseIds: [...r.exerciseIds, exerciseId] } : r));
+      const step = { id: uid(), exerciseId, sets: null, restSec: null };
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
+    };
+    const updateRoutineStep = (routineId, idx, patch) => {
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
     };
     const removeFromRoutine = (routineId, idx) => {
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, exerciseIds: r.exerciseIds.filter((_, i) => i !== idx) } : r));
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
     };
     const moveInRoutine = (routineId, idx, dir) => {
       setRoutines(routines.map((r) => {
         if (r.id !== routineId) return r;
-        const ids = [...r.exerciseIds];
+        const steps = [...r.steps];
         const j = idx + dir;
-        if (j < 0 || j >= ids.length) return r;
-        [ids[idx], ids[j]] = [ids[j], ids[idx]];
-        return { ...r, exerciseIds: ids };
+        if (j < 0 || j >= steps.length) return r;
+        [steps[idx], steps[j]] = [steps[j], steps[idx]];
+        return { ...r, steps };
       }));
     };
     const startExercise = (ex) => setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, steps: [ex], stepIndex: 0, results: [] });
     const startRoutine = (r) => {
-      const steps = r.exerciseIds.map((id) => exercises.find((e) => e.id === id)).filter(Boolean);
+      const steps = r.steps.map((step) => {
+        var _a, _b, _c;
+        const ex = exercises.find((e) => e.id === step.exerciseId);
+        if (!ex) return null;
+        return {
+          ...ex,
+          sets: (_a = step.sets) != null ? _a : ex.sets,
+          restSec: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0
+        };
+      }).filter(Boolean);
       if (steps.length === 0) return;
       setActiveSession({ kind: "routine", refId: r.id, refName: r.name, steps, stepIndex: 0, results: [] });
     };
@@ -572,8 +693,29 @@ Now generate the exercises and/or routines described by the user's request that 
       }
     ), /* @__PURE__ */ React.createElement("button", { style: s.saveBtn, onClick: addRoutine, disabled: !newRoutineName.trim() }, "Add")), routines.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No routines yet. Create one and add exercises to it."), routines.map((r) => {
       const expanded = expandedRoutineId === r.id;
-      const steps = r.exerciseIds.map((id) => exercises.find((e) => e.id === id)).filter(Boolean);
-      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedRoutineId(expanded ? null : r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, steps.length, " exercise", steps.length === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: steps.length === 0 }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteRoutine(r.id) }, "\xD7"))), expanded && /* @__PURE__ */ React.createElement("div", { style: s.routineEditor }, steps.map((ex, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.routineStepRow }, /* @__PURE__ */ React.createElement("span", { style: s.routineStepName }, i + 1, ". ", ex.name), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, 1), disabled: i === steps.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeFromRoutine(r.id, i) }, "\xD7")))), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement(
+      const resolved = r.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
+      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedRoutineId(expanded ? null : r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, resolved.length, " exercise", resolved.length === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: resolved.length === 0 }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => deleteRoutine(r.id) }, "\xD7"))), expanded && /* @__PURE__ */ React.createElement("div", { style: s.routineEditor }, resolved.map(({ step, exercise: ex }, i) => {
+        var _a, _b, _c;
+        return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.routineStepRow }, /* @__PURE__ */ React.createElement("div", { style: s.routineStepMain }, /* @__PURE__ */ React.createElement("span", { style: s.routineStepName }, i + 1, ". ", ex.name), /* @__PURE__ */ React.createElement("div", { style: s.routineStepOverrides }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Sets", /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            style: s.routineStepInput,
+            type: "number",
+            min: 1,
+            value: (_a = step.sets) != null ? _a : ex.sets,
+            onChange: (e) => updateRoutineStep(r.id, i, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+          }
+        )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest (s)", /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            style: s.routineStepInput,
+            type: "number",
+            min: 0,
+            value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
+            onChange: (e) => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
+          }
+        )))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => moveInRoutine(r.id, i, 1), disabled: i === resolved.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeFromRoutine(r.id, i) }, "\xD7")));
+      }), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement(
         "select",
         {
           style: s.select,
@@ -587,7 +729,7 @@ Now generate the exercises and/or routines described by the user's request that 
         {
           style: s.saveBtn,
           onClick: () => {
-            addExerciseToRoutine(r.id, routineAddSelect[r.id]);
+            addStepToRoutine(r.id, routineAddSelect[r.id]);
             setRoutineAddSelect({ ...routineAddSelect, [r.id]: "" });
           },
           disabled: !routineAddSelect[r.id]
@@ -810,12 +952,36 @@ Now generate the exercises and/or routines described by the user's request that 
     routineEditor: { marginTop: 6, paddingTop: 10, borderTop: "1px solid #232323" },
     routineStepRow: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-between",
-      padding: "8px 0",
-      gap: 8
+      padding: "10px 0",
+      gap: 8,
+      borderBottom: "1px solid #1E1E1E"
     },
-    routineStepName: { fontSize: 14, color: "#DDD", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+    routineStepMain: { minWidth: 0, flex: 1 },
+    routineStepName: { fontSize: 14, color: "#DDD", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+    routineStepOverrides: { display: "flex", gap: 14, marginTop: 8 },
+    routineStepFieldLabel: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      fontSize: 10,
+      color: "#666",
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      fontWeight: 600
+    },
+    routineStepInput: {
+      width: 52,
+      padding: "5px 6px",
+      borderRadius: 6,
+      border: "1px solid #333",
+      background: "#1A1A1A",
+      color: "#E8E8E8",
+      fontSize: 13,
+      outline: "none",
+      fontVariantNumeric: "tabular-nums"
+    },
     routineAddRow: { display: "flex", gap: 8, marginTop: 10 },
     clearBtn: {
       padding: "8px 14px",

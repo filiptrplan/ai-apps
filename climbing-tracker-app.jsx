@@ -41,9 +41,9 @@ const EXERCISE_TYPES = [
 ];
 
 function defaultFieldsForType(type) {
-  if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added" };
+  if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
   if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
-  return { sets: 3, reps: 10 };
+  return { sets: 3, reps: 10, restSec: 0 };
 }
 
 function formatWeightLabel(weightMode, weight) {
@@ -51,9 +51,10 @@ function formatWeightLabel(weightMode, weight) {
 }
 
 function formatTargetSummary(ex) {
-  if (ex.type === "weighted") return `${ex.sets} × ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}`;
+  const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
+  if (ex.type === "weighted") return `${ex.sets} × ${ex.reps} reps @ ${formatWeightLabel(ex.weightMode, ex.weight)}${restPart}`;
   if (ex.type === "interval") return `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`;
-  return `${ex.sets} × ${ex.reps} reps`;
+  return `${ex.sets} × ${ex.reps} reps${restPart}`;
 }
 
 function mergeById(existing, incoming) {
@@ -84,7 +85,8 @@ Exercise objects use one of three "type" values:
   "name": "<exercise name>",
   "type": "reps",
   "sets": <integer, number of sets>,
-  "reps": <integer, target reps per set>
+  "reps": <integer, target reps per set>,
+  "restSec": <integer, seconds of rest between sets, 0 for no timed rest>
 }
 
 2) "weighted" - sets of reps with a weight, either added to bodyweight (weighted pull-up belt, weight vest) or an absolute total weight (barbell, dumbbell, machine):
@@ -95,7 +97,8 @@ Exercise objects use one of three "type" values:
   "sets": <integer>,
   "reps": <integer, target reps per set>,
   "weight": <number, kg>,
-  "weightMode": "added" | "total"
+  "weightMode": "added" | "total",
+  "restSec": <integer, seconds of rest between sets, 0 for no timed rest>
 }
 Use "added" when the weight is extra load on top of the climber's own bodyweight. Use "total" when it's the full weight being lifted.
 
@@ -109,19 +112,22 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "sets": <integer, number of work/rest cycles>
 }
 
-Routine objects group exercises into an ordered sequence to perform together:
+Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
-  "exerciseIds": ["<id of an exercise in the exercises array>", ...]
+  "steps": [
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null> },
+    ...
+  ]
 }
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
-- Every id referenced in a routine's "exerciseIds" must also appear as an exercise in the "exercises" array of the same JSON.
+- Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
 - Do not invent extra fields, do not wrap the JSON in markdown fences, output nothing but the JSON object.
-- Unless told otherwise, pick sensible default sets/reps/weights/durations for an intermediate climber.
+- Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
 
@@ -228,6 +234,7 @@ function ExerciseForm({ draft, onChange, onSave, onCancel }) {
         <div style={s.fieldRow}>
           <NumberField label="Sets" value={draft.sets} onChange={v => set({ sets: v })} min={1} />
           <NumberField label="Reps" value={draft.reps} onChange={v => set({ reps: v })} min={1} />
+          <NumberField label="Rest" value={draft.restSec} onChange={v => set({ restSec: v })} min={0} suffix="s" />
         </div>
       )}
 
@@ -236,7 +243,10 @@ function ExerciseForm({ draft, onChange, onSave, onCancel }) {
           <div style={s.fieldRow}>
             <NumberField label="Sets" value={draft.sets} onChange={v => set({ sets: v })} min={1} />
             <NumberField label="Reps" value={draft.reps} onChange={v => set({ reps: v })} min={1} />
+          </div>
+          <div style={s.fieldRow}>
             <NumberField label="Weight" value={draft.weight} onChange={v => set({ weight: v })} min={0} step={0.5} suffix="kg" />
+            <NumberField label="Rest" value={draft.restSec} onChange={v => set({ restSec: v })} min={0} suffix="s" />
           </div>
           <div style={s.typeRow}>
             <button
@@ -271,7 +281,7 @@ function ExerciseForm({ draft, onChange, onSave, onCancel }) {
   );
 }
 
-function SetsRunner({ exercise, onComplete }) {
+function TableSetsRunner({ exercise, onComplete }) {
   const [sets, setSets] = useState(() =>
     Array.from({ length: exercise.sets || 1 }, () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 }))
   );
@@ -338,6 +348,146 @@ function SetsRunner({ exercise, onComplete }) {
         ))}
       </div>
       <button style={s.addSetBtn} onClick={addSet}>+ Add set</button>
+      <button style={s.startBtn} onClick={finish}>Finish exercise</button>
+    </div>
+  );
+}
+
+// Used when the exercise has a rest timer configured between sets: logs one set
+// at a time, running a rest countdown after each one before the next set unlocks.
+function SequentialSetsRunner({ exercise, onComplete }) {
+  const targetSets = exercise.sets || 1;
+  const restSec = exercise.restSec || 0;
+  const isWeighted = exercise.type === "weighted";
+  const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 });
+
+  const [phase, setPhase] = useState("log"); // log | rest | review
+  const [setIndex, setSetIndex] = useState(0);
+  const [current, setCurrent] = useState(makeRow);
+  const [rows, setRows] = useState([]);
+  const rowsRef = useRef([]);
+  const [timeLeft, setTimeLeft] = useState(restSec);
+  const [paused, setPaused] = useState(false);
+  const intervalRef = useRef(null);
+  const timeLeftRef = useRef(restSec);
+
+  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+
+  const nextSet = () => {
+    setSetIndex(i => i + 1);
+    setCurrent(makeRow());
+    setPhase("log");
+  };
+
+  const tick = () => {
+    timeLeftRef.current -= 1;
+    if (timeLeftRef.current <= 0) {
+      clearTick();
+      sounds.workStart();
+      nextSet();
+    } else {
+      setTimeLeft(timeLeftRef.current);
+      if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
+    }
+  };
+
+  const logSet = () => {
+    const entry = isWeighted
+      ? { reps: Number(current.reps) || 0, weight: Number(current.weight) || 0 }
+      : { reps: Number(current.reps) || 0 };
+    rowsRef.current = [...rowsRef.current, entry];
+    setRows(rowsRef.current);
+    if (setIndex + 1 >= targetSets) {
+      setPhase("review");
+    } else {
+      timeLeftRef.current = restSec;
+      setTimeLeft(restSec);
+      setPaused(false);
+      setPhase("rest");
+      sounds.restStart();
+      intervalRef.current = setInterval(tick, 1000);
+    }
+  };
+
+  const skipRest = () => { clearTick(); sounds.workStart(); nextSet(); };
+  const togglePause = () => {
+    if (paused) { intervalRef.current = setInterval(tick, 1000); setPaused(false); }
+    else { clearTick(); setPaused(true); }
+  };
+
+  useEffect(() => () => clearTick(), []);
+
+  const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const removeRow = (i) => setRows(rows.filter((_, idx) => idx !== i));
+  const addRow = () => setRows([...rows, { ...(rows[rows.length - 1] || makeRow()) }]);
+
+  const finish = () => {
+    const performed = isWeighted
+      ? {
+          type: "weighted", weightMode: exercise.weightMode, targetSets, targetReps: exercise.reps, targetWeight: exercise.weight,
+          sets: rows.map(r => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
+        }
+      : {
+          type: "reps", targetSets, targetReps: exercise.reps,
+          sets: rows.map(r => ({ reps: Number(r.reps) || 0 })),
+        };
+    onComplete(performed);
+  };
+
+  if (phase === "log") {
+    return (
+      <div>
+        <div style={s.setsTarget}>Set {setIndex + 1} / {targetSets} &middot; {restSec}s rest after</div>
+        <div style={s.fieldRow}>
+          <NumberField label="Reps" value={current.reps} onChange={v => setCurrent({ ...current, reps: v })} min={0} />
+          {isWeighted && (
+            <NumberField label="Weight" value={current.weight} onChange={v => setCurrent({ ...current, weight: v })} min={0} step={0.5} suffix="kg" />
+          )}
+        </div>
+        <button style={s.startBtn} onClick={logSet}>Log set</button>
+      </div>
+    );
+  }
+
+  if (phase === "rest") {
+    return (
+      <div>
+        <div style={{ ...s.timerBox, background: "rgba(58,158,110,0.08)" }}>
+          <div style={{ ...s.phaseLabel, color: "#3A9E6E" }}>REST</div>
+          <div style={{ ...s.timerDigits, color: "#3A9E6E" }}>{formatTime(timeLeft)}</div>
+          <div style={s.timerSub}>Next: set {setIndex + 1} / {targetSets}</div>
+          {paused && <div style={{ ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 }}>PAUSED</div>}
+        </div>
+        <div style={s.controls}>
+          <button style={s.pauseBtn} onClick={togglePause}>{paused ? "Resume" : "Pause"}</button>
+          <button style={s.skipBtn} onClick={skipRest}>Skip rest</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={s.setsTarget}>All {targetSets} sets logged &mdash; review before finishing:</div>
+      <div style={s.setsTable}>
+        <div style={s.setsHeaderRow}>
+          <span style={s.setsHeaderCell}>Set</span>
+          <span style={s.setsHeaderCell}>Reps</span>
+          {isWeighted && <span style={s.setsHeaderCell}>Weight (kg)</span>}
+          <span style={{ ...s.setsHeaderCell, width: 28 }} />
+        </div>
+        {rows.map((row, i) => (
+          <div style={s.setsRow} key={i}>
+            <span style={s.setsIndex}>{i + 1}</span>
+            <input style={s.setsInput} type="number" min={0} value={row.reps} onChange={e => updateRow(i, { reps: e.target.value })} />
+            {isWeighted && (
+              <input style={s.setsInput} type="number" min={0} step={0.5} value={row.weight} onChange={e => updateRow(i, { weight: e.target.value })} />
+            )}
+            <button style={s.deleteBtn} onClick={() => removeRow(i)} disabled={rows.length <= 1}>&times;</button>
+          </div>
+        ))}
+      </div>
+      <button style={s.addSetBtn} onClick={addRow}>+ Add set</button>
       <button style={s.startBtn} onClick={finish}>Finish exercise</button>
     </div>
   );
@@ -513,8 +663,10 @@ function SessionRunner({ session, onCancel, onStepComplete }) {
       <div style={s.sessionExerciseName}>{exercise.name}</div>
       {exercise.type === "interval" ? (
         <IntervalRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
+      ) : exercise.restSec > 0 ? (
+        <SequentialSetsRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
       ) : (
-        <SetsRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
+        <TableSetsRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
       )}
     </div>
   );
@@ -556,7 +708,7 @@ function ClimbingTrackerApp() {
   };
   const deleteExercise = (id) => {
     setExercises(exercises.filter(e => e.id !== id));
-    setRoutines(routines.map(r => ({ ...r, exerciseIds: r.exerciseIds.filter(eid => eid !== id) })));
+    setRoutines(routines.map(r => ({ ...r, steps: r.steps.filter(step => step.exerciseId !== id) })));
   };
 
   // Routine state
@@ -564,36 +716,60 @@ function ClimbingTrackerApp() {
   const [expandedRoutineId, setExpandedRoutineId] = useState(null);
   const [routineAddSelect, setRoutineAddSelect] = useState({});
 
+  // One-time migration for routines saved before per-step sets/rest overrides existed.
+  useEffect(() => {
+    if (routines.some(r => !Array.isArray(r.steps))) {
+      setRoutines(routines.map(r => Array.isArray(r.steps) ? r : {
+        id: r.id,
+        name: r.name,
+        steps: (r.exerciseIds || []).map(exerciseId => ({ id: uid(), exerciseId, sets: null, restSec: null })),
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const addRoutine = () => {
     if (!newRoutineName.trim()) return;
-    const r = { id: uid(), name: newRoutineName.trim(), exerciseIds: [] };
+    const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
     setRoutines([...routines, r]);
     setNewRoutineName("");
     setExpandedRoutineId(r.id);
   };
   const deleteRoutine = (id) => setRoutines(routines.filter(r => r.id !== id));
-  const addExerciseToRoutine = (routineId, exerciseId) => {
+  const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, exerciseIds: [...r.exerciseIds, exerciseId] } : r));
+    const step = { id: uid(), exerciseId, sets: null, restSec: null };
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
+  };
+  const updateRoutineStep = (routineId, idx, patch) => {
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map((step, i) => i === idx ? { ...step, ...patch } : step) } : r));
   };
   const removeFromRoutine = (routineId, idx) => {
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, exerciseIds: r.exerciseIds.filter((_, i) => i !== idx) } : r));
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
   };
   const moveInRoutine = (routineId, idx, dir) => {
     setRoutines(routines.map(r => {
       if (r.id !== routineId) return r;
-      const ids = [...r.exerciseIds];
+      const steps = [...r.steps];
       const j = idx + dir;
-      if (j < 0 || j >= ids.length) return r;
-      [ids[idx], ids[j]] = [ids[j], ids[idx]];
-      return { ...r, exerciseIds: ids };
+      if (j < 0 || j >= steps.length) return r;
+      [steps[idx], steps[j]] = [steps[j], steps[idx]];
+      return { ...r, steps };
     }));
   };
 
   // Session control
   const startExercise = (ex) => setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, steps: [ex], stepIndex: 0, results: [] });
   const startRoutine = (r) => {
-    const steps = r.exerciseIds.map(id => exercises.find(e => e.id === id)).filter(Boolean);
+    const steps = r.steps.map(step => {
+      const ex = exercises.find(e => e.id === step.exerciseId);
+      if (!ex) return null;
+      return {
+        ...ex,
+        sets: step.sets ?? ex.sets,
+        restSec: step.restSec ?? (ex.restSec ?? 0),
+      };
+    }).filter(Boolean);
     if (steps.length === 0) return;
     setActiveSession({ kind: "routine", refId: r.id, refName: r.name, steps, stepIndex: 0, results: [] });
   };
@@ -769,28 +945,52 @@ function ClimbingTrackerApp() {
           {routines.length === 0 && <p style={s.empty}>No routines yet. Create one and add exercises to it.</p>}
           {routines.map(r => {
             const expanded = expandedRoutineId === r.id;
-            const steps = r.exerciseIds.map(id => exercises.find(e => e.id === id)).filter(Boolean);
+            const resolved = r.steps.map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) })).filter(x => x.exercise);
             return (
               <div key={r.id} style={s.card}>
                 <div style={s.listItem}>
                   <div style={s.listMain} onClick={() => setExpandedRoutineId(expanded ? null : r.id)}>
                     <div style={s.listTitle}>{r.name}</div>
-                    <div style={s.listMeta}>{steps.length} exercise{steps.length === 1 ? "" : "s"}</div>
+                    <div style={s.listMeta}>{resolved.length} exercise{resolved.length === 1 ? "" : "s"}</div>
                   </div>
                   <div style={s.listActions}>
-                    <button style={s.smallBtn} onClick={() => startRoutine(r)} disabled={steps.length === 0}>Start</button>
+                    <button style={s.smallBtn} onClick={() => startRoutine(r)} disabled={resolved.length === 0}>Start</button>
                     <button style={s.deleteBtn} onClick={() => deleteRoutine(r.id)}>&times;</button>
                   </div>
                 </div>
 
                 {expanded && (
                   <div style={s.routineEditor}>
-                    {steps.map((ex, i) => (
-                      <div key={i} style={s.routineStepRow}>
-                        <span style={s.routineStepName}>{i + 1}. {ex.name}</span>
+                    {resolved.map(({ step, exercise: ex }, i) => (
+                      <div key={step.id} style={s.routineStepRow}>
+                        <div style={s.routineStepMain}>
+                          <span style={s.routineStepName}>{i + 1}. {ex.name}</span>
+                          <div style={s.routineStepOverrides}>
+                            <label style={s.routineStepFieldLabel}>
+                              Sets
+                              <input
+                                style={s.routineStepInput}
+                                type="number"
+                                min={1}
+                                value={step.sets ?? ex.sets}
+                                onChange={e => updateRoutineStep(r.id, i, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                              />
+                            </label>
+                            <label style={s.routineStepFieldLabel}>
+                              Rest (s)
+                              <input
+                                style={s.routineStepInput}
+                                type="number"
+                                min={0}
+                                value={step.restSec ?? (ex.restSec ?? 0)}
+                                onChange={e => updateRoutineStep(r.id, i, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                              />
+                            </label>
+                          </div>
+                        </div>
                         <div style={s.listActions}>
                           <button style={s.tinyBtn} onClick={() => moveInRoutine(r.id, i, -1)} disabled={i === 0}>&uarr;</button>
-                          <button style={s.tinyBtn} onClick={() => moveInRoutine(r.id, i, 1)} disabled={i === steps.length - 1}>&darr;</button>
+                          <button style={s.tinyBtn} onClick={() => moveInRoutine(r.id, i, 1)} disabled={i === resolved.length - 1}>&darr;</button>
                           <button style={s.deleteBtn} onClick={() => removeFromRoutine(r.id, i)}>&times;</button>
                         </div>
                       </div>
@@ -809,7 +1009,7 @@ function ClimbingTrackerApp() {
                         </select>
                         <button
                           style={s.saveBtn}
-                          onClick={() => { addExerciseToRoutine(r.id, routineAddSelect[r.id]); setRoutineAddSelect({ ...routineAddSelect, [r.id]: "" }); }}
+                          onClick={() => { addStepToRoutine(r.id, routineAddSelect[r.id]); setRoutineAddSelect({ ...routineAddSelect, [r.id]: "" }); }}
                           disabled={!routineAddSelect[r.id]}
                         >
                           Add
@@ -1019,10 +1219,21 @@ const s = {
   presetForm: { display: "flex", gap: 8, marginBottom: 16 },
   routineEditor: { marginTop: 6, paddingTop: 10, borderTop: "1px solid #232323" },
   routineStepRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "8px 0", gap: 8,
+    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+    padding: "10px 0", gap: 8, borderBottom: "1px solid #1E1E1E",
   },
-  routineStepName: { fontSize: 14, color: "#DDD", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  routineStepMain: { minWidth: 0, flex: 1 },
+  routineStepName: { fontSize: 14, color: "#DDD", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  routineStepOverrides: { display: "flex", gap: 14, marginTop: 8 },
+  routineStepFieldLabel: {
+    display: "flex", flexDirection: "column", gap: 4, fontSize: 10, color: "#666",
+    textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600,
+  },
+  routineStepInput: {
+    width: 52, padding: "5px 6px", borderRadius: 6, border: "1px solid #333",
+    background: "#1A1A1A", color: "#E8E8E8", fontSize: 13, outline: "none",
+    fontVariantNumeric: "tabular-nums",
+  },
   routineAddRow: { display: "flex", gap: 8, marginTop: 10 },
   clearBtn: {
     padding: "8px 14px", borderRadius: 8, border: "1px solid #333",
