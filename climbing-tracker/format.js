@@ -127,40 +127,73 @@ function uniformValue(values) {
   return values.length > 0 && values.every(v => v === values[0]) ? values[0] : null;
 }
 
-// Compares a logged history step against the CURRENT exercise definition and
-// returns { exercise, patch } describing how the exercise's own template
-// differs from what was actually logged, or null if there's no (unambiguous)
-// difference. Used to offer an "Update template" action from History.
-export function computeTemplateDrift(step, exercises) {
+// Compares a logged history step against the values that actually applied
+// during that session - a routine step's sets/restSec overrides when this
+// came from a routine (matching how startRoutine() resolves them), falling
+// back to the exercise's own defaults otherwise (standalone exercise, or a
+// routine/step that's since been deleted). Returns null if there's no
+// (unambiguous) difference. Used to offer an "Update" action from History
+// and the post-session prompt, which can patch the routine step, the
+// exercise, or both - whichever the differing fields actually live on.
+export function computeTemplateDrift(entry, step, exercises, routines) {
   const ex = exercises.find(e => e.id === step.exerciseId);
   if (!ex) return null;
+
+  let routine = null;
+  let routineStep = null;
+  if (entry.kind === "routine") {
+    routine = routines.find(r => r.id === entry.refId) || null;
+    routineStep = (routine && step.routineStepId)
+      ? routine.steps.find(s => s.id === step.routineStepId) || null
+      : null;
+  }
+
+  // sets/restSec can be overridden per routine step; reps/weight/workSec
+  // have no routine-level override and always come from the exercise.
+  const target = {
+    sets: routineStep ? (routineStep.sets ?? ex.sets) : ex.sets,
+    reps: ex.reps,
+    weight: ex.weight,
+    workSec: ex.workSec,
+    restSec: routineStep ? (routineStep.restSec ?? (ex.restSec ?? 0)) : ex.restSec,
+  };
+
   const p = step.performed;
   const patch = {};
 
   if (p.type === "interval") {
-    if (p.targetSets !== ex.sets) patch.sets = p.targetSets;
-    if (p.workSec !== ex.workSec) patch.workSec = p.workSec;
-    if (p.restSec !== ex.restSec) patch.restSec = p.restSec;
+    if (p.targetSets !== target.sets) patch.sets = p.targetSets;
+    if (p.workSec !== target.workSec) patch.workSec = p.workSec;
+    if (p.restSec !== target.restSec) patch.restSec = p.restSec;
   } else {
-    if (p.sets.length !== ex.sets) patch.sets = p.sets.length;
+    if (p.sets.length !== target.sets) patch.sets = p.sets.length;
     const reps = uniformValue(p.sets.map(row => row.reps));
-    if (reps !== null && reps !== ex.reps) patch.reps = reps;
+    if (reps !== null && reps !== target.reps) patch.reps = reps;
     if (p.type === "weighted") {
       const weight = uniformValue(p.sets.map(row => row.weight));
-      if (weight !== null && weight !== ex.weight) patch.weight = weight;
+      if (weight !== null && weight !== target.weight) patch.weight = weight;
     }
   }
 
-  return Object.keys(patch).length > 0 ? { exercise: ex, patch } : null;
+  if (Object.keys(patch).length === 0) return null;
+
+  const routinePatch = {};
+  const exercisePatch = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (routineStep && (key === "sets" || key === "restSec")) routinePatch[key] = value;
+    else exercisePatch[key] = value;
+  }
+
+  return { exercise: ex, routine, routineStep, target, patch, routinePatch, exercisePatch };
 }
 
 export function formatDriftSummary(drift) {
-  const { exercise: ex, patch } = drift;
+  const { target, patch } = drift;
   const parts = [];
-  if ("sets" in patch) parts.push(`Sets: ${ex.sets}→${patch.sets}`);
-  if ("reps" in patch) parts.push(`Reps: ${ex.reps}→${patch.reps}`);
-  if ("weight" in patch) parts.push(`Weight: ${ex.weight}→${patch.weight}kg`);
-  if ("workSec" in patch) parts.push(`Work: ${ex.workSec}s→${patch.workSec}s`);
-  if ("restSec" in patch) parts.push(`Rest: ${ex.restSec}s→${patch.restSec}s`);
+  if ("sets" in patch) parts.push(`Sets: ${target.sets}→${patch.sets}`);
+  if ("reps" in patch) parts.push(`Reps: ${target.reps}→${patch.reps}`);
+  if ("weight" in patch) parts.push(`Weight: ${target.weight}→${patch.weight}kg`);
+  if ("workSec" in patch) parts.push(`Work: ${target.workSec}s→${patch.workSec}s`);
+  if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s→${patch.restSec}s`);
   return parts.join(" · ");
 }
