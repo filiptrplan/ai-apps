@@ -1,6 +1,7 @@
 (() => {
-  const { useState, useEffect, useRef, useCallback } = React;
-  const STORAGE_KEYS = { presets: "interval-timer-presets", history: "interval-timer-history" };
+  // interval-timer-app.jsx
+  var { useState, useEffect, useRef, useCallback } = React;
+  var STORAGE_KEYS = { presets: "interval-timer-presets", history: "interval-timer-history" };
   function formatTime(s2) {
     const m = Math.floor(s2 / 60);
     const sec = s2 % 60;
@@ -28,8 +29,8 @@
     }, [key]);
     return [data, save];
   }
-  const TABS = ["Timer", "Presets", "History"];
-  let audioCtx = null;
+  var TABS = ["Timer", "Presets", "History"];
+  var audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -56,7 +57,7 @@
     } catch {
     }
   }
-  const sounds = {
+  var sounds = {
     countdown: () => beep(880, 0.1, 0.18, "sine"),
     workStart: () => beep(660, 0.18, 0.22, "square"),
     restStart: () => beep(440, 0.18, 0.22, "sine"),
@@ -365,7 +366,7 @@
       return (_a = fileInputRef.current) == null ? void 0 : _a.click();
     } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))));
   }
-  const s = {
+  var s = {
     root: {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       maxWidth: 440,

@@ -21,7 +21,7 @@ Promise.all(
       jsx: "transform",
       format: "iife",
       target: "es2019",
-      bundle: false,
+      bundle: true,
     }).then(() => console.log(`built ${entry} -> ${entry.replace(/\.jsx$/, ".js")}`))
   )
 ).catch((err) => {
