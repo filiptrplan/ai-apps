@@ -131,6 +131,40 @@ Rules:
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
 
+// Turns a card's live log into a history "performed" record, or null if
+// nothing was actually logged (so untouched cards are dropped silently).
+function buildPerformedFromLog(exercise, log) {
+  if (!log) return null;
+  if (exercise.type === "interval") {
+    if (!log.completedSets) return null;
+    return {
+      type: "interval",
+      workSec: exercise.workSec,
+      restSec: exercise.restSec,
+      targetSets: exercise.sets,
+      completedSets: log.completedSets,
+    };
+  }
+  const doneRows = (log.rows || []).filter(r => r.done);
+  if (doneRows.length === 0) return null;
+  if (exercise.type === "weighted") {
+    return {
+      type: "weighted",
+      weightMode: exercise.weightMode,
+      targetSets: exercise.sets,
+      targetReps: exercise.reps,
+      targetWeight: exercise.weight,
+      sets: doneRows.map(r => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
+    };
+  }
+  return {
+    type: "reps",
+    targetSets: exercise.sets,
+    targetReps: exercise.reps,
+    sets: doneRows.map(r => ({ reps: Number(r.reps) || 0 })),
+  };
+}
+
 function formatPerformedSummary(step) {
   const p = step.performed;
   if (p.type === "weighted") {
@@ -281,219 +315,125 @@ function ExerciseForm({ draft, onChange, onSave, onCancel }) {
   );
 }
 
-function TableSetsRunner({ exercise, onComplete }) {
-  const [sets, setSets] = useState(() =>
-    Array.from({ length: exercise.sets || 1 }, () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 }))
-  );
-
-  const updateSet = (i, patch) => setSets(sets.map((row, idx) => idx === i ? { ...row, ...patch } : row));
-  const removeSet = (i) => setSets(sets.filter((_, idx) => idx !== i));
-  const addSet = () => {
-    const last = sets[sets.length - 1] || { reps: exercise.reps || 0, weight: exercise.weight || 0 };
-    setSets([...sets, { ...last }]);
-  };
-
-  const finish = () => {
-    if (exercise.type === "weighted") {
-      onComplete({
-        type: "weighted",
-        weightMode: exercise.weightMode,
-        targetSets: exercise.sets,
-        targetReps: exercise.reps,
-        targetWeight: exercise.weight,
-        sets: sets.map(r => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
-      });
-    } else {
-      onComplete({
-        type: "reps",
-        targetSets: exercise.sets,
-        targetReps: exercise.reps,
-        sets: sets.map(r => ({ reps: Number(r.reps) || 0 })),
-      });
-    }
-  };
-
-  return (
-    <div>
-      <div style={s.setsTarget}>Target: {formatTargetSummary(exercise)}</div>
-      <div style={s.setsTable}>
-        <div style={s.setsHeaderRow}>
-          <span style={s.setsHeaderCell}>Set</span>
-          <span style={s.setsHeaderCell}>Reps</span>
-          {exercise.type === "weighted" && <span style={s.setsHeaderCell}>Weight (kg)</span>}
-          <span style={{ ...s.setsHeaderCell, width: 28 }} />
-        </div>
-        {sets.map((row, i) => (
-          <div style={s.setsRow} key={i}>
-            <span style={s.setsIndex}>{i + 1}</span>
-            <input
-              style={s.setsInput}
-              type="number"
-              min={0}
-              value={row.reps}
-              onChange={e => updateSet(i, { reps: e.target.value })}
-            />
-            {exercise.type === "weighted" && (
-              <input
-                style={s.setsInput}
-                type="number"
-                min={0}
-                step={0.5}
-                value={row.weight}
-                onChange={e => updateSet(i, { weight: e.target.value })}
-              />
-            )}
-            <button style={s.deleteBtn} onClick={() => removeSet(i)} disabled={sets.length <= 1}>&times;</button>
-          </div>
-        ))}
-      </div>
-      <button style={s.addSetBtn} onClick={addSet}>+ Add set</button>
-      <button style={s.startBtn} onClick={finish}>Finish exercise</button>
-    </div>
-  );
-}
-
-// Used when the exercise has a rest timer configured between sets: logs one set
-// at a time, running a rest countdown after each one before the next set unlocks.
-function SequentialSetsRunner({ exercise, onComplete }) {
+// Checklist-style set logger: every set is visible at once and can be ticked
+// done in any order. Ticking a set starts an inline, non-blocking rest countdown
+// (when the exercise has a restSec configured) before the next tick.
+function SetsCard({ exercise, onChange }) {
   const targetSets = exercise.sets || 1;
   const restSec = exercise.restSec || 0;
   const isWeighted = exercise.type === "weighted";
-  const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0 });
+  const makeRow = () => ({ reps: exercise.reps || 0, weight: exercise.weight || 0, done: false });
 
-  const [phase, setPhase] = useState("log"); // log | rest | review
-  const [setIndex, setSetIndex] = useState(0);
-  const [current, setCurrent] = useState(makeRow);
-  const [rows, setRows] = useState([]);
-  const rowsRef = useRef([]);
-  const [timeLeft, setTimeLeft] = useState(restSec);
-  const [paused, setPaused] = useState(false);
+  const [rows, setRows] = useState(() => Array.from({ length: targetSets }, makeRow));
+  const [restRowIndex, setRestRowIndex] = useState(null);
+  const [restTimeLeft, setRestTimeLeft] = useState(restSec);
+  const [restPaused, setRestPaused] = useState(false);
   const intervalRef = useRef(null);
   const timeLeftRef = useRef(restSec);
 
-  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+  useEffect(() => { onChange({ rows }); }, [rows]);
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  const nextSet = () => {
-    setSetIndex(i => i + 1);
-    setCurrent(makeRow());
-    setPhase("log");
-  };
+  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
 
   const tick = () => {
     timeLeftRef.current -= 1;
     if (timeLeftRef.current <= 0) {
       clearTick();
       sounds.workStart();
-      nextSet();
+      setRestRowIndex(null);
     } else {
-      setTimeLeft(timeLeftRef.current);
+      setRestTimeLeft(timeLeftRef.current);
       if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
     }
   };
 
-  const logSet = () => {
-    const entry = isWeighted
-      ? { reps: Number(current.reps) || 0, weight: Number(current.weight) || 0 }
-      : { reps: Number(current.reps) || 0 };
-    rowsRef.current = [...rowsRef.current, entry];
-    setRows(rowsRef.current);
-    if (setIndex + 1 >= targetSets) {
-      setPhase("review");
-    } else {
-      timeLeftRef.current = restSec;
-      setTimeLeft(restSec);
-      setPaused(false);
-      setPhase("rest");
-      sounds.restStart();
-      intervalRef.current = setInterval(tick, 1000);
-    }
+  const startRest = (rowIndex) => {
+    clearTick();
+    timeLeftRef.current = restSec;
+    setRestTimeLeft(restSec);
+    setRestPaused(false);
+    setRestRowIndex(rowIndex);
+    sounds.restStart();
+    intervalRef.current = setInterval(tick, 1000);
   };
 
-  const skipRest = () => { clearTick(); sounds.workStart(); nextSet(); };
-  const togglePause = () => {
-    if (paused) { intervalRef.current = setInterval(tick, 1000); setPaused(false); }
-    else { clearTick(); setPaused(true); }
+  const skipRest = () => { clearTick(); setRestRowIndex(null); };
+  const toggleRestPause = () => {
+    if (restPaused) { intervalRef.current = setInterval(tick, 1000); setRestPaused(false); }
+    else { clearTick(); setRestPaused(true); }
   };
-
-  useEffect(() => () => clearTick(), []);
 
   const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const removeRow = (i) => setRows(rows.filter((_, idx) => idx !== i));
-  const addRow = () => setRows([...rows, { ...(rows[rows.length - 1] || makeRow()) }]);
+  const removeRow = (i) => {
+    setRows(rows.filter((_, idx) => idx !== i));
+    if (restRowIndex === i) skipRest();
+  };
+  const addRow = () => setRows([...rows, { ...(rows[rows.length - 1] || makeRow()), done: false }]);
 
-  const finish = () => {
-    const performed = isWeighted
-      ? {
-          type: "weighted", weightMode: exercise.weightMode, targetSets, targetReps: exercise.reps, targetWeight: exercise.weight,
-          sets: rows.map(r => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
-        }
-      : {
-          type: "reps", targetSets, targetReps: exercise.reps,
-          sets: rows.map(r => ({ reps: Number(r.reps) || 0 })),
-        };
-    onComplete(performed);
+  const toggleDone = (i) => {
+    const nowDone = !rows[i].done;
+    updateRow(i, { done: nowDone });
+    if (nowDone && restSec > 0) startRest(i);
+    else if (!nowDone && restRowIndex === i) skipRest();
   };
 
-  if (phase === "log") {
-    return (
-      <div>
-        <div style={s.setsTarget}>Set {setIndex + 1} / {targetSets} &middot; {restSec}s rest after</div>
-        <div style={s.fieldRow}>
-          <NumberField label="Reps" value={current.reps} onChange={v => setCurrent({ ...current, reps: v })} min={0} />
-          {isWeighted && (
-            <NumberField label="Weight" value={current.weight} onChange={v => setCurrent({ ...current, weight: v })} min={0} step={0.5} suffix="kg" />
-          )}
-        </div>
-        <button style={s.startBtn} onClick={logSet}>Log set</button>
-      </div>
-    );
-  }
-
-  if (phase === "rest") {
-    return (
-      <div>
-        <div style={{ ...s.timerBox, background: "rgba(58,158,110,0.08)" }}>
-          <div style={{ ...s.phaseLabel, color: "#3A9E6E" }}>REST</div>
-          <div style={{ ...s.timerDigits, color: "#3A9E6E" }}>{formatTime(timeLeft)}</div>
-          <div style={s.timerSub}>Next: set {setIndex + 1} / {targetSets}</div>
-          {paused && <div style={{ ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 }}>PAUSED</div>}
-        </div>
-        <div style={s.controls}>
-          <button style={s.pauseBtn} onClick={togglePause}>{paused ? "Resume" : "Pause"}</button>
-          <button style={s.skipBtn} onClick={skipRest}>Skip rest</button>
-        </div>
-      </div>
-    );
-  }
+  const doneCount = rows.filter(r => r.done).length;
 
   return (
     <div>
-      <div style={s.setsTarget}>All {targetSets} sets logged &mdash; review before finishing:</div>
+      <div style={s.setsTarget}>{doneCount} / {rows.length} sets done &middot; target {formatTargetSummary(exercise)}</div>
       <div style={s.setsTable}>
         <div style={s.setsHeaderRow}>
+          <span style={{ ...s.setsHeaderCell, width: 22 }} />
           <span style={s.setsHeaderCell}>Set</span>
           <span style={s.setsHeaderCell}>Reps</span>
           {isWeighted && <span style={s.setsHeaderCell}>Weight (kg)</span>}
           <span style={{ ...s.setsHeaderCell, width: 28 }} />
         </div>
         {rows.map((row, i) => (
-          <div style={s.setsRow} key={i}>
-            <span style={s.setsIndex}>{i + 1}</span>
-            <input style={s.setsInput} type="number" min={0} value={row.reps} onChange={e => updateRow(i, { reps: e.target.value })} />
-            {isWeighted && (
-              <input style={s.setsInput} type="number" min={0} step={0.5} value={row.weight} onChange={e => updateRow(i, { weight: e.target.value })} />
+          <React.Fragment key={i}>
+            <div style={{ ...s.setsRow, ...(row.done ? s.setsRowDone : {}) }}>
+              <input type="checkbox" style={s.setsCheckbox} checked={row.done} onChange={() => toggleDone(i)} />
+              <span style={s.setsIndex}>{i + 1}</span>
+              <input
+                style={s.setsInput}
+                type="number"
+                min={0}
+                value={row.reps}
+                onChange={e => updateRow(i, { reps: e.target.value })}
+              />
+              {isWeighted && (
+                <input
+                  style={s.setsInput}
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={row.weight}
+                  onChange={e => updateRow(i, { weight: e.target.value })}
+                />
+              )}
+              <button style={s.deleteBtn} onClick={() => removeRow(i)} disabled={rows.length <= 1}>&times;</button>
+            </div>
+            {restRowIndex === i && (
+              <div style={s.restInline}>
+                <span style={s.restInlineLabel}>Rest {formatTime(restTimeLeft)}</span>
+                <button style={s.tinyBtn} onClick={toggleRestPause}>{restPaused ? "Resume" : "Pause"}</button>
+                <button style={s.tinyBtn} onClick={skipRest}>Skip</button>
+              </div>
             )}
-            <button style={s.deleteBtn} onClick={() => removeRow(i)} disabled={rows.length <= 1}>&times;</button>
-          </div>
+          </React.Fragment>
         ))}
       </div>
       <button style={s.addSetBtn} onClick={addRow}>+ Add set</button>
-      <button style={s.startBtn} onClick={finish}>Finish exercise</button>
     </div>
   );
 }
 
-function IntervalRunner({ exercise, onComplete }) {
+// Reports its progress live via onChange (rather than a one-shot onComplete)
+// so the containing page can read the current completedSets at any time,
+// including mid-timer, when the workout is finished.
+function IntervalCard({ exercise, onChange }) {
   const [phase, setPhase] = useState("idle"); // idle | work | rest | done
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(exercise.workSec);
@@ -504,6 +444,8 @@ function IntervalRunner({ exercise, onComplete }) {
   const timeLeftRef = useRef(exercise.workSec);
   const completedRef = useRef(0);
 
+  const report = () => onChange({ type: "interval", completedSets: completedRef.current });
+
   const clearTick = () => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
   };
@@ -511,6 +453,7 @@ function IntervalRunner({ exercise, onComplete }) {
   const finishNow = () => {
     clearTick();
     setPhase("done");
+    report();
   };
 
   const runTick = () => {
@@ -518,6 +461,7 @@ function IntervalRunner({ exercise, onComplete }) {
     if (timeLeftRef.current <= 0) {
       if (phaseRef.current === "work") {
         completedRef.current += 1;
+        report();
         if (currentSetRef.current >= exercise.sets) {
           phaseRef.current = "done";
           setPhase("done");
@@ -559,6 +503,19 @@ function IntervalRunner({ exercise, onComplete }) {
     intervalRef.current = setInterval(runTick, 1000);
   };
 
+  const restart = () => {
+    clearTick();
+    completedRef.current = 0;
+    phaseRef.current = "idle";
+    currentSetRef.current = 1;
+    timeLeftRef.current = exercise.workSec;
+    setPhase("idle");
+    setCurrentSet(1);
+    setTimeLeft(exercise.workSec);
+    setPaused(false);
+    report();
+  };
+
   const togglePause = () => {
     if (paused) {
       intervalRef.current = setInterval(runTick, 1000);
@@ -579,6 +536,7 @@ function IntervalRunner({ exercise, onComplete }) {
       setTimeLeft(exercise.workSec);
     } else if (phaseRef.current === "work") {
       completedRef.current += 1;
+      report();
       if (currentSetRef.current >= exercise.sets) {
         finishNow();
       } else {
@@ -632,42 +590,77 @@ function IntervalRunner({ exercise, onComplete }) {
           </>
         )}
         {phase === "done" && (
-          <button style={s.startBtn} onClick={() => onComplete({
-            type: "interval",
-            workSec: exercise.workSec,
-            restSec: exercise.restSec,
-            targetSets: exercise.sets,
-            completedSets: completed,
-          })}>
-            Continue
-          </button>
+          <button style={s.exportBtn} onClick={restart}>Restart</button>
         )}
       </div>
     </div>
   );
 }
 
-function SessionRunner({ session, onCancel, onStepComplete }) {
-  const exercise = session.steps[session.stepIndex];
-  const isRoutine = session.kind === "routine";
+function ExerciseCard({ exercise, position, total, onChange, onMove }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div style={s.exerciseCard}>
+      <div style={s.exerciseCardHeader}>
+        <div style={s.exerciseCardHeaderMain} onClick={() => setCollapsed(!collapsed)}>
+          <div style={s.exerciseCardName}>{exercise.name}</div>
+          <div style={s.exerciseCardTarget}>{formatTargetSummary(exercise)}</div>
+        </div>
+        <div style={s.listActions}>
+          {total > 1 && (
+            <>
+              <button style={s.tinyBtn} onClick={() => onMove(-1)} disabled={position === 0}>&uarr;</button>
+              <button style={s.tinyBtn} onClick={() => onMove(1)} disabled={position === total - 1}>&darr;</button>
+            </>
+          )}
+          <button style={s.tinyBtn} onClick={() => setCollapsed(!collapsed)}>{collapsed ? "+" : "−"}</button>
+        </div>
+      </div>
+      {/* Kept mounted (just hidden) so ticked sets / timer progress survive collapsing. */}
+      <div style={collapsed ? s.hidden : undefined}>
+        {exercise.type === "interval"
+          ? <IntervalCard exercise={exercise} onChange={onChange} />
+          : <SetsCard exercise={exercise} onChange={onChange} />}
+      </div>
+    </div>
+  );
+}
+
+// All exercises in the session are shown on one page at once, so a routine
+// can be worked through in whatever order feels right rather than a forced
+// step-by-step sequence. Each card reports its live progress via onLogChange;
+// "Finish workout" reads whatever has been ticked/logged so far.
+function SessionPage({ session, onCancel, onLogChange, onFinish }) {
+  const [order, setOrder] = useState(() => session.exercises.map((_, i) => i));
+
+  const moveCard = (position, dir) => {
+    setOrder(o => {
+      const arr = [...o];
+      const j = position + dir;
+      if (j < 0 || j >= arr.length) return o;
+      [arr[position], arr[j]] = [arr[j], arr[position]];
+      return arr;
+    });
+  };
 
   return (
     <div style={s.page}>
       <div style={s.sessionTopBar}>
         <button style={s.cancelBtn} onClick={onCancel}>Cancel</button>
-        {isRoutine && (
-          <div style={s.sessionProgress}>Step {session.stepIndex + 1} / {session.steps.length}</div>
-        )}
+        <div style={s.sessionTitle}>{session.kind === "routine" ? session.refName : "Exercise"}</div>
       </div>
-      <div style={s.sessionTitle}>{isRoutine ? session.refName : "Exercise"}</div>
-      <div style={s.sessionExerciseName}>{exercise.name}</div>
-      {exercise.type === "interval" ? (
-        <IntervalRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
-      ) : exercise.restSec > 0 ? (
-        <SequentialSetsRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
-      ) : (
-        <TableSetsRunner key={session.stepIndex} exercise={exercise} onComplete={onStepComplete} />
-      )}
+      {order.map((exIdx, position) => (
+        <ExerciseCard
+          key={exIdx}
+          exercise={session.exercises[exIdx]}
+          position={position}
+          total={order.length}
+          onChange={log => onLogChange(exIdx, log)}
+          onMove={dir => moveCard(position, dir)}
+        />
+      ))}
+      <button style={s.startBtn} onClick={onFinish}>Finish workout</button>
     </div>
   );
 }
@@ -758,10 +751,17 @@ function ClimbingTrackerApp() {
     }));
   };
 
-  // Session control
-  const startExercise = (ex) => setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, steps: [ex], stepIndex: 0, results: [] });
+  // Session control. Logs for the active session live in a ref (not state) since
+  // cards report progress on every tick/timer-tick; we only need to read the
+  // latest values once, when the workout is finished.
+  const sessionLogsRef = useRef([]);
+
+  const startExercise = (ex) => {
+    sessionLogsRef.current = [null];
+    setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex] });
+  };
   const startRoutine = (r) => {
-    const steps = r.steps.map(step => {
+    const exs = r.steps.map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
       if (!ex) return null;
       return {
@@ -770,17 +770,20 @@ function ClimbingTrackerApp() {
         restSec: step.restSec ?? (ex.restSec ?? 0),
       };
     }).filter(Boolean);
-    if (steps.length === 0) return;
-    setActiveSession({ kind: "routine", refId: r.id, refName: r.name, steps, stepIndex: 0, results: [] });
+    if (exs.length === 0) return;
+    sessionLogsRef.current = exs.map(() => null);
+    setActiveSession({ kind: "routine", refId: r.id, refName: r.name, exercises: exs });
   };
   const cancelSession = () => setActiveSession(null);
-  const completeStep = (performed) => {
+  const handleLogChange = (i, log) => { sessionLogsRef.current[i] = log; };
+  const finishSession = () => {
     const current = activeSession;
-    const stepExercise = current.steps[current.stepIndex];
-    const results = [...current.results, { exerciseId: stepExercise.id, exerciseName: stepExercise.name, performed }];
-    if (current.stepIndex + 1 < current.steps.length) {
-      setActiveSession({ ...current, stepIndex: current.stepIndex + 1, results });
-    } else {
+    const results = [];
+    current.exercises.forEach((ex, i) => {
+      const performed = buildPerformedFromLog(ex, sessionLogsRef.current[i]);
+      if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed });
+    });
+    if (results.length > 0) {
       const entry = {
         id: uid(),
         date: new Date().toISOString(),
@@ -790,8 +793,8 @@ function ClimbingTrackerApp() {
         steps: results,
       };
       setHistory([entry, ...history]);
-      setActiveSession(null);
     }
+    setActiveSession(null);
   };
 
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
@@ -890,7 +893,7 @@ function ClimbingTrackerApp() {
   if (activeSession) {
     return (
       <div style={s.root}>
-        <SessionRunner session={activeSession} onCancel={cancelSession} onStepComplete={completeStep} />
+        <SessionPage session={activeSession} onCancel={cancelSession} onLogChange={handleLogChange} onFinish={finishSession} />
       </div>
     );
   }
@@ -1264,31 +1267,46 @@ const s = {
   },
   importError: { color: "#E8553A", fontSize: 13, marginTop: 6 },
 
-  // Session runner
+  // Session page
   sessionTopBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
   cancelBtn: {
     padding: "8px 14px", borderRadius: 8, border: "1px solid #333",
     background: "transparent", color: "#999", fontSize: 13, fontWeight: 500, cursor: "pointer",
   },
-  sessionProgress: { fontSize: 13, color: "#777", fontWeight: 600 },
   sessionTitle: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-  sessionExerciseName: { fontSize: 22, fontWeight: 700, marginTop: 4, marginBottom: 18 },
 
-  setsTarget: { fontSize: 13, color: "#888", marginBottom: 14 },
-  setsTable: { marginBottom: 12 },
+  exerciseCard: {
+    background: "#161616", border: "1px solid #282828", borderRadius: 12,
+    padding: 14, marginBottom: 14,
+  },
+  exerciseCardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  exerciseCardHeaderMain: { flex: 1, minWidth: 0, cursor: "pointer" },
+  exerciseCardName: { fontSize: 17, fontWeight: 700 },
+  exerciseCardTarget: { fontSize: 13, color: "#888", marginTop: 2 },
+  hidden: { display: "none" },
+
+  setsTarget: { fontSize: 13, color: "#888", margin: "14px 0" },
+  setsTable: { marginBottom: 12, marginTop: 14 },
   setsHeaderRow: { display: "flex", gap: 10, marginBottom: 6, alignItems: "center" },
   setsHeaderCell: { fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: "0.04em", flex: 1 },
   setsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 8 },
+  setsRowDone: { opacity: 0.55 },
+  setsCheckbox: { width: 20, height: 20, flexShrink: 0, cursor: "pointer", accentColor: "#D9A441" },
   setsIndex: { width: 22, fontSize: 13, color: "#888", fontWeight: 600, flexShrink: 0 },
   setsInput: {
     flex: 1, padding: "10px 10px", borderRadius: 8, border: "1px solid #333",
     background: "#1A1A1A", color: "#E8E8E8", fontSize: 15, outline: "none",
     fontVariantNumeric: "tabular-nums", minWidth: 0,
   },
+  restInline: {
+    display: "flex", alignItems: "center", gap: 8, margin: "-2px 0 10px 32px",
+    padding: "6px 10px", borderRadius: 8, background: "rgba(58,158,110,0.1)",
+    border: "1px solid rgba(58,158,110,0.3)",
+  },
+  restInlineLabel: { fontSize: 13, color: "#3A9E6E", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
   addSetBtn: {
     width: "100%", padding: "10px 0", borderRadius: 8, border: "1px dashed #444",
     background: "transparent", color: "#CCC", fontSize: 13, fontWeight: 600, cursor: "pointer",
-    marginBottom: 20,
   },
   startBtn: {
     width: "100%", padding: "14px 0", borderRadius: 10, border: "none",
