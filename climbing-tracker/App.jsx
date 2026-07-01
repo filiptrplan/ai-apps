@@ -475,25 +475,29 @@ export function ClimbingTrackerApp() {
                     {formatDate(h.date)}{h.durationSec != null ? ` · ${formatDuration(h.durationSec)}` : ""}
                   </div>
 
-                  {expanded && h.steps.map((step, i) => {
+                  {h.steps.map((step, i) => {
                     const drift = computeTemplateDrift(step, exercises);
+                    if (!drift) return null;
                     return (
-                      <div key={i} style={s.historyStep}>
-                        <div>{h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}</div>
-                        {drift && (
-                          <div style={s.driftRow}>
-                            <span style={s.driftText}>Differs from template ({formatDriftSummary(drift)})</span>
-                            <button
-                              style={s.driftBtn}
-                              onClick={e => { e.stopPropagation(); updateExerciseTemplate(drift.exercise.id, drift.patch); }}
-                            >
-                              Update template
-                            </button>
-                          </div>
-                        )}
+                      <div key={`drift-${i}`} style={s.driftRow}>
+                        <span style={s.driftText}>
+                          {h.kind === "routine" ? `${step.exerciseName}: ` : ""}Differs from template ({formatDriftSummary(drift)})
+                        </span>
+                        <button
+                          style={s.driftBtn}
+                          onClick={e => { e.stopPropagation(); updateExerciseTemplate(drift.exercise.id, drift.patch); }}
+                        >
+                          Update template
+                        </button>
                       </div>
                     );
                   })}
+
+                  {expanded && h.steps.map((step, i) => (
+                    <div key={i} style={s.historyStep}>
+                      {h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}
+                    </div>
+                  ))}
                 </div>
                 <button style={s.deleteBtn} onClick={() => requestDeleteHistoryEntry(h.id)}>&times;</button>
               </div>
