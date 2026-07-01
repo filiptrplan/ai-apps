@@ -96,14 +96,6 @@ export const s = {
     borderRadius: 5, padding: "2px 6px", textTransform: "uppercase", letterSpacing: "0.04em",
   },
   presetForm: { display: "flex", gap: 8, marginBottom: 16 },
-  routineEditor: { marginTop: 6, paddingTop: 10, borderTop: "1px solid #232323" },
-  routineStepRow: {
-    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-    padding: "10px 0", gap: 8, borderBottom: "1px solid #1E1E1E",
-  },
-  routineStepMain: { minWidth: 0, flex: 1 },
-  routineStepName: { fontSize: 14, color: "#DDD", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  routineStepOverrides: { display: "flex", gap: 14, marginTop: 8 },
   routineStepFieldLabel: {
     display: "flex", flexDirection: "column", gap: 4, fontSize: 10, color: "#666",
     textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600,
