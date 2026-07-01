@@ -2,6 +2,7 @@ import { STORAGE_KEYS, uid, useStorage } from "./storage.js";
 import {
   defaultFieldsForType,
   formatDate,
+  formatDuration,
   formatTargetSummary,
   formatPerformedSummary,
   mergeById,
@@ -117,7 +118,7 @@ export function ClimbingTrackerApp() {
 
   const startExercise = (ex) => {
     sessionLogsRef.current = [null];
-    setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex] });
+    setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
   };
   const startRoutine = (r) => {
     const exs = r.steps.map(step => {
@@ -132,7 +133,7 @@ export function ClimbingTrackerApp() {
     }).filter(Boolean);
     if (exs.length === 0) return;
     sessionLogsRef.current = exs.map(() => null);
-    setActiveSession({ kind: "routine", refId: r.id, refName: r.name, exercises: exs });
+    setActiveSession({ kind: "routine", refId: r.id, refName: r.name, exercises: exs, startedAt: Date.now() });
   };
   const cancelSession = () => setActiveSession(null);
   const requestCancelSession = () => {
@@ -162,6 +163,7 @@ export function ClimbingTrackerApp() {
         kind: current.kind,
         refId: current.refId,
         refName: current.refName,
+        durationSec: Math.round((Date.now() - current.startedAt) / 1000),
         steps: results,
       };
       setHistory([entry, ...history]);
@@ -169,6 +171,7 @@ export function ClimbingTrackerApp() {
     setActiveSession(null);
   };
 
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
   const requestDeleteHistoryEntry = (id) => {
     requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
@@ -453,33 +456,42 @@ export function ClimbingTrackerApp() {
         <div style={s.page}>
           {history.length > 0 && <button style={s.clearBtn} onClick={requestClearHistory}>Clear all</button>}
           {history.length === 0 && <p style={s.empty}>No logged sessions yet.</p>}
-          {history.map(h => (
-            <div key={h.id} style={s.listItem}>
-              <div style={s.listMain}>
-                <div style={s.listTitle}>
-                  {h.refName} <span style={s.kindBadge}>{h.kind === "routine" ? "Routine" : "Exercise"}</span>
+          {history.map(h => {
+            const expanded = expandedHistoryId === h.id;
+            return (
+              <div key={h.id} style={s.listItem}>
+                <div style={s.listMain} onClick={() => setExpandedHistoryId(expanded ? null : h.id)}>
+                  <div style={s.listTitle}>
+                    {h.refName} <span style={s.kindBadge}>{h.kind === "routine" ? "Routine" : "Exercise"}</span>
+                  </div>
+                  <div style={s.listMeta}>
+                    {formatDate(h.date)}{h.durationSec != null ? ` · ${formatDuration(h.durationSec)}` : ""}
+                  </div>
+
+                  {expanded && h.steps.map((step, i) => {
+                    const drift = computeTemplateDrift(step, exercises);
+                    return (
+                      <div key={i} style={s.historyStep}>
+                        <div>{h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}</div>
+                        {drift && (
+                          <div style={s.driftRow}>
+                            <span style={s.driftText}>Differs from template ({formatDriftSummary(drift)})</span>
+                            <button
+                              style={s.driftBtn}
+                              onClick={e => { e.stopPropagation(); updateExerciseTemplate(drift.exercise.id, drift.patch); }}
+                            >
+                              Update template
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={s.listMeta}>{formatDate(h.date)}</div>
-                {h.steps.map((step, i) => {
-                  const drift = computeTemplateDrift(step, exercises);
-                  return (
-                    <div key={i} style={s.historyStep}>
-                      <div>{h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}</div>
-                      {drift && (
-                        <div style={s.driftRow}>
-                          <span style={s.driftText}>Differs from template ({formatDriftSummary(drift)})</span>
-                          <button style={s.driftBtn} onClick={() => updateExerciseTemplate(drift.exercise.id, drift.patch)}>
-                            Update template
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                <button style={s.deleteBtn} onClick={() => requestDeleteHistoryEntry(h.id)}>&times;</button>
               </div>
-              <button style={s.deleteBtn} onClick={() => requestDeleteHistoryEntry(h.id)}>&times;</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
