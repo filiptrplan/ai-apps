@@ -166,23 +166,34 @@
     function renderLoggedOut(message) {
       account.replaceChildren();
       const form = document.createElement("form");
-      const input = document.createElement("input");
-      input.type = "email";
-      input.required = true;
-      input.placeholder = "you@example.com";
-      const button = document.createElement("button");
-      button.type = "submit";
-      button.textContent = "Send magic link";
-      form.append(input, button);
+      const emailInput = document.createElement("input");
+      emailInput.type = "email";
+      emailInput.required = true;
+      emailInput.autocomplete = "email";
+      emailInput.placeholder = "you@example.com";
+      const passwordInput = document.createElement("input");
+      passwordInput.type = "password";
+      passwordInput.required = true;
+      passwordInput.minLength = 6;
+      passwordInput.autocomplete = "current-password";
+      passwordInput.placeholder = "password";
+      const signInButton = document.createElement("button");
+      signInButton.type = "submit";
+      signInButton.textContent = "Sign in";
+      const signUpButton = document.createElement("button");
+      signUpButton.type = "submit";
+      signUpButton.className = "secondary";
+      signUpButton.textContent = "Create account";
+      form.append(emailInput, passwordInput, signInButton, signUpButton);
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        button.disabled = true;
-        button.textContent = "Sending…";
-        const { error } = await supabase.auth.signInWithOtp({
-          email: input.value,
-          options: { emailRedirectTo: window.location.origin + window.location.pathname },
-        });
-        renderLoggedOut(error ? error.message : "Check your email for a login link.");
+        const signingUp = e.submitter === signUpButton;
+        signInButton.disabled = true;
+        signUpButton.disabled = true;
+        const { error } = signingUp
+          ? await supabase.auth.signUp({ email: emailInput.value, password: passwordInput.value })
+          : await supabase.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
+        if (error) renderLoggedOut(error.message);
       });
       account.appendChild(form);
       if (message) {
