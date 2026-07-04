@@ -76,12 +76,55 @@
       .item{align-items:flex-start;flex-direction:column}
       .button{width:100%;text-align:center}
     }
+    .account{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      padding:14px 18px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      margin:0 0 24px;
+      font-size:.95rem;
+    }
+    .account input{
+      font:inherit;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      min-width:0;
+    }
+    .account form{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .account .muted{color:var(--muted)}
+    .account button{
+      font:inherit;
+      cursor:pointer;
+      background:var(--button);
+      color:var(--buttonText);
+      border:none;
+      padding:8px 14px;
+      border-radius:8px;
+      font-weight:600;
+    }
+    .account button.secondary{
+      background:transparent;
+      color:var(--fg);
+      border:1px solid var(--line);
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>AI Apps</h1>
     <p class="intro">Hi, this is a small collection of AI-generated apps and tools that I find useful.</p>
+
+    <div id="account" class="account">Loading account&hellip;</div>
 
     <div class="list">
       <section class="item">
@@ -107,5 +150,72 @@
       </section>
     </div>
   </main>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // Same public (anon/publishable) key as shared/supabaseClient.js, used
+    // here directly since this page has no build step.
+    const supabase = createClient(
+      "https://zqxvlczqfqmcojbgwogs.supabase.co",
+      "sb_publishable_IYIQPdhNqRWKj2SCS3pHKA_kp4jbYVr"
+    );
+
+    const account = document.getElementById("account");
+
+    function renderLoggedOut(message) {
+      account.replaceChildren();
+      const form = document.createElement("form");
+      const input = document.createElement("input");
+      input.type = "email";
+      input.required = true;
+      input.placeholder = "you@example.com";
+      const button = document.createElement("button");
+      button.type = "submit";
+      button.textContent = "Send magic link";
+      form.append(input, button);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        button.disabled = true;
+        button.textContent = "Sending…";
+        const { error } = await supabase.auth.signInWithOtp({
+          email: input.value,
+          options: { emailRedirectTo: window.location.origin + window.location.pathname },
+        });
+        renderLoggedOut(error ? error.message : "Check your email for a login link.");
+      });
+      account.appendChild(form);
+      if (message) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.style.margin = "0";
+        p.style.flexBasis = "100%";
+        p.textContent = message;
+        account.appendChild(p);
+      }
+    }
+
+    function renderLoggedIn(session) {
+      account.replaceChildren();
+      const span = document.createElement("span");
+      span.textContent = `Signed in as ${session.user.email}`;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary";
+      button.textContent = "Log out";
+      button.addEventListener("click", () => supabase.auth.signOut());
+      account.append(span, button);
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) renderLoggedIn(session);
+      else renderLoggedOut();
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) renderLoggedIn(data.session);
+      else renderLoggedOut();
+    });
+  </script>
 </body>
 </html>
