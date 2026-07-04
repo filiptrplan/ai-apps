@@ -1,4 +1,4 @@
-const { useState } = React;
+import { useSyncedStorage } from "../shared/syncStorage.js";
 
 export const STORAGE_KEYS = {
   exercises: "climbing-tracker-exercises",
@@ -11,19 +11,5 @@ export function uid() {
 }
 
 export function useStorage(key, fallback) {
-  const [data, setData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-
-  const save = (val) => {
-    setData(val);
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-  };
-
-  return [data, save];
+  return useSyncedStorage("climbing-tracker", key, fallback);
 }

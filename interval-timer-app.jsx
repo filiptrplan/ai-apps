@@ -1,4 +1,6 @@
-const { useState, useEffect, useRef, useCallback } = React;
+import { useSyncedStorage } from "./shared/syncStorage.js";
+
+const { useState, useEffect, useRef } = React;
 
 const STORAGE_KEYS = { presets: "interval-timer-presets", history: "interval-timer-history" };
 
@@ -15,21 +17,7 @@ function formatDate(iso) {
 }
 
 function useStorage(key, fallback) {
-  const [data, setData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-
-  const save = useCallback((val) => {
-    setData(val);
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-  }, [key]);
-
-  return [data, save];
+  return useSyncedStorage("interval-timer", key, fallback);
 }
 
 const TABS = ["Timer", "Presets", "History"];
