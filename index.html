@@ -163,14 +163,31 @@
 
     const account = document.getElementById("account");
 
+    // Supabase Auth has no native username identity, so accounts are backed
+    // by a synthetic, non-deliverable email derived from the username
+    // (email confirmations are disabled, so nothing is ever sent to it).
+    // The real username is stashed in user_metadata for display.
+    const USERNAME_EMAIL_DOMAIN = "users.ai-apps.local";
+    const USERNAME_PATTERN = "[A-Za-z0-9_.-]{3,32}";
+
+    function usernameToEmail(username) {
+      return `${username.trim().toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
+    }
+
+    function usernameFromSession(session) {
+      return session.user.user_metadata?.username || session.user.email;
+    }
+
     function renderLoggedOut(message) {
       account.replaceChildren();
       const form = document.createElement("form");
-      const emailInput = document.createElement("input");
-      emailInput.type = "email";
-      emailInput.required = true;
-      emailInput.autocomplete = "email";
-      emailInput.placeholder = "you@example.com";
+      const usernameInput = document.createElement("input");
+      usernameInput.type = "text";
+      usernameInput.required = true;
+      usernameInput.autocomplete = "username";
+      usernameInput.pattern = USERNAME_PATTERN;
+      usernameInput.title = "3-32 characters: letters, numbers, underscore, dot, hyphen";
+      usernameInput.placeholder = "username";
       const passwordInput = document.createElement("input");
       passwordInput.type = "password";
       passwordInput.required = true;
@@ -184,15 +201,20 @@
       signUpButton.type = "submit";
       signUpButton.className = "secondary";
       signUpButton.textContent = "Create account";
-      form.append(emailInput, passwordInput, signInButton, signUpButton);
+      form.append(usernameInput, passwordInput, signInButton, signUpButton);
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const signingUp = e.submitter === signUpButton;
         signInButton.disabled = true;
         signUpButton.disabled = true;
+        const email = usernameToEmail(usernameInput.value);
         const { error } = signingUp
-          ? await supabase.auth.signUp({ email: emailInput.value, password: passwordInput.value })
-          : await supabase.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
+          ? await supabase.auth.signUp({
+              email,
+              password: passwordInput.value,
+              options: { data: { username: usernameInput.value.trim() } },
+            })
+          : await supabase.auth.signInWithPassword({ email, password: passwordInput.value });
         if (error) renderLoggedOut(error.message);
       });
       account.appendChild(form);
@@ -209,7 +231,7 @@
     function renderLoggedIn(session) {
       account.replaceChildren();
       const span = document.createElement("span");
-      span.textContent = `Signed in as ${session.user.email}`;
+      span.textContent = `Signed in as ${usernameFromSession(session)}`;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "secondary";

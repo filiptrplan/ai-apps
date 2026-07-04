@@ -24,12 +24,30 @@ export function useSession() {
   return session;
 }
 
-export function signIn(email, password) {
-  return supabase.auth.signInWithPassword({ email, password });
+// Supabase Auth has no native username identity, so signups use a
+// synthetic, non-deliverable email derived from the username (email
+// confirmations are disabled, so nothing is ever sent to it) and stash the
+// real username in user_metadata for display.
+const USERNAME_EMAIL_DOMAIN = "users.ai-apps.local";
+
+function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
 }
 
-export function signUp(email, password) {
-  return supabase.auth.signUp({ email, password });
+export function usernameFromSession(session) {
+  return session?.user?.user_metadata?.username || session?.user?.email;
+}
+
+export function signIn(username, password) {
+  return supabase.auth.signInWithPassword({ email: usernameToEmail(username), password });
+}
+
+export function signUp(username, password) {
+  return supabase.auth.signUp({
+    email: usernameToEmail(username),
+    password,
+    options: { data: { username: username.trim() } },
+  });
 }
 
 export function signOut() {
