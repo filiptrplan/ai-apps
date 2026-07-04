@@ -24,11 +24,12 @@ export function useSession() {
   return session;
 }
 
-export function signInWithOtp(email) {
-  return supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname },
-  });
+export function signIn(email, password) {
+  return supabase.auth.signInWithPassword({ email, password });
+}
+
+export function signUp(email, password) {
+  return supabase.auth.signUp({ email, password });
 }
 
 export function signOut() {
