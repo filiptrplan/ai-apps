@@ -136,6 +136,29 @@ const CATALOG = [
   { code: "252-4601", name: "Current Topics in Information Security", ects: 2, category: "seminar", term: "HS", status: "confirmed", vvzId: 202790 },
   { code: "263-2100", name: "Research Topics in Software Engineering", ects: 2, category: "seminar", term: "HS/FS", status: "confirmed", note: "Confirmed offered in both HS2026 and FS2026 — runs every semester.", vvzId: 204225 },
 
+  /* Additional Seminar options — from the "titled Seminar" VVZ search across
+     D-INFK for both semesters (screenshotted directly from the VVZ, 5 July
+     2026). No lerneinheitId captured from the search-results view, so these
+     don't get a direct VVZ deep link like the rest of the catalog. */
+  { code: "227-2211-00L", name: "Seminar in Computer Architecture", ects: 2, category: "seminar", term: "HS/FS", status: "confirmed", note: "Confirmed offered in both HS2026 and FS2026, with different instructor lineups each term." },
+  { code: "252-5701-00L", name: "Seminar in Advanced Topics in Vision", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "263-2931-00L", name: "AI Security Seminar: From Code to Agent Security", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "263-3856-00L", name: "Systems for AI Seminar", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "263-4410-00L", name: "Seminar on Advanced Graph Algorithms and Optimization", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "263-4902-00L", name: "Seminar on User-Centered Programming Interfaces", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "263-5702-00L", name: "Seminar on Digital Humans", ects: 2, category: "seminar", term: "HS", status: "confirmed" },
+  { code: "252-2603-00L", name: "Seminar on Systems Security", ects: 2, category: "seminar", term: "FS", status: "historical", note: "Code/ECTS from the FS2026 offering, used as the working plan for FS2027 until the new catalogue opens.", semkez: "2026S" },
+  { code: "252-3811-00L", name: "Case Studies from Practice Seminar", ects: 4, category: "seminar", term: "FS", status: "historical", note: "Code/ECTS from the FS2026 offering, used as the working plan for FS2027 until the new catalogue opens.", semkez: "2026S" },
+  { code: "263-3712-00L", name: "Seminar on Human-Performance Capture", ects: 2, category: "seminar", term: "FS", status: "not-offered", note: "Marked \"does not take place\" for the FS2026 offering — check whether it returns for FS2027.", semkez: "2026S" },
+  { code: "227-0559-00L", name: "Seminar in Deep Neural Networks", ects: 2, category: "seminar", term: "FS", status: "historical", note: "Code/ECTS from the FS2026 offering, used as the working plan for FS2027 until the new catalogue opens.", semkez: "2026S" },
+  { code: "227-0559-10L", name: "Seminar in Computer Networks", ects: 2, category: "seminar", term: "FS", status: "historical", note: "Code/ECTS from the FS2026 offering, used as the working plan for FS2027 until the new catalogue opens.", semkez: "2026S" },
+
+  /* Science in Perspective — placeholders only. SiP is a broad GESS/D-GESS
+     elective pool re-shuffled most semesters; pick an actual course from the
+     VVZ closer to registration and swap it in for whichever of these you use. */
+  { code: "SIP-TBD-HS", name: "Science in Perspective (choose a course)", ects: 2, category: "sip", term: "HS", status: "unverified", note: "Placeholder — pick an actual GESS Science in Perspective course from the VVZ and swap it in." },
+  { code: "SIP-TBD-FS", name: "Science in Perspective (choose a course)", ects: 2, category: "sip", term: "FS", status: "unverified", note: "Placeholder — pick an actual GESS Science in Perspective course from the VVZ and swap it in." },
+
   /* Minor — Systems Software (chosen). Confirmed directly from ETH's
      structured minor page for both semesters. System Security and Design
      of Parallel/HPC are on the minor's own list too, but they're already
