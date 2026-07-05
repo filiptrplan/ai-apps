@@ -20079,6 +20079,33 @@ ${suffix}`;
     return useSyncedStorage("climbing-tracker", key, fallback);
   }
 
+  // shared/backup.js
+  var RETENTION_DAYS = 7;
+  function todayStr() {
+    return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  }
+  function cutoffStr() {
+    const d = /* @__PURE__ */ new Date();
+    d.setUTCDate(d.getUTCDate() - (RETENTION_DAYS - 1));
+    return d.toISOString().slice(0, 10);
+  }
+  async function runDailyBackupIfNeeded(supabase2, session) {
+    if (!session) return;
+    const userId = session.user.id;
+    const today = todayStr();
+    const { data: existing } = await supabase2.from("app_data_backups").select("backup_date").eq("user_id", userId).eq("backup_date", today).maybeSingle();
+    if (!existing) {
+      const { data: rows } = await supabase2.from("app_data").select("app_id, key, value").eq("user_id", userId);
+      if (rows && rows.length > 0) {
+        await supabase2.from("app_data_backups").upsert(
+          { user_id: userId, backup_date: today, data: rows },
+          { onConflict: "user_id,backup_date", ignoreDuplicates: true }
+        );
+      }
+    }
+    await supabase2.from("app_data_backups").delete().eq("user_id", userId).lt("backup_date", cutoffStr());
+  }
+
   // climbing-tracker/format.js
   var EXERCISE_TYPES = [
     { value: "reps", label: "Reps" },
@@ -21354,6 +21381,11 @@ Now generate the exercises and/or routines described by the user's request that 
           steps: (r.exerciseIds || []).map((exerciseId) => ({ id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null }))
         }));
       }
+    }, []);
+    useEffect5(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        runDailyBackupIfNeeded(supabase, session);
+      });
     }, []);
     const addRoutine = () => {
       if (!newRoutineName.trim()) return;
