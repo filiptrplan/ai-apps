@@ -286,14 +286,23 @@
     ), /* @__PURE__ */ React.createElement("footer", { style: styles.footer }, `Data verified against the live ETH VVZ on 3 July 2026 for the courses shown above. Minor, Science-in-Perspective and Free-Elective slots are empty by default \u2014 use "Add custom course" once you've picked a Minor and checked coursereview.ch / VVZ yourself.`));
   }
   function DegreeOverview({ categoryTotals, majorTotal, majorCoreTotal }) {
+    const majorElectiveTarget = MAJOR_TARGET - MAJOR_CORE_MIN;
     return /* @__PURE__ */ React.createElement("section", { style: styles.overview }, /* @__PURE__ */ React.createElement(
       LedgerRow,
       {
-        label: "Major (Core + Elective)",
-        value: majorTotal,
-        target: MAJOR_TARGET,
-        color: "#1E4FA0",
-        sub: /* @__PURE__ */ React.createElement("span", { style: { color: majorCoreTotal >= MAJOR_CORE_MIN ? "#3F7A5C" : "#B5433A" } }, majorCoreTotal, " / ", MAJOR_CORE_MIN, " min. from Core")
+        label: "Major \u2014 Core",
+        value: majorCoreTotal,
+        target: MAJOR_CORE_MIN,
+        color: "#1E4FA0"
+      }
+    ), /* @__PURE__ */ React.createElement(
+      LedgerRow,
+      {
+        label: "Major \u2014 Elective",
+        value: categoryTotals.majorElective,
+        target: majorElectiveTarget,
+        color: "#3E6FC4",
+        sub: /* @__PURE__ */ React.createElement("span", { style: { color: majorTotal >= MAJOR_TARGET ? "#3F7A5C" : "#8A877E" } }, majorTotal, " / ", MAJOR_TARGET, " ECTS toward Major total")
       }
     ), CATEGORIES.filter((c) => !c.group).map((c) => /* @__PURE__ */ React.createElement(
       LedgerRow,

@@ -387,16 +387,23 @@ function SemesterBuilderApp() {
    DEGREE OVERVIEW — the ledger of category progress
 --------------------------------------------------------- */
 function DegreeOverview({ categoryTotals, majorTotal, majorCoreTotal }) {
+  const majorElectiveTarget = MAJOR_TARGET - MAJOR_CORE_MIN;
   return (
     <section style={styles.overview}>
       <LedgerRow
-        label="Major (Core + Elective)"
-        value={majorTotal}
-        target={MAJOR_TARGET}
+        label="Major — Core"
+        value={majorCoreTotal}
+        target={MAJOR_CORE_MIN}
         color="#1E4FA0"
+      />
+      <LedgerRow
+        label="Major — Elective"
+        value={categoryTotals.majorElective}
+        target={majorElectiveTarget}
+        color="#3E6FC4"
         sub={
-          <span style={{ color: majorCoreTotal >= MAJOR_CORE_MIN ? "#3F7A5C" : "#B5433A" }}>
-            {majorCoreTotal} / {MAJOR_CORE_MIN} min. from Core
+          <span style={{ color: majorTotal >= MAJOR_TARGET ? "#3F7A5C" : "#8A877E" }}>
+            {majorTotal} / {MAJOR_TARGET} ECTS toward Major total
           </span>
         }
       />
