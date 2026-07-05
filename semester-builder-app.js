@@ -78,6 +78,7 @@
     { code: "263-4656", name: "Digital Signatures", ects: 5, category: "majorElective", term: "FS", status: "confirmed", vvzId: 197738, semkez: "2026S" },
     { code: "252-0811", name: "Applied Security Laboratory", ects: 8, category: "practical", term: "HS", status: "confirmed", vvzId: 204155 },
     { code: "263-0650", name: "Practical Work", ects: 8, category: "practical", term: "HS/FS", status: "flexible", note: "ECTS scope is negotiated with your supervisor.", vvzId: 204550 },
+    { code: "263-XXXX", name: "Master's Thesis", ects: 30, category: "thesis", term: "HS/FS", status: "flexible", note: "Registered once you begin the thesis \u2014 confirm the exact module code and timing with your program coordinator." },
     { code: "252-4601", name: "Current Topics in Information Security", ects: 2, category: "seminar", term: "HS", status: "confirmed", vvzId: 202790 },
     { code: "263-2100", name: "Research Topics in Software Engineering", ects: 2, category: "seminar", term: "HS/FS", status: "confirmed", note: "Confirmed offered in both HS2026 and FS2026 \u2014 runs every semester.", vvzId: 204225 },
     /* Minor — Systems Software (chosen). Confirmed directly from ETH's
@@ -173,13 +174,20 @@
       Object.fromEntries(SEMESTER_DEFS.map((s) => [s.id, []]))
     );
     const [customCourses, setCustomCourses] = useStorage(STORAGE_KEYS.customCourses, []);
-    const [activeSemester, setActiveSemester] = useState("s1");
-    const [pickerOpen, setPickerOpen] = useState(false);
+    const [view, setView] = useState("overview");
+    const [pickerSemester, setPickerSemester] = useState(null);
     const fullCatalog = useMemo(() => [...CATALOG, ...customCourses], [customCourses]);
     const allPlannedEntries = useMemo(
       () => SEMESTER_DEFS.flatMap((s) => plan[s.id].map((e) => ({ ...e, semesterId: s.id }))),
       [plan]
     );
+    const plannedElsewhere = useMemo(() => {
+      const map = /* @__PURE__ */ new Map();
+      SEMESTER_DEFS.forEach((s) => {
+        plan[s.id].forEach((c) => map.set(c.code + c.name, s.label));
+      });
+      return map;
+    }, [plan]);
     const categoryTotals = useMemo(() => {
       const totals = Object.fromEntries(CATEGORIES.map((c) => [c.id, 0]));
       allPlannedEntries.forEach((e) => {
@@ -206,18 +214,29 @@
       setCustomCourses((c) => [...c, { ...course, code: course.code || "CUSTOM" }]);
     }
     const semesterEctsSum = (id) => plan[id].reduce((a, c) => a + c.ects, 0);
-    const plannedCodesInSemester = (id) => new Set(plan[id].map((c) => c.code + c.name));
-    return /* @__PURE__ */ React.createElement("div", { className: "app-page", style: styles.page }, /* @__PURE__ */ React.createElement("style", null, fontFace), /* @__PURE__ */ React.createElement("style", null, responsiveCSS), /* @__PURE__ */ React.createElement("header", { className: "app-header", style: styles.header }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: styles.eyebrow }, "D-INFK \xB7 MSc Computer Science \xB7 SRS Major"), /* @__PURE__ */ React.createElement("h1", { style: styles.h1 }, "Degree Ledger")), /* @__PURE__ */ React.createElement("div", { className: "total-badge", style: styles.totalBadge }, /* @__PURE__ */ React.createElement("span", { style: styles.totalNum }, grandTotal), /* @__PURE__ */ React.createElement("span", { style: styles.totalDenom }, "/ ", TOTAL_TARGET, " ECTS"))), /* @__PURE__ */ React.createElement(DegreeOverview, { categoryTotals, majorTotal, majorCoreTotal }), /* @__PURE__ */ React.createElement("section", { style: styles.plannerSection }, /* @__PURE__ */ React.createElement("div", { className: "tab-row", style: styles.tabRow }, SEMESTER_DEFS.map((s) => {
+    return /* @__PURE__ */ React.createElement("div", { className: "app-page", style: styles.page }, /* @__PURE__ */ React.createElement("style", null, fontFace), /* @__PURE__ */ React.createElement("style", null, responsiveCSS), /* @__PURE__ */ React.createElement("header", { className: "app-header", style: styles.header }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: styles.eyebrow }, "D-INFK \xB7 MSc Computer Science \xB7 SRS Major"), /* @__PURE__ */ React.createElement("h1", { style: styles.h1 }, "Degree Ledger")), /* @__PURE__ */ React.createElement("div", { className: "total-badge", style: styles.totalBadge }, /* @__PURE__ */ React.createElement("span", { style: styles.totalNum }, grandTotal), /* @__PURE__ */ React.createElement("span", { style: styles.totalDenom }, "/ ", TOTAL_TARGET, " ECTS"))), /* @__PURE__ */ React.createElement(DegreeOverview, { categoryTotals, majorTotal, majorCoreTotal }), /* @__PURE__ */ React.createElement("section", { style: styles.plannerSection }, /* @__PURE__ */ React.createElement("div", { className: "tab-row", style: styles.tabRow }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setView("overview"),
+        style: {
+          ...styles.tab,
+          ...view === "overview" ? styles.tabActive : {}
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: styles.tabTerm }, "All years"),
+      /* @__PURE__ */ React.createElement("span", { style: styles.tabLabel }, "Overview"),
+      /* @__PURE__ */ React.createElement("span", { style: { ...styles.tabEcts, color: view === "overview" ? void 0 : "#8A877E" } }, grandTotal, " ECTS")
+    ), SEMESTER_DEFS.map((s) => {
       const sum = semesterEctsSum(s.id);
       const flag = sum > 0 && (sum < 18 || sum > 25);
       return /* @__PURE__ */ React.createElement(
         "button",
         {
           key: s.id,
-          onClick: () => setActiveSemester(s.id),
+          onClick: () => setView(s.id),
           style: {
             ...styles.tab,
-            ...activeSemester === s.id ? styles.tabActive : {}
+            ...view === s.id ? styles.tabActive : {}
           }
         },
         /* @__PURE__ */ React.createElement("span", { style: styles.tabTerm }, s.term),
@@ -234,26 +253,35 @@
           " ECTS"
         )
       );
-    })), /* @__PURE__ */ React.createElement(
+    })), view === "overview" ? /* @__PURE__ */ React.createElement(
+      OverviewPanel,
+      {
+        plan,
+        semesterEctsSum,
+        onRemove: (semesterId, planId) => removeCourse(semesterId, planId),
+        onOpenPicker: (semesterId) => setPickerSemester(semesterId)
+      }
+    ) : /* @__PURE__ */ React.createElement(
       SemesterPanel,
       {
-        semester: SEMESTER_DEFS.find((s) => s.id === activeSemester),
-        courses: plan[activeSemester],
-        onRemove: (planId) => removeCourse(activeSemester, planId),
-        onOpenPicker: () => setPickerOpen(true)
+        semester: SEMESTER_DEFS.find((s) => s.id === view),
+        courses: plan[view],
+        onRemove: (planId) => removeCourse(view, planId),
+        onOpenPicker: () => setPickerSemester(view)
       }
-    )), pickerOpen && /* @__PURE__ */ React.createElement(
+    )), pickerSemester && /* @__PURE__ */ React.createElement(
       CoursePicker,
       {
         catalog: fullCatalog,
-        alreadyPlanned: plannedCodesInSemester(activeSemester),
-        season: SEMESTER_DEFS.find((s) => s.id === activeSemester).term.startsWith("HS") ? "HS" : "FS",
-        onAdd: (course) => addCourse(course, activeSemester),
+        plannedElsewhere,
+        season: SEMESTER_DEFS.find((s) => s.id === pickerSemester).term.startsWith("HS") ? "HS" : "FS",
+        semesterLabel: SEMESTER_DEFS.find((s) => s.id === pickerSemester).label,
+        onAdd: (course) => addCourse(course, pickerSemester),
         onAddCustom: (course) => {
           addCustomCourse(course);
-          addCourse({ ...course, code: course.code || "CUSTOM" }, activeSemester);
+          addCourse({ ...course, code: course.code || "CUSTOM" }, pickerSemester);
         },
-        onClose: () => setPickerOpen(false)
+        onClose: () => setPickerSemester(null)
       }
     ), /* @__PURE__ */ React.createElement("footer", { style: styles.footer }, `Data verified against the live ETH VVZ on 3 July 2026 for the courses shown above. Minor, Science-in-Perspective and Free-Elective slots are empty by default \u2014 use "Add custom course" once you've picked a Minor and checked coursereview.ch / VVZ yourself.`));
   }
@@ -297,6 +325,13 @@
     const loadNote = sum === 0 ? null : sum < 18 ? "Light load \u2014 fine if intentional, otherwise room to add more." : sum > 25 ? "Heavy load for a 5-semester pace \u2014 consider moving something out." : "Within your usual 20\u201323 ECTS target.";
     return /* @__PURE__ */ React.createElement("div", { style: styles.panel }, /* @__PURE__ */ React.createElement("div", { style: styles.panelHead }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: styles.panelTerm }, semester.term), /* @__PURE__ */ React.createElement("div", { style: styles.panelSum }, sum, " ECTS", loadNote ? /* @__PURE__ */ React.createElement("span", { style: styles.panelNote }, " \u2014 ", loadNote) : null)), /* @__PURE__ */ React.createElement("button", { style: styles.addBtn, onClick: onOpenPicker }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " Add course")), courses.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: styles.emptyState }, "No courses added yet for ", semester.term, ".") : /* @__PURE__ */ React.createElement("div", { style: styles.courseList }, courses.map((c) => /* @__PURE__ */ React.createElement(CourseCard, { key: c.planId, course: c, onRemove: () => onRemove(c.planId) }))));
   }
+  function OverviewPanel({ plan, semesterEctsSum, onRemove, onOpenPicker }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "overview-grid", style: styles.overviewGrid }, SEMESTER_DEFS.map((s) => {
+      const courses = plan[s.id];
+      const sum = semesterEctsSum(s.id);
+      return /* @__PURE__ */ React.createElement("div", { key: s.id, style: styles.panel }, /* @__PURE__ */ React.createElement("div", { style: styles.panelHead }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: styles.panelTerm }, s.term), /* @__PURE__ */ React.createElement("div", { style: styles.panelSum }, s.label, " \u2014 ", sum, " ECTS")), /* @__PURE__ */ React.createElement("button", { style: styles.addBtn, onClick: () => onOpenPicker(s.id) }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " Add course")), courses.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: styles.emptyState }, "No courses added yet for ", s.term, ".") : /* @__PURE__ */ React.createElement("div", { style: styles.courseList }, courses.map((c) => /* @__PURE__ */ React.createElement(CourseCard, { key: c.planId, course: c, onRemove: () => onRemove(s.id, c.planId) }))));
+    }));
+  }
   function CourseCard({ course, onRemove, showTerm }) {
     const meta = STATUS_META[course.status];
     return /* @__PURE__ */ React.createElement("div", { className: "course-card" }, /* @__PURE__ */ React.createElement("div", { className: "course-card-top" }, /* @__PURE__ */ React.createElement("span", { className: "course-card-name" }, course.name), /* @__PURE__ */ React.createElement("span", { className: "course-card-ects" }, course.ects, " ECTS"), onRemove && /* @__PURE__ */ React.createElement("button", { className: "remove-btn", onClick: onRemove, "aria-label": `Remove ${course.name}` }, /* @__PURE__ */ React.createElement(Trash2, { size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "course-card-bottom" }, course.vvzId ? /* @__PURE__ */ React.createElement(
@@ -314,23 +349,20 @@
       /* @__PURE__ */ React.createElement(ExternalLink, { size: 10 })
     ) : /* @__PURE__ */ React.createElement("span", { className: "course-card-code" }, course.code), /* @__PURE__ */ React.createElement("span", { style: { ...styles.pill, color: catColor(course.category), borderColor: catColor(course.category) } }, catLabel(course.category)), meta && /* @__PURE__ */ React.createElement("span", { style: { ...styles.pill, color: meta.color, background: meta.bg, borderColor: "transparent" } }, meta.label), course.track && /* @__PURE__ */ React.createElement("span", { style: styles.termTag }, course.track), showTerm && /* @__PURE__ */ React.createElement("span", { style: styles.termTag }, course.term)), course.note && /* @__PURE__ */ React.createElement("div", { style: styles.courseNoteText }, course.note));
   }
-  function CoursePicker({ catalog, alreadyPlanned, season, onAdd, onAddCustom, onClose }) {
+  function CoursePicker({ catalog, plannedElsewhere, season, semesterLabel, onAdd, onAddCustom, onClose }) {
     const [query, setQuery] = useState("");
     const [filterCat, setFilterCat] = useState("all");
     const [showCustom, setShowCustom] = useState(false);
     const [showAllTerms, setShowAllTerms] = useState(false);
     const matchesSeason = (c) => showAllTerms || !season || c.term === season || c.term === "HS/FS" || c.term === "\u2014";
     const filtered = catalog.filter((c) => {
-      if (alreadyPlanned.has(c.code + c.name)) return false;
       if (filterCat !== "all" && c.category !== filterCat) return false;
       if (!matchesSeason(c)) return false;
       const q = query.toLowerCase();
       return !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
     });
-    const hiddenOtherSeasonCount = catalog.filter(
-      (c) => !alreadyPlanned.has(c.code + c.name) && !matchesSeason(c)
-    ).length;
-    return /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", style: styles.modalOverlay, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { className: "modal", style: styles.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: styles.modalHead }, /* @__PURE__ */ React.createElement("h2", { style: styles.modalTitle }, "Add a course", season && /* @__PURE__ */ React.createElement("span", { style: styles.modalSubtitle }, " \u2014 ", season, " only")), /* @__PURE__ */ React.createElement("button", { style: styles.iconBtn, onClick: onClose }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { className: "modal-controls", style: styles.modalControls }, /* @__PURE__ */ React.createElement("div", { style: styles.searchBox }, /* @__PURE__ */ React.createElement(Search, { size: 14, color: "#8A877E" }), /* @__PURE__ */ React.createElement(
+    const hiddenOtherSeasonCount = catalog.filter((c) => !matchesSeason(c)).length;
+    return /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", style: styles.modalOverlay, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { className: "modal", style: styles.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: styles.modalHead }, /* @__PURE__ */ React.createElement("h2", { style: styles.modalTitle }, "Add a course to ", semesterLabel, season && /* @__PURE__ */ React.createElement("span", { style: styles.modalSubtitle }, " \u2014 ", season, " only")), /* @__PURE__ */ React.createElement("button", { style: styles.iconBtn, onClick: onClose }, /* @__PURE__ */ React.createElement(X, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { className: "modal-controls", style: styles.modalControls }, /* @__PURE__ */ React.createElement("div", { style: styles.searchBox }, /* @__PURE__ */ React.createElement(Search, { size: 14, color: "#8A877E" }), /* @__PURE__ */ React.createElement(
       "input",
       {
         autoFocus: true,
@@ -339,27 +371,33 @@
         onChange: (e) => setQuery(e.target.value),
         style: styles.searchInput
       }
-    )), /* @__PURE__ */ React.createElement("select", { value: filterCat, onChange: (e) => setFilterCat(e.target.value), style: styles.select }, /* @__PURE__ */ React.createElement("option", { value: "all" }, "All categories"), CATEGORIES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.label)))), /* @__PURE__ */ React.createElement("div", { style: styles.modalList }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: styles.emptyState }, 'No matches. Try "Add a custom course" below.'), filtered.map((c) => /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        key: c.code + c.name,
-        className: "course-card-button",
-        role: "button",
-        tabIndex: 0,
-        onClick: () => {
-          onAdd(c);
-          onClose();
-        },
-        onKeyDown: (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onAdd(c);
-            onClose();
-          }
-        }
-      },
-      /* @__PURE__ */ React.createElement(CourseCard, { course: c, showTerm: true })
-    ))), /* @__PURE__ */ React.createElement("div", { style: styles.customToggleRow }, hiddenOtherSeasonCount > 0 && !showAllTerms && /* @__PURE__ */ React.createElement("button", { style: { ...styles.linkBtn, marginBottom: 8 }, onClick: () => setShowAllTerms(true) }, /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }), " Show ", hiddenOtherSeasonCount, " course", hiddenOtherSeasonCount === 1 ? "" : "s", " from the other semester too"), /* @__PURE__ */ React.createElement("button", { style: styles.linkBtn, onClick: () => setShowCustom((v) => !v) }, showCustom ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }) : /* @__PURE__ */ React.createElement(Plus, { size: 14 }), " Add a custom course")), showCustom && /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("select", { value: filterCat, onChange: (e) => setFilterCat(e.target.value), style: styles.select }, /* @__PURE__ */ React.createElement("option", { value: "all" }, "All categories"), CATEGORIES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.label)))), /* @__PURE__ */ React.createElement("div", { style: styles.modalList }, filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: styles.emptyState }, 'No matches. Try "Add a custom course" below.'), filtered.map((c) => {
+      const takenIn = plannedElsewhere.get(c.code + c.name);
+      if (!takenIn) {
+        return /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            key: c.code + c.name,
+            className: "course-card-button",
+            role: "button",
+            tabIndex: 0,
+            onClick: () => {
+              onAdd(c);
+              onClose();
+            },
+            onKeyDown: (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onAdd(c);
+                onClose();
+              }
+            }
+          },
+          /* @__PURE__ */ React.createElement(CourseCard, { course: c, showTerm: true })
+        );
+      }
+      return /* @__PURE__ */ React.createElement("div", { key: c.code + c.name, className: "course-card-disabled", "aria-disabled": "true", title: `Already added to ${takenIn}` }, /* @__PURE__ */ React.createElement(CourseCard, { course: c, showTerm: true }), /* @__PURE__ */ React.createElement("div", { style: styles.takenNote }, "Already added to ", takenIn));
+    })), /* @__PURE__ */ React.createElement("div", { style: styles.customToggleRow }, hiddenOtherSeasonCount > 0 && !showAllTerms && /* @__PURE__ */ React.createElement("button", { style: { ...styles.linkBtn, marginBottom: 8 }, onClick: () => setShowAllTerms(true) }, /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }), " Show ", hiddenOtherSeasonCount, " course", hiddenOtherSeasonCount === 1 ? "" : "s", " from the other semester too"), /* @__PURE__ */ React.createElement("button", { style: styles.linkBtn, onClick: () => setShowCustom((v) => !v) }, showCustom ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 14 }) : /* @__PURE__ */ React.createElement(Plus, { size: 14 }), " Add a custom course")), showCustom && /* @__PURE__ */ React.createElement(
       CustomCourseForm,
       {
         onSubmit: (course) => {
@@ -520,6 +558,16 @@
     border-color: #1E4FA0;
     background: #F7F9FD;
   }
+  .course-card-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+  }
+  .overview-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
   .remove-btn {
     background: none;
     border: none;
@@ -670,6 +718,14 @@
       fontSize: 13
     },
     courseList: { display: "flex", flexDirection: "column", gap: 8 },
+    overviewGrid: { display: "flex", flexDirection: "column", gap: 16 },
+    takenNote: {
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 10.5,
+      color: "#B5433A",
+      padding: "0 11px 8px",
+      marginTop: -4
+    },
     courseNoteText: { fontSize: 11.5, color: "#8A877E", marginTop: 4, fontStyle: "italic" },
     pill: {
       fontFamily: "'JetBrains Mono', monospace",
