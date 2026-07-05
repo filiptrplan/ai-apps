@@ -132,6 +132,7 @@ const CATALOG = [
   { code: "263-4656", name: "Digital Signatures", ects: 5, category: "majorElective", term: "FS", status: "confirmed", vvzId: 197738, semkez: "2026S" },
   { code: "252-0811", name: "Applied Security Laboratory", ects: 8, category: "practical", term: "HS", status: "confirmed", vvzId: 204155 },
   { code: "263-0650", name: "Practical Work", ects: 8, category: "practical", term: "HS/FS", status: "flexible", note: "ECTS scope is negotiated with your supervisor.", vvzId: 204550 },
+  { code: "263-XXXX", name: "Master's Thesis", ects: 30, category: "thesis", term: "HS/FS", status: "flexible", note: "Registered once you begin the thesis — confirm the exact module code and timing with your program coordinator." },
   { code: "252-4601", name: "Current Topics in Information Security", ects: 2, category: "seminar", term: "HS", status: "confirmed", vvzId: 202790 },
   { code: "263-2100", name: "Research Topics in Software Engineering", ects: 2, category: "seminar", term: "HS/FS", status: "confirmed", note: "Confirmed offered in both HS2026 and FS2026 — runs every semester.", vvzId: 204225 },
 
@@ -231,8 +232,8 @@ function SemesterBuilderApp() {
     Object.fromEntries(SEMESTER_DEFS.map((s) => [s.id, []]))
   );
   const [customCourses, setCustomCourses] = useStorage(STORAGE_KEYS.customCourses, []);
-  const [activeSemester, setActiveSemester] = useState("s1");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [view, setView] = useState("overview");
+  const [pickerSemester, setPickerSemester] = useState(null);
 
   const fullCatalog = useMemo(() => [...CATALOG, ...customCourses], [customCourses]);
 
@@ -240,6 +241,17 @@ function SemesterBuilderApp() {
     () => SEMESTER_DEFS.flatMap((s) => plan[s.id].map((e) => ({ ...e, semesterId: s.id }))),
     [plan]
   );
+
+  /* Map of "code+name" -> semester label, for every course already sitting
+     somewhere in the plan. Used to gray out a subject everywhere else once
+     it's been chosen for one semester — a course can't be double-counted. */
+  const plannedElsewhere = useMemo(() => {
+    const map = new Map();
+    SEMESTER_DEFS.forEach((s) => {
+      plan[s.id].forEach((c) => map.set(c.code + c.name, s.label));
+    });
+    return map;
+  }, [plan]);
 
   const categoryTotals = useMemo(() => {
     const totals = Object.fromEntries(CATEGORIES.map((c) => [c.id, 0]));
@@ -270,7 +282,6 @@ function SemesterBuilderApp() {
   }
 
   const semesterEctsSum = (id) => plan[id].reduce((a, c) => a + c.ects, 0);
-  const plannedCodesInSemester = (id) => new Set(plan[id].map((c) => c.code + c.name));
 
   return (
     <div className="app-page" style={styles.page}>
@@ -291,16 +302,29 @@ function SemesterBuilderApp() {
 
       <section style={styles.plannerSection}>
         <div className="tab-row" style={styles.tabRow}>
+          <button
+            onClick={() => setView("overview")}
+            style={{
+              ...styles.tab,
+              ...(view === "overview" ? styles.tabActive : {}),
+            }}
+          >
+            <span style={styles.tabTerm}>All years</span>
+            <span style={styles.tabLabel}>Overview</span>
+            <span style={{ ...styles.tabEcts, color: view === "overview" ? undefined : "#8A877E" }}>
+              {grandTotal} ECTS
+            </span>
+          </button>
           {SEMESTER_DEFS.map((s) => {
             const sum = semesterEctsSum(s.id);
             const flag = sum > 0 && (sum < 18 || sum > 25);
             return (
               <button
                 key={s.id}
-                onClick={() => setActiveSemester(s.id)}
+                onClick={() => setView(s.id)}
                 style={{
                   ...styles.tab,
-                  ...(activeSemester === s.id ? styles.tabActive : {}),
+                  ...(view === s.id ? styles.tabActive : {}),
                 }}
               >
                 <span style={styles.tabTerm}>{s.term}</span>
@@ -318,25 +342,35 @@ function SemesterBuilderApp() {
           })}
         </div>
 
-        <SemesterPanel
-          semester={SEMESTER_DEFS.find((s) => s.id === activeSemester)}
-          courses={plan[activeSemester]}
-          onRemove={(planId) => removeCourse(activeSemester, planId)}
-          onOpenPicker={() => setPickerOpen(true)}
-        />
+        {view === "overview" ? (
+          <OverviewPanel
+            plan={plan}
+            semesterEctsSum={semesterEctsSum}
+            onRemove={(semesterId, planId) => removeCourse(semesterId, planId)}
+            onOpenPicker={(semesterId) => setPickerSemester(semesterId)}
+          />
+        ) : (
+          <SemesterPanel
+            semester={SEMESTER_DEFS.find((s) => s.id === view)}
+            courses={plan[view]}
+            onRemove={(planId) => removeCourse(view, planId)}
+            onOpenPicker={() => setPickerSemester(view)}
+          />
+        )}
       </section>
 
-      {pickerOpen && (
+      {pickerSemester && (
         <CoursePicker
           catalog={fullCatalog}
-          alreadyPlanned={plannedCodesInSemester(activeSemester)}
-          season={SEMESTER_DEFS.find((s) => s.id === activeSemester).term.startsWith("HS") ? "HS" : "FS"}
-          onAdd={(course) => addCourse(course, activeSemester)}
+          plannedElsewhere={plannedElsewhere}
+          season={SEMESTER_DEFS.find((s) => s.id === pickerSemester).term.startsWith("HS") ? "HS" : "FS"}
+          semesterLabel={SEMESTER_DEFS.find((s) => s.id === pickerSemester).label}
+          onAdd={(course) => addCourse(course, pickerSemester)}
           onAddCustom={(course) => {
             addCustomCourse(course);
-            addCourse({ ...course, code: course.code || "CUSTOM" }, activeSemester);
+            addCourse({ ...course, code: course.code || "CUSTOM" }, pickerSemester);
           }}
-          onClose={() => setPickerOpen(false)}
+          onClose={() => setPickerSemester(null)}
         />
       )}
 
@@ -445,6 +479,45 @@ function SemesterPanel({ semester, courses, onRemove, onOpenPicker }) {
   );
 }
 
+/* ---------------------------------------------------------
+   OVERVIEW PANEL — every semester at a glance, no clicking through tabs
+--------------------------------------------------------- */
+function OverviewPanel({ plan, semesterEctsSum, onRemove, onOpenPicker }) {
+  return (
+    <div className="overview-grid" style={styles.overviewGrid}>
+      {SEMESTER_DEFS.map((s) => {
+        const courses = plan[s.id];
+        const sum = semesterEctsSum(s.id);
+        return (
+          <div key={s.id} style={styles.panel}>
+            <div style={styles.panelHead}>
+              <div>
+                <div style={styles.panelTerm}>{s.term}</div>
+                <div style={styles.panelSum}>
+                  {s.label} — {sum} ECTS
+                </div>
+              </div>
+              <button style={styles.addBtn} onClick={() => onOpenPicker(s.id)}>
+                <Plus size={15} /> Add course
+              </button>
+            </div>
+
+            {courses.length === 0 ? (
+              <div style={styles.emptyState}>No courses added yet for {s.term}.</div>
+            ) : (
+              <div style={styles.courseList}>
+                {courses.map((c) => (
+                  <CourseCard key={c.planId} course={c} onRemove={() => onRemove(s.id, c.planId)} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function CourseCard({ course, onRemove, showTerm }) {
   const meta = STATUS_META[course.status];
   return (
@@ -492,7 +565,7 @@ function CourseCard({ course, onRemove, showTerm }) {
 /* ---------------------------------------------------------
    COURSE PICKER (catalog + custom add)
 --------------------------------------------------------- */
-function CoursePicker({ catalog, alreadyPlanned, season, onAdd, onAddCustom, onClose }) {
+function CoursePicker({ catalog, plannedElsewhere, season, semesterLabel, onAdd, onAddCustom, onClose }) {
   const [query, setQuery] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [showCustom, setShowCustom] = useState(false);
@@ -502,22 +575,20 @@ function CoursePicker({ catalog, alreadyPlanned, season, onAdd, onAddCustom, onC
     showAllTerms || !season || c.term === season || c.term === "HS/FS" || c.term === "—";
 
   const filtered = catalog.filter((c) => {
-    if (alreadyPlanned.has(c.code + c.name)) return false;
     if (filterCat !== "all" && c.category !== filterCat) return false;
     if (!matchesSeason(c)) return false;
     const q = query.toLowerCase();
     return !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
   });
-  const hiddenOtherSeasonCount = catalog.filter(
-    (c) => !alreadyPlanned.has(c.code + c.name) && !matchesSeason(c)
-  ).length;
+  const hiddenOtherSeasonCount = catalog.filter((c) => !matchesSeason(c)).length;
 
   return (
     <div className="modal-overlay" style={styles.modalOverlay} onClick={onClose}>
       <div className="modal" style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHead}>
           <h2 style={styles.modalTitle}>
-            Add a course{season && <span style={styles.modalSubtitle}> — {season} only</span>}
+            Add a course to {semesterLabel}
+            {season && <span style={styles.modalSubtitle}> — {season} only</span>}
           </h2>
           <button style={styles.iconBtn} onClick={onClose}>
             <X size={18} />
@@ -549,24 +620,35 @@ function CoursePicker({ catalog, alreadyPlanned, season, onAdd, onAddCustom, onC
           {filtered.length === 0 && (
             <div style={styles.emptyState}>No matches. Try "Add a custom course" below.</div>
           )}
-          {filtered.map((c) => (
-            <div
-              key={c.code + c.name}
-              className="course-card-button"
-              role="button"
-              tabIndex={0}
-              onClick={() => { onAdd(c); onClose(); }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onAdd(c);
-                  onClose();
-                }
-              }}
-            >
-              <CourseCard course={c} showTerm />
-            </div>
-          ))}
+          {filtered.map((c) => {
+            const takenIn = plannedElsewhere.get(c.code + c.name);
+            if (!takenIn) {
+              return (
+                <div
+                  key={c.code + c.name}
+                  className="course-card-button"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { onAdd(c); onClose(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onAdd(c);
+                      onClose();
+                    }
+                  }}
+                >
+                  <CourseCard course={c} showTerm />
+                </div>
+              );
+            }
+            return (
+              <div key={c.code + c.name} className="course-card-disabled" aria-disabled="true" title={`Already added to ${takenIn}`}>
+                <CourseCard course={c} showTerm />
+                <div style={styles.takenNote}>Already added to {takenIn}</div>
+              </div>
+            );
+          })}
         </div>
 
         <div style={styles.customToggleRow}>
@@ -761,6 +843,16 @@ const responsiveCSS = `
     border-color: #1E4FA0;
     background: #F7F9FD;
   }
+  .course-card-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+  }
+  .overview-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
   .remove-btn {
     background: none;
     border: none;
@@ -916,6 +1008,14 @@ const styles = {
     fontSize: 13,
   },
   courseList: { display: "flex", flexDirection: "column", gap: 8 },
+  overviewGrid: { display: "flex", flexDirection: "column", gap: 16 },
+  takenNote: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 10.5,
+    color: "#B5433A",
+    padding: "0 11px 8px",
+    marginTop: -4,
+  },
   courseNoteText: { fontSize: 11.5, color: "#8A877E", marginTop: 4, fontStyle: "italic" },
   pill: {
     fontFamily: "'JetBrains Mono', monospace",
