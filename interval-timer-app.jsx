@@ -1,4 +1,6 @@
 import { useSyncedStorage } from "./shared/syncStorage.js";
+import { supabase } from "./shared/supabaseClient.js";
+import { runDailyBackupIfNeeded } from "./shared/backup.js";
 
 const { useState, useEffect, useRef } = React;
 
@@ -253,6 +255,13 @@ function IntervalTimerApp() {
   }, [phase]);
 
   useEffect(() => () => clearInterval_(), []);
+
+  // Take today's backup snapshot (no-op if already done, or logged out).
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      runDailyBackupIfNeeded(supabase, session);
+    });
+  }, []);
 
   const running = phase === "work" || phase === "rest";
   const isIdle = phase === "idle";

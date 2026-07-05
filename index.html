@@ -117,6 +117,40 @@
       color:var(--fg);
       border:1px solid var(--line);
     }
+    .backups{
+      padding:14px 18px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      margin:0 0 24px;
+    }
+    .backups .title{font-size:1rem}
+    .backups .desc{font-size:.85rem;margin:0 0 12px}
+    .backup-list{display:grid;gap:8px}
+    .backup-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0;
+      border-top:1px solid var(--line);
+    }
+    .backup-row:first-child{border-top:none}
+    .backup-date{font-size:.95rem}
+    .backup-row button{
+      font:inherit;
+      cursor:pointer;
+      background:transparent;
+      color:var(--fg);
+      border:1px solid var(--line);
+      padding:6px 12px;
+      border-radius:8px;
+      font-size:.85rem;
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .backup-row button:disabled{opacity:.5;cursor:default}
+    .backup-status{font-size:.85rem;color:var(--muted);margin-top:10px}
   </style>
 </head>
 <body>
@@ -125,6 +159,12 @@
     <p class="intro">Hi, this is a small collection of AI-generated apps and tools that I find useful.</p>
 
     <div id="account" class="account">Loading account&hellip;</div>
+
+    <div id="backups" class="backups" hidden>
+      <p class="title">Backups</p>
+      <p class="desc">A daily snapshot of your app data is kept for the last 7 days, in case something gets deleted by accident.</p>
+      <div id="backupList" class="backup-list"></div>
+    </div>
 
     <div class="list">
       <section class="item">
@@ -153,6 +193,7 @@
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    import { runDailyBackupIfNeeded, listBackups, restoreBackup } from "./shared/backup.js";
 
     // Same public (anon/publishable) key as shared/supabaseClient.js, used
     // here directly since this page has no build step.
@@ -162,6 +203,67 @@
     );
 
     const account = document.getElementById("account");
+    const backups = document.getElementById("backups");
+    const backupList = document.getElementById("backupList");
+
+    function formatBackupDate(dateStr) {
+      return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-GB", {
+        weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+      });
+    }
+
+    async function refreshBackups(session) {
+      if (!session) {
+        backups.hidden = true;
+        return;
+      }
+      backups.hidden = false;
+      await runDailyBackupIfNeeded(supabase, session);
+      const rows = await listBackups(supabase, session);
+      renderBackupList(session, rows);
+    }
+
+    function renderBackupList(session, rows) {
+      backupList.replaceChildren();
+      if (rows.length === 0) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.style.margin = "0";
+        p.textContent = "No backups yet - come back after using one of the apps.";
+        backupList.appendChild(p);
+        return;
+      }
+      for (const row of rows) {
+        const div = document.createElement("div");
+        div.className = "backup-row";
+        const span = document.createElement("span");
+        span.className = "backup-date";
+        span.textContent = formatBackupDate(row.backup_date);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Restore";
+        button.addEventListener("click", async () => {
+          const ok = window.confirm(
+            `Restore your data from ${formatBackupDate(row.backup_date)}? This overwrites your current data in every app.`
+          );
+          if (!ok) return;
+          button.disabled = true;
+          button.textContent = "Restoring…";
+          const { error } = await restoreBackup(supabase, session, row.backup_date);
+          button.disabled = false;
+          button.textContent = "Restore";
+          const status = document.createElement("p");
+          status.className = "backup-status";
+          status.textContent = error
+            ? `Restore failed: ${error}`
+            : "Restored. Reopen each app to see the restored data.";
+          backups.appendChild(status);
+          setTimeout(() => status.remove(), 6000);
+        });
+        div.append(span, button);
+        backupList.appendChild(div);
+      }
+    }
 
     function renderLoggedOut(message) {
       account.replaceChildren();
@@ -221,11 +323,13 @@
     supabase.auth.onAuthStateChange((_event, session) => {
       if (session) renderLoggedIn(session);
       else renderLoggedOut();
+      refreshBackups(session);
     });
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) renderLoggedIn(data.session);
       else renderLoggedOut();
+      refreshBackups(data.session);
     });
   </script>
 </body>
