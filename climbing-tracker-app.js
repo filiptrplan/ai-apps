@@ -20013,9 +20013,12 @@ ${suffix}`;
       if (row) localStorage.setItem(markerKey(key), row.updated_at);
     }, [appId, key]);
     const save = useCallback((val) => {
-      setData(val);
-      writeLocal(key, val);
-      pushRemote(val);
+      setData((prev) => {
+        const next = typeof val === "function" ? val(prev) : val;
+        writeLocal(key, next);
+        pushRemote(next);
+        return next;
+      });
     }, [key, pushRemote]);
     useEffect(() => {
       let channel;

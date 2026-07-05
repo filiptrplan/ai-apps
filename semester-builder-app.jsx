@@ -1,5 +1,6 @@
 import { supabase } from "./shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "./shared/backup.js";
+import { useSyncedStorage } from "./shared/syncStorage.js";
 
 const { useState, useMemo, useEffect } = React;
 
@@ -229,24 +230,7 @@ const catLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label ?? id;
 const catColor = (id) => CATEGORIES.find((c) => c.id === id)?.color ?? "#666";
 
 function useStorage(key, fallback) {
-  const [data, setData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-  const set = (updater) => {
-    setData((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      try {
-        localStorage.setItem(key, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  };
-  return [data, set];
+  return useSyncedStorage("semester-builder", key, fallback);
 }
 
 /* ---------------------------------------------------------

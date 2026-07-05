@@ -20007,8 +20007,97 @@ ${suffix}`;
     await supabase2.from("app_data_backups").delete().eq("user_id", userId).lt("backup_date", cutoffStr());
   }
 
+  // shared/syncStorage.js
+  var { useState, useEffect, useRef, useCallback } = React;
+  function readLocal(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function writeLocal(key, val) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch {
+    }
+  }
+  function markerKey(key) {
+    return `${key}::synced-at`;
+  }
+  function useSyncedStorage(appId, key, fallback) {
+    const [data, setData] = useState(() => readLocal(key, fallback));
+    const dataRef = useRef(data);
+    dataRef.current = data;
+    const pushRemote = useCallback(async (val) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: row } = await supabase.from("app_data").upsert(
+        { user_id: session.user.id, app_id: appId, key, value: val },
+        { onConflict: "user_id,app_id,key" }
+      ).select("updated_at").single();
+      if (row) localStorage.setItem(markerKey(key), row.updated_at);
+    }, [appId, key]);
+    const save = useCallback((val) => {
+      setData((prev) => {
+        const next = typeof val === "function" ? val(prev) : val;
+        writeLocal(key, next);
+        pushRemote(next);
+        return next;
+      });
+    }, [key, pushRemote]);
+    useEffect(() => {
+      let channel;
+      let cancelled = false;
+      async function pullOnce() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        const { data: row } = await supabase.from("app_data").select("value, updated_at").eq("app_id", appId).eq("key", key).maybeSingle();
+        if (cancelled) return;
+        if (!row) {
+          pushRemote(dataRef.current);
+          return;
+        }
+        const localMarker = localStorage.getItem(markerKey(key));
+        if (!localMarker || new Date(row.updated_at) > new Date(localMarker)) {
+          setData(row.value);
+          writeLocal(key, row.value);
+          localStorage.setItem(markerKey(key), row.updated_at);
+        }
+      }
+      async function subscribe() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        if (channel) supabase.removeChannel(channel);
+        channel = supabase.channel(`app_data:${appId}:${key}:${session.user.id}`).on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "app_data",
+          filter: `user_id=eq.${session.user.id}`
+        }, (payload) => {
+          const row = payload.new;
+          if (!row || row.app_id !== appId || row.key !== key) return;
+          setData(row.value);
+          writeLocal(key, row.value);
+          localStorage.setItem(markerKey(key), row.updated_at);
+        }).subscribe();
+      }
+      pullOnce().then(subscribe);
+      const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") pullOnce().then(subscribe);
+      });
+      return () => {
+        cancelled = true;
+        if (channel) supabase.removeChannel(channel);
+        sub.subscription.unsubscribe();
+      };
+    }, [appId, key, pushRemote]);
+    return [data, save];
+  }
+
   // semester-builder-app.jsx
-  var { useState, useMemo, useEffect } = React;
+  var { useState: useState2, useMemo, useEffect: useEffect2 } = React;
   function Icon({ size = 16, color, children, ...rest }) {
     return /* @__PURE__ */ React.createElement(
       "svg",
@@ -20177,25 +20266,7 @@ ${suffix}`;
     return (_b = (_a = CATEGORIES.find((c) => c.id === id)) == null ? void 0 : _a.color) != null ? _b : "#666";
   };
   function useStorage(key, fallback) {
-    const [data, setData] = useState(() => {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
-      }
-    });
-    const set = (updater) => {
-      setData((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
-        try {
-          localStorage.setItem(key, JSON.stringify(next));
-        } catch {
-        }
-        return next;
-      });
-    };
-    return [data, set];
+    return useSyncedStorage("semester-builder", key, fallback);
   }
   function SemesterBuilderApp() {
     const [plan, setPlan] = useStorage(
@@ -20203,9 +20274,9 @@ ${suffix}`;
       Object.fromEntries(SEMESTER_DEFS.map((s) => [s.id, []]))
     );
     const [customCourses, setCustomCourses] = useStorage(STORAGE_KEYS.customCourses, []);
-    const [view, setView] = useState("overview");
-    const [pickerSemester, setPickerSemester] = useState(null);
-    useEffect(() => {
+    const [view, setView] = useState2("overview");
+    const [pickerSemester, setPickerSemester] = useState2(null);
+    useEffect2(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         runDailyBackupIfNeeded(supabase, session);
       });
@@ -20393,10 +20464,10 @@ ${suffix}`;
     ) : /* @__PURE__ */ React.createElement("span", { className: "course-card-code" }, course.code), /* @__PURE__ */ React.createElement("span", { style: { ...styles.pill, color: catColor(course.category), borderColor: catColor(course.category) } }, catLabel(course.category)), meta && /* @__PURE__ */ React.createElement("span", { style: { ...styles.pill, color: meta.color, background: meta.bg, borderColor: "transparent" } }, meta.label), course.track && /* @__PURE__ */ React.createElement("span", { style: styles.termTag }, course.track), showTerm && /* @__PURE__ */ React.createElement("span", { style: styles.termTag }, course.term)), course.note && /* @__PURE__ */ React.createElement("div", { style: styles.courseNoteText }, course.note));
   }
   function CoursePicker({ catalog, plannedElsewhere, season, semesterLabel, onAdd, onAddCustom, onClose }) {
-    const [query, setQuery] = useState("");
-    const [filterCat, setFilterCat] = useState("all");
-    const [showCustom, setShowCustom] = useState(false);
-    const [showAllTerms, setShowAllTerms] = useState(false);
+    const [query, setQuery] = useState2("");
+    const [filterCat, setFilterCat] = useState2("all");
+    const [showCustom, setShowCustom] = useState2(false);
+    const [showAllTerms, setShowAllTerms] = useState2(false);
     const matchesSeason = (c) => showAllTerms || !season || c.term === season || c.term === "HS/FS" || c.term === "\u2014";
     const filtered = catalog.filter((c) => {
       if (filterCat !== "all" && c.category !== filterCat) return false;
@@ -20451,10 +20522,10 @@ ${suffix}`;
     )));
   }
   function CustomCourseForm({ onSubmit }) {
-    const [name, setName] = useState("");
-    const [code, setCode] = useState("");
-    const [ects, setEcts] = useState(4);
-    const [category, setCategory] = useState("minor");
+    const [name, setName] = useState2("");
+    const [code, setCode] = useState2("");
+    const [ects, setEcts] = useState2(4);
+    const [category, setCategory] = useState2("minor");
     const canSubmit = name.trim().length > 0 && ects > 0;
     return /* @__PURE__ */ React.createElement("div", { style: styles.customForm }, /* @__PURE__ */ React.createElement(
       "input",
