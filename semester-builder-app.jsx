@@ -237,11 +237,11 @@ function useStorage(key, fallback) {
    MAIN APP
 --------------------------------------------------------- */
 function SemesterBuilderApp() {
-  const [plan, setPlan] = useStorage(
+  const [plan, setPlan, planConflict] = useStorage(
     STORAGE_KEYS.plan,
     Object.fromEntries(SEMESTER_DEFS.map((s) => [s.id, []]))
   );
-  const [customCourses, setCustomCourses] = useStorage(STORAGE_KEYS.customCourses, []);
+  const [customCourses, setCustomCourses, customCoursesConflict] = useStorage(STORAGE_KEYS.customCourses, []);
   const [view, setView] = useState("overview");
   const [pickerSemester, setPickerSemester] = useState(null);
 
@@ -388,6 +388,17 @@ function SemesterBuilderApp() {
             addCourse({ ...course, code: course.code || "CUSTOM" }, pickerSemester);
           }}
           onClose={() => setPickerSemester(null)}
+        />
+      )}
+
+      {planConflict && (
+        <SyncConflictModal title="semester plan" conflict={planConflict} describe={describePlanSummary} />
+      )}
+      {customCoursesConflict && (
+        <SyncConflictModal
+          title="custom courses"
+          conflict={customCoursesConflict}
+          describe={describeCustomCoursesSummary}
         />
       )}
 
@@ -693,6 +704,45 @@ function CoursePicker({ catalog, plannedElsewhere, season, semesterLabel, onAdd,
             }}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function describePlanSummary(planValue) {
+  const courses = SEMESTER_DEFS.flatMap((s) => planValue[s.id] || []);
+  const ects = courses.reduce((a, c) => a + c.ects, 0);
+  return `${courses.length} course${courses.length === 1 ? "" : "s"}, ${ects} ECTS`;
+}
+
+function describeCustomCoursesSummary(customCoursesValue) {
+  return `${customCoursesValue.length} custom course${customCoursesValue.length === 1 ? "" : "s"}`;
+}
+
+// Shown when a synced value (plan or custom courses) changed both locally
+// and remotely since the last sync — lets the user pick a side instead of
+// one silently overwriting the other.
+function SyncConflictModal({ title, conflict, describe }) {
+  return (
+    <div className="modal-overlay" style={styles.modalOverlay}>
+      <div className="modal" style={{ ...styles.modal, maxWidth: 420 }}>
+        <div style={styles.modalHead}>
+          <h2 style={styles.modalTitle}>Sync conflict — {title}</h2>
+        </div>
+        <p style={styles.conflictText}>
+          Your {title} changed on this device and somewhere else before the two could sync.
+          Pick which version to keep — the other one will be overwritten.
+        </p>
+        <div style={styles.conflictOptions}>
+          <button style={styles.conflictOption} onClick={conflict.keepLocal}>
+            Keep this device<br />
+            <span style={styles.conflictOptionSub}>{describe(conflict.local)}</span>
+          </button>
+          <button style={styles.conflictOption} onClick={conflict.keepRemote}>
+            Keep other device<br />
+            <span style={styles.conflictOptionSub}>{describe(conflict.remote)}</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1087,6 +1137,20 @@ const styles = {
   modalTitle: { fontFamily: "'JetBrains Mono', monospace", fontSize: 17, margin: 0 },
   modalSubtitle: { fontSize: 12, fontWeight: 400, color: "#8A877E" },
   iconBtn: { background: "none", border: "none", cursor: "pointer", color: "#14161A" },
+  conflictText: { fontSize: 14, lineHeight: 1.5, color: "#5B584F", margin: "0 0 16px" },
+  conflictOptions: { display: "flex", flexDirection: "column", gap: 10 },
+  conflictOption: {
+    textAlign: "left",
+    background: "#F5F4F0",
+    border: "1px solid #E1DFD6",
+    borderRadius: 8,
+    padding: "10px 14px",
+    cursor: "pointer",
+    fontSize: 14,
+    fontFamily: "inherit",
+    color: "#14161A",
+  },
+  conflictOptionSub: { fontSize: 12, color: "#8A877E" },
   modalControls: { display: "flex", gap: 8, marginBottom: 12 },
   searchBox: {
     flex: 1,
