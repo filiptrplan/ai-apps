@@ -127,8 +127,9 @@ export function formatPerformedSummary(step) {
 }
 
 // A value is "uniform" across an array when every entry matches the first -
-// used below to only suggest a new reps/weight default when every logged set
-// actually agrees on one number (a mixed pyramid set is left alone).
+// used below to only suggest a new plain reps/weight default when every
+// logged set actually agrees on one number. A mixed pyramid instead falls
+// back to an explicit per-set pattern in computeTemplateDrift.
 function uniformValue(values) {
   return values.length > 0 && values.every(v => v === values[0]) ? values[0] : null;
 }
@@ -210,12 +211,30 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
     if (p.workSec !== target.workSec) patch.workSec = p.workSec;
     if (p.restSec !== target.restSec) patch.restSec = p.restSec;
   } else {
+    const isWeighted = p.type === "weighted";
     if (p.sets.length !== target.sets) patch.sets = p.sets.length;
     const reps = uniformValue(p.sets.map(row => row.reps));
     if (reps !== null && reps !== target.reps) patch.reps = reps;
-    if (p.type === "weighted") {
-      const weight = uniformValue(p.sets.map(row => row.weight));
-      if (weight !== null && weight !== target.weight) patch.weight = weight;
+    const weight = isWeighted ? uniformValue(p.sets.map(row => row.weight)) : null;
+    if (isWeighted && weight !== null && weight !== target.weight) patch.weight = weight;
+
+    // Sets that don't all agree on one reps/weight number can't be
+    // represented by a single uniform default, but they can still differ
+    // from the template (e.g. failing the last rep of the last set). Compare
+    // position by position against a uniform target pattern and, if
+    // anything's off, offer an explicit per-set pattern matching exactly
+    // what was performed - same shape as the targetSets comparison above.
+    if (reps === null || (isWeighted && weight === null)) {
+      const previous = Array.from({ length: target.sets }, () => ({ reps: target.reps, weight: target.weight }));
+      const patternChanged = previous.length !== p.sets.length || p.sets.some(row => {
+        if (row.reps !== target.reps) return true;
+        if (isWeighted && row.weight !== (target.weight ?? 0)) return true;
+        return false;
+      });
+      if (patternChanged) {
+        const targetSetsPatch = p.sets.map(row => isWeighted ? { reps: row.reps, weight: row.weight } : { reps: row.reps });
+        return { exercise: ex, routine, routineStep, isWeighted, previousTargetSets: previous, targetSetsPatch };
+      }
     }
   }
 

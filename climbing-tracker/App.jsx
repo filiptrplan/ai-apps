@@ -203,7 +203,11 @@ export function ClimbingTrackerApp() {
   // patch is non-empty to wherever it actually lives.
   const applyDrift = (drift) => {
     if (drift.targetSetsPatch) {
-      updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+      if (drift.routineStep) {
+        updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+      } else {
+        updateExerciseTemplate(drift.exercise.id, { targetSets: drift.targetSetsPatch });
+      }
       return;
     }
     if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
