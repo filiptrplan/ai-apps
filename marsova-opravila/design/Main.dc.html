@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Caveat:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#EFE2D3;font-family:Nunito,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#C4566E;text-decoration:none}
+  a:hover{color:#A03F58}
+  .hs::-webkit-scrollbar{display:none}
+  .hs{scrollbar-width:none}
+  @keyframes msRise{from{transform:translateY(120%)}to{transform:translateY(0)}}
+  @keyframes msFade{from{opacity:0}to{opacity:1}}
+  @keyframes msPop{0%{transform:scale(.7);opacity:0}55%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes msFly{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-86px) scale(.7);opacity:0}}
+  @keyframes msWag{0%{transform:rotate(-4deg) scale(1)}50%{transform:rotate(4deg) scale(1.07)}100%{transform:rotate(-4deg) scale(1)}}
+  @keyframes msShim{0%{background-position:-240px 0}100%{background-position:240px 0}}
+  @keyframes msCelebrate{0%{transform:scale(1) rotate(0deg)}16%{transform:scale(1.05) rotate(-1.3deg)}34%{transform:scale(1.035) rotate(1.2deg)}54%{transform:scale(1.022) rotate(-.8deg)}74%{transform:scale(1.01) rotate(.45deg)}100%{transform:scale(1) rotate(0deg)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:36px 20px 56px;display:flex;flex-direction:column;align-items:center;gap:20px;background:radial-gradient(120% 80% at 50% 0%, #F7ECE0 0%, #E9DAC8 100%)">
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+    <div style="font-family:Caveat,cursive;font-weight:700;font-size:34px;line-height:1;color:#3A2E28">Marsova opravila</div>
+    <div style="font-family:Caveat,cursive;font-weight:600;font-size:17px;color:#A38F81">uporabniška stran · prototip</div>
+  </div>
+
+  <div style="position:relative;width:390px;height:844px;border-radius:44px;background:#FBF3EA;box-shadow:0 24px 56px -18px rgba(90,58,40,.32), 0 0 0 9px #E6D7C5, 0 0 0 10px #D2BFA9;overflow:hidden;display:flex;flex-direction:column;font-size:16px;color:#3A2E28">
+
+    <div style="position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#D9C4AE 0.5px, transparent 0.6px);background-size:7px 7px;opacity:.16"></div>
+
+    <!-- ══ HEADER ══ -->
+    <div style="position:relative;flex:0 0 auto;padding:52px 20px 18px;background:linear-gradient(180deg,#FDF7F0 0%,#FBF1E6 100%);border-bottom:1px solid #F0E1D1">
+      <div style="display:flex;align-items:center;gap:12px">
+        <!-- MARS POSE: mirujoč/idle (supplied) — default header avatar -->
+        <div style="position:relative;width:54px;height:54px;flex:0 0 auto">
+          <img src="./mars-idle.jpg" alt="Mars" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2.5px solid #FFFFFF;box-shadow:0 3px 10px rgba(120,80,50,.18);display:block">
+          <sc-if value="{{ marsHappy }}">
+            <div style="position:absolute;top:0;left:0;width:54px;height:54px;border-radius:50%;box-shadow:0 0 0 4px rgba(226,140,162,.35);animation:msPop .5s ease-out"></div>
+          </sc-if>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <div style="font-family:Caveat,cursive;font-weight:700;font-size:28px;line-height:1;color:#3A2E28">Živjo, {{ name }} <span style="font-size:19px;color:#E08FA3">♥</span></div>
+          <div style="font-size:13px;color:#93806F;line-height:1.25">{{ marsLine }}</div>
+        </div>
+        <div style="display:flex;gap:7px;flex:0 0 auto">
+          <div role="button" tabindex="0" aria-label="{{ soundLabel }}" onClick="{{ toggleSound }}" style="width:38px;height:38px;border-radius:13px;background:#F6E9DC;border:1px solid #EBD8C6;display:grid;place-items:center;font-size:15px;cursor:pointer">{{ soundIcon }}</div>
+          <div role="button" tabindex="0" aria-label="Skrbniške nastavitve" style="width:38px;height:38px;border-radius:13px;background:#F6E9DC;border:1px solid #EBD8C6;display:grid;place-items:center;font-size:14px;color:#9A8574;cursor:pointer">⚙</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;position:relative;background:linear-gradient(160deg,#FCEEF1 0%,#F8E2E7 100%);border:1px solid #F2D5DC;border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 0 rgba(196,86,110,.08)">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:Caveat,cursive;font-weight:600;font-size:20px;line-height:1;color:#B5758A">na voljo</div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:42px;line-height:1;color:#B4405C">{{ shownAvail }}</div>
+            <div style="font-family:'Baloo 2';font-weight:600;font-size:16px;color:#C9788C">točk</div>
+          </div>
+        </div>
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right">
+          <div style="font-size:12px;color:#A8798A;line-height:1.2">rezervirano<br><strong style="font-family:'Baloo 2';font-size:15px;color:#8E5A6C">{{ reserved }}</strong></div>
+          <div style="font-size:12px;color:#A08D80;line-height:1.2">skupaj zbrano<br><strong style="font-family:'Baloo 2';font-size:15px;color:#6F7D52">{{ lifetime }}</strong></div>
+        </div>
+        <sc-if value="{{ fly }}">
+          <div style="position:absolute;right:24px;bottom:10px;font-family:'Baloo 2';font-weight:800;font-size:26px;color:#6F7D52;animation:msFly 1s ease-out forwards;pointer-events:none">{{ fly }}</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ offline }}">
+      <div style="flex:0 0 auto;background:#F4E3C9;border-bottom:1px solid #E7CFAA;padding:9px 20px;font-size:12.5px;font-weight:700;color:#8A6A34;display:flex;gap:8px;align-items:center">
+        <span style="width:7px;height:7px;border-radius:50%;background:#C9903A;flex:0 0 auto"></span>
+        Ni povezave — točke se zdaj ne morejo shraniti.
+      </div>
+    </sc-if>
+
+    <!-- ══ SCROLL BODY ══ -->
+    <div class="hs" style="position:relative;flex:1;min-height:0;overflow-y:auto;padding:0 0 18px">
+
+      <!-- ─── OPRAVILA ─── -->
+      <sc-if value="{{ isChores }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div class="hs" style="display:flex;gap:8px;padding:16px 20px 4px;overflow-x:auto">
+            <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="4">
+              <div>
+                <sc-if value="{{ ch.on }}">
+                  <div role="button" tabindex="0" onClick="{{ ch.pick }}" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;height:40px;padding:0 15px;border-radius:14px;background:#3A2E28;color:#FBF3EA;font-weight:800;font-size:13.5px;cursor:pointer;white-space:nowrap;box-shadow:0 3px 0 rgba(58,46,40,.2)"><span style="font-size:15px">{{ ch.emoji }}</span>{{ ch.name }} <span style="opacity:.55;font-weight:700">✓</span></div>
+                </sc-if>
+                <sc-if value="{{ ch.off }}" hint-placeholder-val="{{ true }}">
+                  <div role="button" tabindex="0" onClick="{{ ch.pick }}" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;height:40px;padding:0 15px;border-radius:14px;background:#FFFCF7;border:1px solid #EBD9C8;color:#6E5A4E;font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap"><span style="font-size:15px">{{ ch.emoji }}</span>{{ ch.name }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ loading }}">
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+              <div style="height:132px;border-radius:26px;background:linear-gradient(90deg,#F5E9DC 0%,#FBF3EA 50%,#F5E9DC 100%);background-size:240px 100%;animation:msShim 1.1s linear infinite"></div>
+              <div style="height:132px;border-radius:26px;background:linear-gradient(90deg,#F5E9DC 0%,#FBF3EA 50%,#F5E9DC 100%);background-size:240px 100%;animation:msShim 1.1s linear infinite"></div>
+              <div style="height:132px;border-radius:26px;background:#F5E9DC;opacity:.6"></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ choresEmpty }}">
+            <div style="padding:34px 30px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px">
+              <!-- MARS POSE: zaspan/čaka (sleepy-waiting) — not yet supplied, standing in with idle pose -->
+              <img src="./mars-idle.jpg" alt="Mars čaka" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #FFFFFF;box-shadow:0 6px 16px rgba(120,80,50,.18)">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:28px;line-height:1;color:#3A2E28">Tu je še tiho</div>
+              <div style="font-size:14px;color:#93806F;line-height:1.45;max-width:250px">Mars čaka na prvo opravilo. Ko ga skrbnik doda, se pojavi točno tukaj.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ choresShown }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:12px 20px;display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ chores }}" as="c" hint-placeholder-count="4">
+                <div style="position:relative;background:#FFFCF7;border:1px solid #EFE0D0;border-radius:26px;padding:15px;display:flex;flex-direction:column;gap:13px;box-shadow:0 5px 0 rgba(150,110,80,.07);animation: {{ c.anim }}">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:50px;height:50px;flex:0 0 auto;border-radius:17px;background:#F8EBDF;border:1px solid #F0DECD;display:grid;place-items:center;font-size:25px">{{ c.emoji }}</div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                      <div style="font-family:'Baloo 2';font-weight:700;font-size:18px;line-height:1.15;color:#3A2E28;text-wrap:pretty">{{ c.title }}</div>
+                      <sc-if value="{{ c.hasDesc }}" hint-placeholder-val="{{ true }}">
+                        <div style="font-size:13px;color:#93806F;line-height:1.35;text-wrap:pretty">{{ c.desc }}</div>
+                      </sc-if>
+                      <div style="margin-top:3px;display:flex;gap:5px;align-items:center">
+                        <span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:8px;background:#F3EDE2;font-size:11.5px;font-weight:700;color:#7C6A5C"><span>{{ c.catEmoji }}</span>{{ c.catName }}</span>
+                      </div>
+                    </div>
+                    <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;height:44px;border-radius:14px;background:#F1F3E6;border:1px solid #E2E7D0">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:#5C6A44">+{{ c.points }}</div>
+                      <div style="font-size:9.5px;font-weight:700;color:#8A9470;letter-spacing:.04em">TOČK</div>
+                    </div>
+                  </div>
+
+                  <div role="button" tabindex="0" aria-label="{{ c.aria }}" onPointerDown="{{ c.down }}" onPointerUp="{{ c.up }}" onPointerLeave="{{ c.up }}" onPointerCancel="{{ c.up }}" onKeyDown="{{ c.kdown }}" onKeyUp="{{ c.up }}" style="position:relative;overflow:hidden;height:54px;border-radius:18px;background:#F7EADD;border:1.5px solid #E9D5C2;display:grid;place-items:center;cursor:pointer;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent">
+                    <div style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#F3C3CE,#E8879E);width: {{ c.pct }}"></div>
+                    <div style="position:relative;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#5F4640">
+                      <span>{{ c.label }}</span>
+                    </div>
+                  </div>
+
+                  <sc-if value="{{ c.party }}">
+                    <div style="position:absolute;inset:-2px;border-radius:28px;box-shadow:0 0 0 3px rgba(111,125,82,.35);pointer-events:none;animation:msPop .45s ease-out"></div>
+                  </sc-if>
+                </div>
+              </sc-for>
+
+              <sc-if value="{{ catEmpty }}">
+                <div style="padding:26px 20px;text-align:center;border:1.5px dashed #E6D3C0;border-radius:24px;background:#FDF8F2">
+                  <div style="font-family:Caveat,cursive;font-weight:700;font-size:25px;line-height:1;color:#3A2E28">V tej kategoriji ni opravil</div>
+                  <div style="font-size:13.5px;color:#93806F;margin-top:5px;line-height:1.4">Poskusi <strong>Vse</strong> ali izberi drugo kategorijo.</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showHint }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:2px;display:flex;gap:9px;align-items:flex-start;padding:13px 15px;border-radius:20px;background:#F5F1E7;border:1px solid #E8E2D2">
+                  <span style="font-size:15px;line-height:1.2">👆</span>
+                  <div style="font-size:12.5px;color:#7C6A5C;line-height:1.4">Pridrži gumb približno sekundo, dokler se ne napolni. Spusti prej in nič se ne zgodi.</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ─── NAGRADE ─── -->
+      <sc-if value="{{ isRewards }}">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+
+          <div style="display:flex;gap:9px">
+            <div style="flex:1;padding:12px 14px;border-radius:18px;background:#FCEEF1;border:1px solid #F2D5DC">
+              <div style="font-family:Caveat,cursive;font-weight:600;font-size:19px;line-height:1.1;color:#B5758A">na voljo</div>
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;color:#B4405C;line-height:1.1">{{ available }}</div>
+            </div>
+            <div style="flex:1;padding:12px 14px;border-radius:18px;background:#F5F1E7;border:1px solid #E8E2D2">
+              <div style="font-family:Caveat,cursive;font-weight:600;font-size:19px;line-height:1.1;color:#9A8A76">rezervirano</div>
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;color:#7C6A5C;line-height:1.1">{{ reserved }}</div>
+              <div style="font-size:11.5px;color:#9A8A76;margin-top:1px">v čakajočih zahtevkih</div>
+            </div>
+          </div>
+
+          <sc-if value="{{ hasPending }}">
+            <div style="display:flex;flex-direction:column;gap:9px;margin-top:2px">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:23px;line-height:1;color:#7C6A5C">Tvoji zahtevki 🐾</div>
+              <sc-for list="{{ pending }}" as="q" hint-placeholder-count="1">
+                <div style="background:#FFFCF7;border:1.5px solid #EDD9BE;border-radius:22px;padding:13px 14px;display:flex;gap:11px;align-items:center">
+                  <div style="width:42px;height:42px;flex:0 0 auto;border-radius:14px;background:#F8EFE2;display:grid;place-items:center;font-size:21px">{{ q.emoji }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:'Baloo 2';font-weight:700;font-size:16px;color:#3A2E28;line-height:1.15">{{ q.title }}</div>
+                    <div style="font-size:12px;color:#93806F;margin-top:1px">{{ q.sub }}</div>
+                  </div>
+                  <div role="button" tabindex="0" onClick="{{ q.cancel }}" style="flex:0 0 auto;height:38px;padding:0 13px;border-radius:13px;background:#F6E9DC;border:1px solid #E8D3C0;display:grid;place-items:center;font-weight:800;font-size:13px;color:#8A6F5E;cursor:pointer">Prekliči</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ rewardsEmpty }}">
+            <div style="padding:30px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;margin-top:4px">
+              <!-- MARS POSE: zaspan/čaka (sleepy-waiting) — not yet supplied, standing in with idle pose -->
+              <img src="./mars-idle.jpg" alt="Mars čaka na nagrade" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #FFFFFF;box-shadow:0 6px 16px rgba(120,80,50,.18)">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:26px;line-height:1;color:#3A2E28">Nagrade še čakajo</div>
+              <div style="font-size:13.5px;color:#93806F;line-height:1.45;max-width:240px">Skrbnik jih še ni dodal. Ko jih doda, se pojavijo točno tukaj, čisto blizu tvojih točk.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ rewardsShown }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:23px;line-height:1;color:#7C6A5C;margin-top:6px">Za zamenjavo</div>
+
+              <sc-for list="{{ rewards }}" as="r" hint-placeholder-count="4">
+                <div>
+                  <sc-if value="{{ r.ok }}" hint-placeholder-val="{{ true }}">
+                    <div role="button" tabindex="0" onClick="{{ r.open }}" style="background:#FFFCF7;border:1px solid #EFE0D0;border-radius:24px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer;box-shadow:0 5px 0 rgba(150,110,80,.07)">
+                      <div style="width:52px;height:52px;flex:0 0 auto;border-radius:18px;background:#FCEEF1;border:1px solid #F4DBE1;display:grid;place-items:center;font-size:26px">{{ r.emoji }}</div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-family:'Baloo 2';font-weight:700;font-size:17.5px;color:#3A2E28;line-height:1.15;text-wrap:pretty">{{ r.title }}</div>
+                        <div style="font-size:12.5px;color:#93806F;line-height:1.35;margin-top:2px">{{ r.desc }}</div>
+                      </div>
+                      <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;height:46px;border-radius:15px;background:#F6DEE4;border:1px solid #EFCBD4">
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:#B4405C">{{ r.cost }}</div>
+                        <div style="font-size:9.5px;font-weight:700;color:#C1808F">TOČK</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ r.short }}">
+                    <div style="background:#FCF8F2;border:1px dashed #E8D8C7;border-radius:24px;padding:14px;display:flex;gap:12px;align-items:center">
+                      <div style="width:52px;height:52px;flex:0 0 auto;border-radius:18px;background:#F5EDE4;display:grid;place-items:center;font-size:26px;opacity:.62">{{ r.emoji }}</div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-family:'Baloo 2';font-weight:700;font-size:17.5px;color:#7E6D60;line-height:1.15;text-wrap:pretty">{{ r.title }}</div>
+                        <div style="font-size:12.5px;color:#A08D80;margin-top:2px">še {{ r.gap }} točk</div>
+                      </div>
+                      <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;height:46px;border-radius:15px;background:#F3ECE3;border:1px solid #E7DACC">
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:#8A7768">{{ r.cost }}</div>
+                        <div style="font-size:9.5px;font-weight:700;color:#A69485">TOČK</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+
+              <div style="margin-top:4px;display:flex;gap:9px;align-items:flex-start;padding:13px 15px;border-radius:20px;background:#F5F1E7;border:1px solid #E8E2D2">
+                <span style="font-size:15px">🔒</span>
+                <div style="font-size:12.5px;color:#7C6A5C;line-height:1.4">Rezervirane točke počakajo, dokler skrbnik zahtevka ne potrdi ali zavrne.</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ─── DOGAJANJE ─── -->
+      <sc-if value="{{ isLog }}">
+        <div>
+          <div style="display:flex;gap:8px;padding:16px 20px 6px">
+            <sc-for list="{{ logChips }}" as="f" hint-placeholder-count="3">
+              <div>
+                <sc-if value="{{ f.on }}">
+                  <div role="button" tabindex="0" onClick="{{ f.pick }}" style="height:38px;padding:0 15px;border-radius:13px;background:#3A2E28;color:#FBF3EA;font-weight:800;font-size:13.5px;display:grid;place-items:center;cursor:pointer">{{ f.name }}</div>
+                </sc-if>
+                <sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}">
+                  <div role="button" tabindex="0" onClick="{{ f.pick }}" style="height:38px;padding:0 15px;border-radius:13px;background:#FFFCF7;border:1px solid #EBD9C8;color:#6E5A4E;font-weight:700;font-size:13.5px;display:grid;place-items:center;cursor:pointer">{{ f.name }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ logEmpty }}">
+            <div style="padding:34px 30px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px">
+              <!-- MARS POSE: zaspan/čaka (sleepy-waiting) — not yet supplied, standing in with idle pose -->
+              <img src="./mars-idle.jpg" alt="Mars čaka" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #FFFFFF;box-shadow:0 6px 16px rgba(120,80,50,.18)">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:27px;line-height:1;color:#3A2E28">Še nič se ni zgodilo</div>
+              <div style="font-size:13.5px;color:#93806F;line-height:1.45;max-width:240px">Prvo opravilo bo prvi vpis v to zgodbo.</div>
+            </div>
+          </sc-if>
+
+          <div style="padding:8px 20px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="5">
+              <div>
+                <sc-if value="{{ row.isDay }}">
+                  <div style="padding:12px 2px 3px;font-family:Caveat,cursive;font-weight:700;font-size:22px;line-height:1;color:#A38F81">{{ row.day }}</div>
+                </sc-if>
+                <sc-if value="{{ row.isEntry }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:#FFFCF7;border:1px solid #F0E2D3;border-radius:20px;padding:12px 13px;display:flex;gap:11px;align-items:center">
+                    <div style="width:40px;height:40px;flex:0 0 auto;border-radius:13px;background:#F8EFE5;display:grid;place-items:center;font-size:19px">{{ row.emoji }}</div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-weight:800;font-size:14.5px;color:#3A2E28;line-height:1.2;text-wrap:pretty">{{ row.title }}</div>
+                      <div style="font-size:12px;color:#98857A;margin-top:1px">{{ row.sub }}</div>
+                    </div>
+                    <sc-if value="{{ row.pos }}">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;color:#6F7D52;flex:0 0 auto">{{ row.amount }}</div>
+                    </sc-if>
+                    <sc-if value="{{ row.neg }}">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;color:#B4405C;flex:0 0 auto">{{ row.amount }}</div>
+                    </sc-if>
+                    <sc-if value="{{ row.dim }}">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;color:#B0A093;flex:0 0 auto;text-decoration:line-through">{{ row.amount }}</div>
+                    </sc-if>
+                    <sc-if value="{{ row.canUndo }}">
+                      <div role="button" tabindex="0" onClick="{{ row.undo }}" style="flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:#F6E9DC;border:1px solid #E8D3C0;display:grid;place-items:center;font-size:15px;color:#8A6F5E;cursor:pointer" aria-label="Razveljavi">↺</div>
+                    </sc-if>
+                    <sc-if value="{{ row.lockUndo }}">
+                      <div role="button" tabindex="0" onClick="{{ row.why }}" style="flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:#F5F1E7;border:1px dashed #E0D5C4;display:grid;place-items:center;font-size:14px;color:#B5A697;cursor:pointer" aria-label="Razveljavitev ni mogoča">↺</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- ══ TOAST ══ -->
+    <sc-if value="{{ toast }}">
+      <div style="position:absolute;left:14px;right:14px;bottom:96px;z-index:40;animation:msRise .28s cubic-bezier(.2,.9,.3,1.2)">
+        <sc-if value="{{ toastOk }}">
+          <div style="background:#3A2E28;border-radius:20px;padding:13px 15px;display:flex;align-items:center;gap:11px;box-shadow:0 12px 26px -10px rgba(58,46,40,.55)">
+            <span style="font-size:18px">{{ toastIcon }}</span>
+            <div style="flex:1;min-width:0;color:#FBF3EA;font-weight:700;font-size:14px;line-height:1.3">{{ toastText }}</div>
+            <sc-if value="{{ toastAction }}">
+              <div role="button" tabindex="0" onClick="{{ toastAction }}" style="flex:0 0 auto;height:38px;padding:0 14px;border-radius:12px;background:#5C4A40;display:grid;place-items:center;color:#FBF3EA;font-weight:800;font-size:13.5px;cursor:pointer">Razveljavi</div>
+            </sc-if>
+          </div>
+        </sc-if>
+        <sc-if value="{{ toastBad }}">
+          <div style="background:#8E3A46;border-radius:20px;padding:13px 15px;display:flex;align-items:center;gap:11px;box-shadow:0 12px 26px -10px rgba(142,58,70,.5)">
+            <span style="font-size:18px">{{ toastIcon }}</span>
+            <div style="flex:1;min-width:0;color:#FDF1F2;font-weight:700;font-size:14px;line-height:1.3">{{ toastText }}</div>
+            <sc-if value="{{ toastAction }}">
+              <div role="button" tabindex="0" onClick="{{ toastAction }}" style="flex:0 0 auto;height:38px;padding:0 14px;border-radius:12px;background:#A8515D;display:grid;place-items:center;color:#FFF;font-weight:800;font-size:13.5px;cursor:pointer">Poskusi znova</div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ══ SHEET ══ -->
+    <sc-if value="{{ sheet }}">
+      <div style="position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;justify-content:flex-end">
+        <div role="button" tabindex="0" aria-label="Zapri" onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(58,46,40,.42);animation:msFade .2s ease-out"></div>
+        <div style="position:relative;background:#FDF7F0;border-radius:32px 32px 0 0;padding:10px 22px 30px;box-shadow:0 -14px 40px -14px rgba(58,46,40,.4);animation:msRise .32s cubic-bezier(.2,.9,.3,1.15)">
+          <div style="width:44px;height:5px;border-radius:3px;background:#E6D6C4;margin:0 auto 16px"></div>
+
+          <sc-if value="{{ sheetReward }}">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:13px;align-items:center">
+                <div style="position:relative;width:62px;height:62px;flex:0 0 auto">
+                  <div style="width:62px;height:62px;border-radius:20px;background:#FCEEF1;border:1px solid #F4DBE1;display:grid;place-items:center;font-size:31px">{{ sheetEmoji }}</div>
+                  <!-- MARS POSE: radoveden/pričakuje (excited anticipation) — not yet supplied, standing in with idle pose -->
+                  <img src="./mars-idle.jpg" alt="Mars je radoveden" style="position:absolute;right:-8px;bottom:-8px;width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FDF7F0;box-shadow:0 2px 6px rgba(120,80,50,.22)">
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-family:Caveat,cursive;font-weight:700;font-size:30px;color:#3A2E28;line-height:1.05;text-wrap:pretty">{{ sheetTitle }}</div>
+                  <div style="font-size:13px;color:#93806F;margin-top:2px">{{ sheetDesc }}</div>
+                </div>
+              </div>
+
+              <div style="border-radius:20px;background:#F8F3EA;border:1px solid #EDE4D6;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;padding:11px 15px;font-size:13.5px;color:#7C6A5C"><span>Cena nagrade</span><strong style="font-family:'Baloo 2';font-size:16px;color:#B4405C">−{{ sheetCost }}</strong></div>
+                <div style="height:1px;background:#EDE4D6"></div>
+                <div style="display:flex;justify-content:space-between;padding:11px 15px;font-size:13.5px;color:#7C6A5C"><span>Zdaj na voljo</span><strong style="font-family:'Baloo 2';font-size:16px;color:#5C4A40">{{ available }}</strong></div>
+                <div style="height:1px;background:#EDE4D6"></div>
+                <div style="display:flex;justify-content:space-between;padding:11px 15px;font-size:13.5px;font-weight:800;color:#5C4A40;background:#F3EEE3"><span>Po rezervaciji</span><strong style="font-family:'Baloo 2';font-size:16px;color:#6F7D52">{{ sheetAfter }}</strong></div>
+              </div>
+
+              <div role="button" tabindex="0" aria-label="{{ sheetAria }}" onPointerDown="{{ sheetDown }}" onPointerUp="{{ sheetUp }}" onPointerLeave="{{ sheetUp }}" onKeyDown="{{ sheetKey }}" onKeyUp="{{ sheetUp }}" style="position:relative;overflow:hidden;height:58px;border-radius:19px;background:#F1D9DF;border:1.5px solid #E7C3CC;display:grid;place-items:center;cursor:pointer;user-select:none;touch-action:none">
+                <div style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#E8879E,#D2607C);width: {{ sheetPct }}"></div>
+                <div style="position:relative;font-weight:800;font-size:15.5px;color:#6B3A47">{{ sheetLabel }}</div>
+              </div>
+              <div style="text-align:center;font-size:12px;color:#A08D80;margin-top:-6px">Zahtevek lahko prekličeš, dokler čaka.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetUndo }}">
+            <div style="display:flex;flex-direction:column;gap:15px">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:30px;color:#3A2E28;line-height:1.1">Razveljavim to opravilo?</div>
+              <div style="font-size:14px;color:#7C6A5C;line-height:1.45">{{ undoText }}</div>
+              <div style="display:flex;gap:10px">
+                <div role="button" tabindex="0" onClick="{{ closeSheet }}" style="flex:1;height:52px;border-radius:17px;background:#F3EDE4;border:1px solid #E7DACC;display:grid;place-items:center;font-weight:800;font-size:15px;color:#7C6A5C;cursor:pointer">Pusti</div>
+                <div role="button" tabindex="0" onClick="{{ confirmUndo }}" style="flex:1;height:52px;border-radius:17px;background:#3A2E28;display:grid;place-items:center;font-weight:800;font-size:15px;color:#FBF3EA;cursor:pointer">Razveljavi</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetWhy }}">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="font-family:Caveat,cursive;font-weight:700;font-size:30px;color:#3A2E28;line-height:1.1">Tega zdaj ne morem razveljaviti</div>
+              <div style="font-size:14px;color:#7C6A5C;line-height:1.45">Te točke so že rezervirane za čakajoč zahtevek. Prekliči zahtevek pod <strong>Nagrade</strong> in poskusi znova.</div>
+              <div role="button" tabindex="0" onClick="{{ closeSheet }}" style="height:52px;border-radius:17px;background:#3A2E28;display:grid;place-items:center;font-weight:800;font-size:15px;color:#FBF3EA;cursor:pointer">Razumem</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══ BOTTOM NAV ══ -->
+    <div style="position:relative;z-index:30;flex:0 0 auto;background:#FDF7F0;border-top:1px solid #EFE1D1;padding:9px 12px 22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <div>
+          <sc-if value="{{ t.on }}">
+            <div role="button" tabindex="0" onClick="{{ t.pick }}" style="height:56px;border-radius:18px;background:#F6DEE4;border:1px solid #EFCBD4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer">
+              <span style="font-size:19px;line-height:1">{{ t.icon }}</span>
+              <span style="font-weight:800;font-size:11.5px;color:#B4405C">{{ t.name }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}">
+            <div role="button" tabindex="0" onClick="{{ t.pick }}" style="position:relative;height:56px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer">
+              <span style="font-size:19px;line-height:1;opacity:.5">{{ t.icon }}</span>
+              <span style="font-weight:700;font-size:11.5px;color:#9C8878">{{ t.name }}</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="max-width:390px;text-align:center;font-size:12.5px;color:#9A8878;line-height:1.5">Pridrži gumb za dokončanje opravila in poglej, kam odletijo točke. Nato zahtevaj nagrado pod <strong>Nagrade</strong> — Mars jo nese naprej.</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:470,&quot;height&quot;:1010},&quot;greetingName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Klara&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Vsebina&quot;},&quot;simState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;normalno&quot;,&quot;nalaganje&quot;,&quot;prazno&quot;,&quot;brez povezave&quot;,&quot;napaka&quot;],&quot;default&quot;:&quot;normalno&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Stanja&quot;},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Stanja&quot;}}">
+const CATS = [
+  { id: 'dom', emoji: '🏡', name: 'Dom' },
+  { id: 'kuhinja', emoji: '🍳', name: 'Kuhinja' },
+  { id: 'mars', emoji: '🐾', name: 'Mars' },
+  { id: 'zase', emoji: '💛', name: 'Zase' }
+];
+
+const CHORES = [
+  { id: 'c1', emoji: '🧺', title: 'Zloži perilo', desc: 'Vse v omaro, tudi nogavice.', cat: 'dom', points: 15 },
+  { id: 'c2', emoji: '🍽️', title: 'Pomij posodo', desc: 'Ali napolni pomivalni stroj.', cat: 'kuhinja', points: 10 },
+  { id: 'c3', emoji: '🐕', title: 'Sprehod z Marsom', desc: 'Vsaj dvajset minut, brez hitenja.', cat: 'mars', points: 25 },
+  { id: 'c4', emoji: '🌿', title: 'Zalij rože', desc: '', cat: 'dom', points: 5 },
+  { id: 'c5', emoji: '🛒', title: 'Nakup za teden', desc: 'Seznam je na hladilniku.', cat: 'kuhinja', points: 30 },
+  { id: 'c6', emoji: '🧴', title: 'Namaži se s kremo', desc: 'Šteje kot opravilo. Res.', cat: 'zase', points: 5 }
+];
+
+const REWARDS = [
+  { id: 'r1', emoji: '🎬', title: 'Filmski večer', desc: 'Ti izbereš film, brez pritoževanja.', cost: 40 },
+  { id: 'r2', emoji: '☕', title: 'Zajtrk v postelji', desc: 'Kava, jajca, vse.', cost: 50 },
+  { id: 'r3', emoji: '💆', title: 'Masaža hrbta', desc: 'Dvajset minut s štoparico.', cost: 60 },
+  { id: 'r4', emoji: '🍕', title: 'Pica po tvoji izbiri', desc: 'Tudi z ananasom, če moraš.', cost: 80 },
+  { id: 'r5', emoji: '🧖', title: 'Wellness dan', desc: 'Cel dan, samo za tebi.', cost: 250 }
+];
+
+const HOLD_MS = 500;
+const SHEET_MS = 700;
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: 'opravila', cat: 'vse', logFilter: 'vse',
+      balance: 145, reserved: 40, lifetime: 310, shownAvail: 105,
+      holdId: null, holdPct: 0, sheetPct: 0, saving: null, sheetSaving: false, party: null,
+      toast: null, sheet: null, target: null,
+      sound: true, fly: null, marsHappy: false, hasCompletedOnce: false,
+      requests: [{ id: 'q1', emoji: '🎬', title: 'Filmski večer', cost: 40, time: '18:20' }],
+      log: [
+        { id: 'l1', kind: 'chore', emoji: '🐕', title: 'Sprehod z Marsom', delta: 25, day: 'Danes', time: '19:04' },
+        { id: 'l2', kind: 'reward', emoji: '🎬', title: 'Filmski večer', delta: -40, day: 'Danes', time: '18:20', status: 'V čakanju' },
+        { id: 'l3', kind: 'chore', emoji: '🍽️', title: 'Pomij posodo', delta: 10, day: 'Danes', time: '13:40' },
+        { id: 'l4', kind: 'adjust', emoji: '✨', title: 'Prilagoditev točk', delta: 20, day: 'Včeraj', time: '21:10' },
+        { id: 'l5', kind: 'chore', emoji: '🧺', title: 'Zloži perilo', delta: 15, day: 'Včeraj', time: '17:22', undone: true },
+        { id: 'l6', kind: 'reward', emoji: '☕', title: 'Zajtrk v postelji', delta: -50, day: 'Včeraj', time: '09:15', status: 'Izpolnjeno' }
+      ]
+    };
+  }
+
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearTimeout(this.tid); clearTimeout(this.tid2); clearTimeout(this.tid3); }
+
+  get rm() { return !!this.props.reduceMotion; }
+  get sim() { return this.props.simState || 'normalno'; }
+  get avail() { return this.state.balance - this.state.reserved; }
+
+  beep(kind) {
+    if (!this.state.sound) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ac = this.ac || new AC();
+      const map = { ok: [523, 784], bad: [220, 165], req: [659, 988] };
+      const notes = map[kind] || map.ok;
+      notes.forEach((f, i) => {
+        const o = this.ac.createOscillator(), g = this.ac.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        const t = this.ac.currentTime + i * 0.09;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.09, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(g); g.connect(this.ac.destination); o.start(t); o.stop(t + 0.24);
+      });
+    } catch (e) { /* zvok ni na voljo */ }
+  }
+
+  buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+
+  animateAvail(to) {
+    cancelAnimationFrame(this.availRaf);
+    if (this.rm) { this.setState({ shownAvail: to }); return; }
+    const from = this.state.shownAvail, t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 520);
+      const e = 1 - Math.pow(1 - k, 3);
+      this.setState({ shownAvail: Math.round(from + (to - from) * e) });
+      if (k < 1) this.availRaf = requestAnimationFrame(step);
+    };
+    this.availRaf = requestAnimationFrame(step);
+  }
+
+  showToast(t) { clearTimeout(this.tid); this.setState({ toast: t }); this.tid = setTimeout(() => this.setState({ toast: null }), t.ms || 5000); }
+
+  // ── hold to complete ──
+  startHold(c) {
+    if (this.state.saving || this.state.holdId || this.sim === 'nalaganje') return;
+    this.holdT0 = performance.now();
+    this.setState({ holdId: c.id, holdPct: 0 });
+    this.ticked = 0;
+    const step = (now) => {
+      if (this.state.holdId !== c.id) return;
+      const k = Math.min(1, (now - this.holdT0) / HOLD_MS);
+      if (k > 0.33 && this.ticked < 1) { this.ticked = 1; this.buzz(8); }
+      if (k > 0.66 && this.ticked < 2) { this.ticked = 2; this.buzz(8); }
+      this.setState({ holdPct: k });
+      if (k >= 1) this.finishHold(c); else this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+
+  cancelHold() {
+    if (!this.state.holdId) return;
+    cancelAnimationFrame(this.raf);
+    if (this.state.holdPct > 0.12) this.beep('bad');
+    this.setState({ holdId: null, holdPct: 0 });
+  }
+
+  finishHold(c) {
+    cancelAnimationFrame(this.raf);
+    this.setState({ holdId: null, holdPct: 0, saving: c.id });
+    this.tid2 = setTimeout(() => {
+      if (this.sim === 'brez povezave') {
+        this.setState({ saving: null });
+        this.beep('bad');
+        this.showToast({ bad: true, icon: '📡', text: 'Brez povezave. Opravilo ni shranjeno.', retry: c.id });
+        return;
+      }
+      if (this.sim === 'napaka') {
+        this.setState({ saving: null });
+        this.beep('bad');
+        this.showToast({ bad: true, icon: '🙈', text: 'Ni se shranilo. Točke ostajajo enake.', retry: c.id });
+        return;
+      }
+      const id = 'x' + Date.now();
+      const target = this.avail + c.points;
+      this.setState(s => ({
+        saving: null, party: c.id, fly: '+' + c.points, marsHappy: true, hasCompletedOnce: true,
+        balance: s.balance + c.points, lifetime: s.lifetime + c.points,
+        log: [{ id: id, kind: 'chore', emoji: c.emoji, title: c.title, delta: c.points, day: 'Danes', time: this.now() }, ...s.log]
+      }));
+      this.animateAvail(target);
+      this.buzz(28); this.beep('ok');
+      setTimeout(() => this.setState({ party: null, fly: null, marsHappy: false }), 1400);
+      this.showToast({ icon: '🎉', text: c.title + ' · +' + c.points + ' točk', undoId: id, ms: 6000 });
+    }, 420);
+  }
+
+  now() { const d = new Date(); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+
+  // ── undo ──
+  undo(id) {
+    const e = this.state.log.find(x => x.id === id);
+    if (!e || e.undone) return;
+    if (this.avail - e.delta < 0) { this.setState({ sheet: 'why' }); return; }
+    const target = this.avail - e.delta;
+    this.setState(s => ({
+      balance: s.balance - e.delta, lifetime: s.lifetime - e.delta, toast: null, sheet: null, target: null,
+      log: s.log.map(x => x.id === id ? Object.assign({}, x, { undone: true }) : x)
+    }));
+    this.animateAvail(target);
+    this.beep('bad');
+  }
+
+  // ── rewards ──
+  openReward(r) { this.setState({ sheet: 'reward', target: r, sheetPct: 0, sheetSaving: false }); }
+  closeSheet() { cancelAnimationFrame(this.sraf); clearTimeout(this.tid3); this.setState({ sheet: null, target: null, sheetPct: 0, sheetSaving: false }); }
+
+  startSheetHold() {
+    const r = this.state.target;
+    if (!r || this.sheetHolding || this.state.sheetSaving) return;
+    this.sheetHolding = true;
+    const t0 = performance.now();
+    const step = (now) => {
+      if (!this.sheetHolding) return;
+      const k = Math.min(1, (now - t0) / SHEET_MS);
+      this.setState({ sheetPct: k });
+      if (k >= 1) { this.sheetHolding = false; this.confirmReward(r); }
+      else this.sraf = requestAnimationFrame(step);
+    };
+    this.sraf = requestAnimationFrame(step);
+  }
+
+  endSheetHold() {
+    if (!this.sheetHolding) return;
+    this.sheetHolding = false; cancelAnimationFrame(this.sraf);
+    if (!this.state.sheetSaving) this.setState({ sheetPct: 0 });
+  }
+
+  confirmReward(r) {
+    if (this.avail < r.cost) {
+      this.closeSheet(); this.beep('bad');
+      this.showToast({ bad: true, icon: '🙈', text: 'Ni dovolj razpoložljivih točk.' });
+      return;
+    }
+    this.setState({ sheetSaving: true, sheetPct: 1 });
+    this.tid3 = setTimeout(() => {
+      if (this.sim === 'brez povezave') {
+        this.setState({ sheetSaving: false, sheetPct: 0 });
+        this.beep('bad');
+        this.showToast({ bad: true, icon: '📡', text: 'Brez povezave. Zahtevek ni poslan.' });
+        return;
+      }
+      if (this.sim === 'napaka') {
+        this.setState({ sheetSaving: false, sheetPct: 0 });
+        this.beep('bad');
+        this.showToast({ bad: true, icon: '🙈', text: 'Zahtevek se ni poslal. Točke ostajajo enake.' });
+        return;
+      }
+      const target = this.avail - r.cost;
+      this.setState(s => ({
+        sheet: null, target: null, sheetPct: 0, sheetSaving: false, reserved: s.reserved + r.cost,
+        requests: [{ id: 'q' + Date.now(), emoji: r.emoji, title: r.title, cost: r.cost, time: this.now() }, ...s.requests],
+        log: [{ id: 'lr' + Date.now(), kind: 'reward', emoji: r.emoji, title: r.title, delta: -r.cost, day: 'Danes', time: this.now(), status: 'V čakanju' }, ...s.log]
+      }));
+      this.animateAvail(target);
+      this.buzz(24); this.beep('req');
+      this.showToast({ icon: '💌', text: 'Zahtevek poslan. Mars ga nese naprej.' });
+    }, 380);
+  }
+
+  cancelRequest(q) {
+    const target = this.avail + q.cost;
+    this.setState(s => ({
+      reserved: s.reserved - q.cost,
+      requests: s.requests.filter(x => x.id !== q.id),
+      log: [{ id: 'lc' + Date.now(), kind: 'reward', emoji: q.emoji, title: q.title, delta: 0, day: 'Danes', time: this.now(), status: 'Preklicano' }, ...s.log]
+    }));
+    this.animateAvail(target);
+    this.showToast({ icon: '↩️', text: 'Zahtevek preklican, točke so spet tvoje.' });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const sim = this.sim;
+    const loading = sim === 'nalaganje';
+    const empty = sim === 'prazno';
+    const available = this.avail;
+
+    const chips = [{ id: 'vse', emoji: '✨', name: 'Vse' }].concat(CATS).map(c => ({
+      emoji: c.emoji, name: c.name, on: s.cat === c.id, off: s.cat !== c.id,
+      pick: () => this.setState({ cat: c.id })
+    }));
+
+    const visible = empty ? [] : CHORES.filter(c => s.cat === 'vse' || c.cat === s.cat);
+    const chores = visible.map(c => {
+      const cat = CATS.find(x => x.id === c.cat) || { emoji: '✨', name: '' };
+      const holding = s.holdId === c.id;
+      const saving = s.saving === c.id;
+      const pctNum = holding ? Math.round(s.holdPct * 100) : (saving ? 100 : 0);
+      let label = 'Pridrži za +' + c.points;
+      if (holding) label = 'Drži… ' + pctNum + ' %';
+      if (saving) label = 'Shranjujem…';
+      if (s.party === c.id) label = 'Opravljeno ✓';
+      return {
+        emoji: c.emoji, title: c.title, desc: c.desc, hasDesc: !!c.desc,
+        catEmoji: cat.emoji, catName: cat.name, points: c.points,
+        pct: pctNum + '%', label: label, party: s.party === c.id,
+        anim: (s.party === c.id && !this.rm) ? 'msCelebrate .72s cubic-bezier(.3,1.1,.4,1)' : 'none',
+        aria: 'Pridrži za dokončanje: ' + c.title + ', ' + c.points + ' točk',
+        down: () => this.startHold(c),
+        up: () => this.cancelHold(),
+        kdown: (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.startHold(c); } }
+      };
+    });
+
+    const rewards = (empty ? [] : REWARDS).map(r => ({
+      emoji: r.emoji, title: r.title, desc: r.desc, cost: r.cost,
+      ok: available >= r.cost, short: available < r.cost, gap: r.cost - available,
+      open: () => this.openReward(r)
+    }));
+
+    const pending = s.requests.map(q => ({
+      emoji: q.emoji, title: q.title,
+      sub: 'V čakanju · ' + q.cost + ' točk rezervirano · ' + q.time,
+      cancel: () => this.cancelRequest(q)
+    }));
+
+    const filtered = s.log.filter(e => {
+      if (s.logFilter === 'opravila') return e.kind === 'chore';
+      if (s.logFilter === 'nagrade') return e.kind === 'reward';
+      return true;
+    });
+    const rows = [];
+    let day = null;
+    (empty ? [] : filtered).forEach(e => {
+      if (e.day !== day) { day = e.day; rows.push({ isDay: true, day: day }); }
+      const canUndo = e.kind === 'chore' && !e.undone && (available - e.delta >= 0);
+      const lockUndo = e.kind === 'chore' && !e.undone && !canUndo;
+      let sub = e.time;
+      if (e.kind === 'chore') sub = e.undone ? ('Razveljavljeno · ' + e.time) : ('Opravilo · ' + e.time);
+      if (e.kind === 'reward') sub = (e.status || 'Zahtevek') + ' · ' + e.time;
+      if (e.kind === 'adjust') sub = 'Skrbnik · ' + e.time;
+      const amount = (e.delta > 0 ? '+' : '') + e.delta;
+      rows.push({
+        isEntry: true, emoji: e.emoji, title: e.title, sub: sub, amount: e.delta === 0 ? '—' : amount,
+        pos: e.delta > 0 && !e.undone, neg: e.delta < 0 && !e.undone, dim: e.undone || e.delta === 0,
+        canUndo: canUndo, lockUndo: lockUndo,
+        undo: () => this.setState({ sheet: 'undo', target: e }),
+        why: () => this.setState({ sheet: 'why' })
+      });
+    });
+
+    const t = s.toast;
+    const r = s.target;
+
+    return {
+      name: this.props.greetingName || 'Klara',
+      marsLine: empty ? 'Mars zeha in čaka.' : (s.marsHappy ? 'Mars je ponosen na tebe.' : 'Mars pravi, da si danes v formi.'),
+      marsHappy: s.marsHappy,
+      soundIcon: s.sound ? '🔊' : '🔇',
+      soundLabel: s.sound ? 'Izklopi zvok' : 'Vklopi zvok',
+      toggleSound: () => this.setState(p => ({ sound: !p.sound })),
+
+      shownAvail: s.shownAvail, available: available, reserved: s.reserved, lifetime: s.lifetime,
+      fly: s.fly,
+      offline: sim === 'brez povezave',
+      loading: loading,
+
+      isChores: s.screen === 'opravila', isRewards: s.screen === 'nagrade', isLog: s.screen === 'dogajanje',
+      choresEmpty: empty, choresShown: !empty && !loading,
+      catEmpty: !empty && !loading && chores.length === 0,
+      showHint: !empty && !loading && !s.hasCompletedOnce,
+      logEmpty: empty || rows.length === 0,
+      rewardsEmpty: empty, rewardsShown: !empty,
+
+      chips: chips, chores: chores, rewards: rewards, pending: pending, hasPending: pending.length > 0,
+      rows: rows,
+      logChips: [
+        { id: 'vse', name: 'Vse' }, { id: 'opravila', name: 'Opravila' }, { id: 'nagrade', name: 'Nagrade' }
+      ].map(f => ({ name: f.name, on: s.logFilter === f.id, off: s.logFilter !== f.id, pick: () => this.setState({ logFilter: f.id }) })),
+
+      tabs: [
+        { id: 'opravila', icon: '🧹', name: 'Opravila' },
+        { id: 'nagrade', icon: '🎁', name: 'Nagrade' },
+        { id: 'dogajanje', icon: '🕰️', name: 'Dogajanje' }
+      ].map(x => ({ icon: x.icon, name: x.name, on: s.screen === x.id, off: s.screen !== x.id, pick: () => this.setState({ screen: x.id }) })),
+
+      toast: !!t,
+      toastOk: !!t && !t.bad, toastBad: !!t && !!t.bad,
+      toastIcon: t ? t.icon : '', toastText: t ? t.text : '',
+      toastAction: t && t.undoId ? (() => this.undo(t.undoId)) : (t && t.retry ? (() => {
+        const c = CHORES.find(x => x.id === t.retry); this.setState({ toast: null }); if (c) this.finishHold(c);
+      }) : null),
+
+      sheet: !!s.sheet,
+      sheetReward: s.sheet === 'reward', sheetUndo: s.sheet === 'undo', sheetWhy: s.sheet === 'why',
+      sheetEmoji: r ? r.emoji : '', sheetTitle: r ? r.title : '', sheetDesc: r ? r.desc : '',
+      sheetCost: r ? r.cost : 0, sheetAfter: r ? available - r.cost : 0,
+      sheetPct: Math.round(s.sheetPct * 100) + '%',
+      sheetLabel: s.sheetSaving ? 'Pošiljam…' : (s.sheetPct > 0 ? ('Držim… ' + Math.round(s.sheetPct * 100) + ' %') : 'Pridrži za zahtevek'),
+      sheetAria: r ? ('Pridrži za zahtevek: ' + r.title) : '',
+      sheetDown: () => this.startSheetHold(),
+      sheetUp: () => this.endSheetHold(),
+      sheetKey: (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.startSheetHold(); } },
+      undoText: r ? ('Marsu vzamem ' + r.delta + ' točk za “' + r.title + '”. Vpis ostane v zgodovini kot razveljavljen.') : '',
+      confirmUndo: () => this.undo(s.target && s.target.id),
+      closeSheet: () => this.closeSheet()
+    };
+  }
+}
+
+</script>
+</body>
+</html>
