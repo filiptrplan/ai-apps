@@ -29,6 +29,21 @@ export const strings = {
     marsEmpty: "Mars zeha in čaka.",
   },
 
+  account: {
+    openAria: "Račun",
+    title: "Račun",
+    subtitle: "Prijava ni obvezna — aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, če želiš do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka čez glavno stran.",
+    emailLabel: "E-pošta",
+    emailPlaceholder: "ti@example.com",
+    passwordLabel: "Geslo",
+    signIn: "Prijava",
+    signUp: "Ustvari račun",
+    signUpNotice: "Račun je ustvarjen. Če je potrebna potrditev, preveri e-pošto.",
+    signOut: "Odjava",
+    loggedInAs: (email) => `Prijavljena kot ${email}`,
+    loading: "Nalagam …",
+  },
+
   chores: {
     allChip: "Vse",
     holdLabel: (points) => `Pridrži za +${points}`,

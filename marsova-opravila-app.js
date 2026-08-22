@@ -20086,6 +20086,20 @@ ${suffix}`;
       marsHappy: "Mars je ponosen na tebe.",
       marsEmpty: "Mars zeha in \u010Daka."
     },
+    account: {
+      openAria: "Ra\u010Dun",
+      title: "Ra\u010Dun",
+      subtitle: "Prijava ni obvezna \u2014 aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, \u010De \u017Eeli\u0161 do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka \u010Dez glavno stran.",
+      emailLabel: "E-po\u0161ta",
+      emailPlaceholder: "ti@example.com",
+      passwordLabel: "Geslo",
+      signIn: "Prijava",
+      signUp: "Ustvari ra\u010Dun",
+      signUpNotice: "Ra\u010Dun je ustvarjen. \u010Ce je potrebna potrditev, preveri e-po\u0161to.",
+      signOut: "Odjava",
+      loggedInAs: (email) => `Prijavljena kot ${email}`,
+      loading: "Nalagam \u2026"
+    },
     chores: {
       allChip: "Vse",
       holdLabel: (points) => `Pridr\u017Ei za +${points}`,
@@ -20965,8 +20979,149 @@ ${suffix}`;
   @keyframes msCelebrate{0%{transform:scale(1) rotate(0deg)}16%{transform:scale(1.05) rotate(-1.3deg)}34%{transform:scale(1.035) rotate(1.2deg)}54%{transform:scale(1.022) rotate(-.8deg)}74%{transform:scale(1.01) rotate(.45deg)}100%{transform:scale(1) rotate(0deg)}}
 `;
 
+  // shared/auth.js
+  var { useState: useState2, useEffect: useEffect2 } = React;
+  function useSession() {
+    const [session, setSession] = useState2(void 0);
+    useEffect2(() => {
+      let cancelled = false;
+      supabase.auth.getSession().then(({ data }) => {
+        if (!cancelled) setSession(data.session);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session2) => {
+        setSession(session2);
+      });
+      return () => {
+        cancelled = true;
+        sub.subscription.unsubscribe();
+      };
+    }, []);
+    return session;
+  }
+  function signIn(email, password) {
+    return supabase.auth.signInWithPassword({ email, password });
+  }
+  function signUp(email, password) {
+    return supabase.auth.signUp({ email, password });
+  }
+  function signOut() {
+    return supabase.auth.signOut();
+  }
+
+  // marsova-opravila/Account.jsx
+  var { useState: useState3 } = React;
+  var fieldStyle = {
+    width: "100%",
+    height: 46,
+    borderRadius: 14,
+    border: `1.5px solid ${theme.cardBorder}`,
+    background: "#FFFCF7",
+    padding: "0 14px",
+    fontSize: 14.5,
+    color: theme.ink,
+    fontFamily: theme.fontBody,
+    marginTop: 4
+  };
+  var labelStyle = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
+  var cancelBtn = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
+  var saveBtn = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
+  function AccountButton() {
+    const session = useSession();
+    const [open, setOpen] = useState3(false);
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "button",
+        tabIndex: 0,
+        "aria-label": strings.account.openAria,
+        onClick: () => setOpen(true),
+        onKeyDown: (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        },
+        style: { width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }
+      },
+      session ? "\u{1F464}" : "\u{1F510}"
+    ), /* @__PURE__ */ React.createElement(Sheet, { open, onClose: () => setOpen(false) }, /* @__PURE__ */ React.createElement(AccountSheetContent, { session })));
+  }
+  function AccountSheetContent({ session }) {
+    const [email, setEmail] = useState3("");
+    const [password, setPassword] = useState3("");
+    const [busy, setBusy] = useState3(false);
+    const [error, setError] = useState3("");
+    const [notice, setNotice] = useState3("");
+    if (session === void 0) {
+      return /* @__PURE__ */ React.createElement("div", { style: { padding: "20px 4px", fontSize: 13.5, color: theme.muted } }, strings.account.loading);
+    }
+    if (session) {
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, strings.account.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, color: theme.inkSoft } }, strings.account.loggedInAs(session.user.email)), /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          role: "button",
+          tabIndex: 0,
+          onClick: () => signOut(),
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              signOut();
+            }
+          },
+          style: { alignSelf: "flex-start", padding: "12px 20px", borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", fontWeight: 800, fontSize: 14, color: theme.bad, cursor: "pointer" }
+        },
+        strings.account.signOut
+      ));
+    }
+    const disabled = busy || !email || !password;
+    const submit = async (signingUp) => {
+      if (disabled) return;
+      setBusy(true);
+      setError("");
+      setNotice("");
+      const { error: err } = signingUp ? await signUp(email, password) : await signIn(email, password);
+      setBusy(false);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+      if (signingUp) setNotice(strings.account.signUpNotice);
+    };
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, strings.account.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.muted, lineHeight: 1.4 } }, strings.account.subtitle), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.account.emailLabel, /* @__PURE__ */ React.createElement("input", { type: "email", autoComplete: "email", value: email, onChange: (e) => setEmail(e.target.value), style: fieldStyle, placeholder: strings.account.emailPlaceholder })), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.account.passwordLabel, /* @__PURE__ */ React.createElement("input", { type: "password", autoComplete: "current-password", value: password, onChange: (e) => setPassword(e.target.value), style: fieldStyle })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), notice && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.sage, fontWeight: 700 } }, notice), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "button",
+        tabIndex: disabled ? -1 : 0,
+        onClick: () => submit(false),
+        onKeyDown: (e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            submit(false);
+          }
+        },
+        style: { ...saveBtn, opacity: disabled ? 0.6 : 1, cursor: disabled ? "default" : "pointer" }
+      },
+      strings.account.signIn
+    ), /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "button",
+        tabIndex: disabled ? -1 : 0,
+        onClick: () => submit(true),
+        onKeyDown: (e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            submit(true);
+          }
+        },
+        style: { ...cancelBtn, opacity: disabled ? 0.6 : 1, cursor: disabled ? "default" : "pointer" }
+      },
+      strings.account.signUp
+    )));
+  }
+
   // marsova-opravila/UserApp.jsx
-  var { useState: useState2, useEffect: useEffect2, useCallback: useCallback2, useMemo, useRef: useRef2 } = React;
+  var { useState: useState4, useEffect: useEffect3, useCallback: useCallback2, useMemo, useRef: useRef2 } = React;
   var MARS_IDLE = "./marsova-opravila/mars-idle.jpg";
   var MARS_SLEEPY = "./marsova-opravila/mars-sleepy.jpg";
   var MARS_CELEBRATE = "./marsova-opravila/mars-celebrate.jpg";
@@ -20974,8 +21129,8 @@ ${suffix}`;
   var CHORE_HOLD_MS = 800;
   var REWARD_HOLD_MS = 650;
   function useOnlineStatus() {
-    const [online, setOnline] = useState2(() => typeof navigator !== "undefined" ? navigator.onLine : true);
-    useEffect2(() => {
+    const [online, setOnline] = useState4(() => typeof navigator !== "undefined" ? navigator.onLine : true);
+    useEffect3(() => {
       const on = () => setOnline(true), off = () => setOnline(false);
       window.addEventListener("online", on);
       window.addEventListener("offline", off);
@@ -20993,24 +21148,24 @@ ${suffix}`;
     const sound = useSound();
     const reducedMotion = useReducedMotionPref();
     const online = useOnlineStatus();
-    const [screen, setScreen] = useState2("opravila");
-    const [category, setCategory] = useState2("vse");
-    const [logFilter, setLogFilter] = useState2("vse");
-    const [categories, setCategories] = useState2([]);
-    const [chores, setChores] = useState2([]);
-    const [rewards, setRewards] = useState2([]);
-    const [requests, setRequests] = useState2([]);
-    const [log, setLog] = useState2([]);
-    const [points, setPoints] = useState2({ current_balance: 0, reserved: 0, available: 0, lifetime: 0 });
-    const [settings, setSettings] = useState2({ display_name: "\u2026" });
-    const [initialLoading, setInitialLoading] = useState2(true);
-    const [loadError, setLoadError] = useState2(false);
-    const [hasCompletedOnce, setHasCompletedOnce] = useState2(false);
-    const [toast, setToast] = useState2(null);
+    const [screen, setScreen] = useState4("opravila");
+    const [category, setCategory] = useState4("vse");
+    const [logFilter, setLogFilter] = useState4("vse");
+    const [categories, setCategories] = useState4([]);
+    const [chores, setChores] = useState4([]);
+    const [rewards, setRewards] = useState4([]);
+    const [requests, setRequests] = useState4([]);
+    const [log, setLog] = useState4([]);
+    const [points, setPoints] = useState4({ current_balance: 0, reserved: 0, available: 0, lifetime: 0 });
+    const [settings, setSettings] = useState4({ display_name: "\u2026" });
+    const [initialLoading, setInitialLoading] = useState4(true);
+    const [loadError, setLoadError] = useState4(false);
+    const [hasCompletedOnce, setHasCompletedOnce] = useState4(false);
+    const [toast, setToast] = useState4(null);
     const toastTimer = useRef2(null);
-    const [sheet, setSheet] = useState2(null);
-    const [marsHappy, setMarsHappy] = useState2(false);
-    const [fly, setFly] = useState2(null);
+    const [sheet, setSheet] = useState4(null);
+    const [marsHappy, setMarsHappy] = useState4(false);
+    const [fly, setFly] = useState4(null);
     const flyTimer = useRef2(null);
     const happyTimer = useRef2(null);
     const showToast = useCallback2((t) => {
@@ -21028,7 +21183,7 @@ ${suffix}`;
       sound.buzz(28);
       sound.beep("ok");
     }, [sound]);
-    useEffect2(() => () => {
+    useEffect3(() => () => {
       clearTimeout(toastTimer.current);
       clearTimeout(happyTimer.current);
       clearTimeout(flyTimer.current);
@@ -21059,10 +21214,10 @@ ${suffix}`;
         setInitialLoading(false);
       }
     }, []);
-    useEffect2(() => {
+    useEffect3(() => {
       loadAll();
     }, [loadAll]);
-    useEffect2(() => {
+    useEffect3(() => {
       const unsubscribe = subscribeToChanges(({ table }) => {
         if (table === "mo_categories") fetchCategories().then(setCategories).catch(() => {
         });
@@ -21269,7 +21424,7 @@ ${suffix}`;
         style: { width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer" }
       },
       sound.enabled ? "\u{1F50A}" : "\u{1F507}"
-    ), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AccountButton, null), /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "button",
@@ -21337,7 +21492,7 @@ ${suffix}`;
     }));
   }
   function Opravila({ loading, categories, chores, category, setCategory, onComplete, onError, reducedMotion, hasCompletedOnce }) {
-    const [party, setParty] = useState2(null);
+    const [party, setParty] = useState4(null);
     const activeChores = useMemo(() => chores.filter((c) => c.active), [chores]);
     const visible = useMemo(
       () => category === "vse" ? activeChores : activeChores.filter((c) => c.category_id === category),
@@ -21513,17 +21668,17 @@ ${suffix}`;
   }
 
   // marsova-opravila/AdminPin.jsx
-  var { useState: useState3, useEffect: useEffect3, useCallback: useCallback3 } = React;
+  var { useState: useState5, useEffect: useEffect4, useCallback: useCallback3 } = React;
   var MARS_IDLE2 = "./marsova-opravila/mars-idle.jpg";
   function AdminPin({ onSuccess, onCancel }) {
-    const [mode, setMode] = useState3(null);
-    const [checking, setChecking] = useState3(true);
-    const [pin, setPin] = useState3("");
-    const [confirmPin, setConfirmPin] = useState3("");
-    const [show, setShow] = useState3(false);
-    const [busy, setBusy] = useState3(false);
-    const [error, setError] = useState3(null);
-    useEffect3(() => {
+    const [mode, setMode] = useState5(null);
+    const [checking, setChecking] = useState5(true);
+    const [pin, setPin] = useState5("");
+    const [confirmPin, setConfirmPin] = useState5("");
+    const [show, setShow] = useState5(false);
+    const [busy, setBusy] = useState5(false);
+    const [error, setError] = useState5(null);
+    useEffect4(() => {
       let cancelled = false;
       adminPinStatus().then((row) => {
         if (!cancelled) setMode(row.configured ? "login" : "bootstrap");
@@ -21654,8 +21809,8 @@ ${suffix}`;
   };
 
   // marsova-opravila/admin/Chores.jsx
-  var { useState: useState4, useCallback: useCallback4, useMemo: useMemo2 } = React;
-  var fieldStyle = {
+  var { useState: useState6, useCallback: useCallback4, useMemo: useMemo2 } = React;
+  var fieldStyle2 = {
     width: "100%",
     height: 46,
     borderRadius: 14,
@@ -21667,16 +21822,16 @@ ${suffix}`;
     fontFamily: theme.fontBody,
     marginTop: 4
   };
-  var labelStyle = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
+  var labelStyle2 = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
   function emptyForm(categories) {
     return { emoji: "", title: "", description: "", category_id: categories[0] ? categories[0].id : "", points: "" };
   }
   function AdminChores({ token, callAdmin, chores, categories, onSaved, onFailed }) {
-    const [editing, setEditing] = useState4(null);
-    const [form, setForm] = useState4(() => emptyForm(categories));
-    const [busy, setBusy] = useState4(false);
-    const [error, setError] = useState4(null);
-    const [archiveTarget, setArchiveTarget] = useState4(null);
+    const [editing, setEditing] = useState6(null);
+    const [form, setForm] = useState6(() => emptyForm(categories));
+    const [busy, setBusy] = useState6(false);
+    const [error, setError] = useState6(null);
+    const [archiveTarget, setArchiveTarget] = useState6(null);
     const catById = useMemo2(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
     const active = useMemo2(() => chores.filter((c) => c.active), [chores]);
     const archived = useMemo2(() => chores.filter((c) => !c.active), [chores]);
@@ -21747,7 +21902,7 @@ ${suffix}`;
         canUp: i > 0,
         canDown: i < active.length - 1
       }
-    ))), archived.length > 0 && /* @__PURE__ */ React.createElement(Section, { title: strings.adminChores.archived }, archived.map((c) => /* @__PURE__ */ React.createElement(ChoreRow, { key: c.id, chore: c, category: catById[c.category_id], archived: true, onEdit: () => openEdit(c), onArchive: () => setArchiveTarget(c) }))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminChores.addTitle : strings.adminChores.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle }, strings.adminChores.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminChores.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.adminChores.titleLabel, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), style: fieldStyle })), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.adminChores.descriptionLabel, /* @__PURE__ */ React.createElement("textarea", { value: form.description, onChange: (e) => setForm({ ...form, description: e.target.value }), rows: 2, style: { ...fieldStyle, height: "auto", padding: 10, resize: "vertical" } })), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.adminChores.categoryLabel, /* @__PURE__ */ React.createElement("select", { value: form.category_id || "", onChange: (e) => setForm({ ...form, category_id: e.target.value }), style: fieldStyle }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), categories.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.emoji, " ", c.name)))), /* @__PURE__ */ React.createElement("label", { style: labelStyle }, strings.adminChores.pointsLabel, /* @__PURE__ */ React.createElement("input", { type: "number", inputMode: "numeric", value: form.points, onChange: (e) => setForm({ ...form, points: e.target.value }), style: fieldStyle })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(
+    ))), archived.length > 0 && /* @__PURE__ */ React.createElement(Section, { title: strings.adminChores.archived }, archived.map((c) => /* @__PURE__ */ React.createElement(ChoreRow, { key: c.id, chore: c, category: catById[c.category_id], archived: true, onEdit: () => openEdit(c), onArchive: () => setArchiveTarget(c) }))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminChores.addTitle : strings.adminChores.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle2 }, strings.adminChores.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminChores.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminChores.titleLabel, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), style: fieldStyle2 })), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminChores.descriptionLabel, /* @__PURE__ */ React.createElement("textarea", { value: form.description, onChange: (e) => setForm({ ...form, description: e.target.value }), rows: 2, style: { ...fieldStyle2, height: "auto", padding: 10, resize: "vertical" } })), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminChores.categoryLabel, /* @__PURE__ */ React.createElement("select", { value: form.category_id || "", onChange: (e) => setForm({ ...form, category_id: e.target.value }), style: fieldStyle2 }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), categories.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.emoji, " ", c.name)))), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminChores.pointsLabel, /* @__PURE__ */ React.createElement("input", { type: "number", inputMode: "numeric", value: form.points, onChange: (e) => setForm({ ...form, points: e.target.value }), style: fieldStyle2 })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn2 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn2, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(
       ConfirmSheet,
       {
         open: !!archiveTarget,
@@ -21794,12 +21949,12 @@ ${suffix}`;
     fontSize: 13.5,
     cursor: "pointer"
   };
-  var cancelBtn = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
-  var saveBtn = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
+  var cancelBtn2 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
+  var saveBtn2 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
 
   // marsova-opravila/admin/Categories.jsx
-  var { useState: useState5, useCallback: useCallback5, useMemo: useMemo3 } = React;
-  var fieldStyle2 = {
+  var { useState: useState7, useCallback: useCallback5, useMemo: useMemo3 } = React;
+  var fieldStyle3 = {
     width: "100%",
     height: 46,
     borderRadius: 14,
@@ -21811,17 +21966,17 @@ ${suffix}`;
     fontFamily: theme.fontBody,
     marginTop: 4
   };
-  var labelStyle2 = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
+  var labelStyle3 = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
   function emptyForm2() {
     return { emoji: "", name: "", color: "" };
   }
   function AdminCategories({ token, callAdmin, categories, chores, onSaved, onFailed }) {
-    const [editing, setEditing] = useState5(null);
-    const [form, setForm] = useState5(emptyForm2);
-    const [busy, setBusy] = useState5(false);
-    const [error, setError] = useState5(null);
-    const [deleteTarget, setDeleteTarget] = useState5(null);
-    const [reassignTo, setReassignTo] = useState5("");
+    const [editing, setEditing] = useState7(null);
+    const [form, setForm] = useState7(emptyForm2);
+    const [busy, setBusy] = useState7(false);
+    const [error, setError] = useState7(null);
+    const [deleteTarget, setDeleteTarget] = useState7(null);
+    const [reassignTo, setReassignTo] = useState7("");
     const usageCount = useMemo3(() => {
       const map = {};
       chores.forEach((c) => {
@@ -21883,23 +22038,23 @@ ${suffix}`;
         setDeleteTarget(null);
       }
     }, [deleteTarget, reassignTo, usageCount, callAdmin, onSaved, onFailed]);
-    return /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: openNew, style: addButtonStyle }, "+ ", strings.common.add), categories.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: theme.muted } }, strings.adminCategories.empty) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, categories.map((c, i) => /* @__PURE__ */ React.createElement("div", { key: c.id, style: { display: "flex", gap: 10, alignItems: "center", background: theme.card, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: "10px 12px" } }, c.color && /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: "50%", background: c.color, flex: "0 0 auto" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20 } }, c.emoji), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: theme.ink } }, c.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, color: theme.muted } }, usageCount[c.id] || 0, " opravil")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveUp, disabled: i === 0, onClick: () => move(i, -1) }, "\u25B2"), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveDown, disabled: i === categories.length - 1, onClick: () => move(i, 1) }, "\u25BC")), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.common.edit, onClick: () => openEdit(c) }, "\u270E"), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.common.delete, onClick: () => openDelete(c) }, "\u{1F5D1}")))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminCategories.addTitle : strings.adminCategories.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle2 }, strings.adminCategories.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminCategories.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminCategories.nameLabel, /* @__PURE__ */ React.createElement("input", { value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }), style: fieldStyle2 })), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminCategories.colorLabel, /* @__PURE__ */ React.createElement("input", { type: "color", value: form.color || "#EFE2D3", onChange: (e) => setForm({ ...form, color: e.target.value }), style: { ...fieldStyle2, padding: 4, height: 40 } })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn2 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn2, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(Sheet, { open: !!deleteTarget, onClose: () => setDeleteTarget(null) }, deleteTarget && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, strings.adminCategories.deleteTitle), (usageCount[deleteTarget.id] || 0) > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, color: "#7C6A5C" } }, strings.adminCategories.inUseBody(usageCount[deleteTarget.id])), /* @__PURE__ */ React.createElement("label", { style: labelStyle2 }, strings.adminCategories.reassignLabel, /* @__PURE__ */ React.createElement("select", { value: reassignTo, onChange: (e) => setReassignTo(e.target.value), style: fieldStyle2 }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), categories.filter((c) => c.id !== deleteTarget.id).map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.emoji, " ", c.name))))) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, color: "#7C6A5C" } }, strings.adminCategories.deleteEmptyBody), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: () => setDeleteTarget(null), style: cancelBtn2 }, strings.common.cancel), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: openNew, style: addButtonStyle }, "+ ", strings.common.add), categories.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: theme.muted } }, strings.adminCategories.empty) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, categories.map((c, i) => /* @__PURE__ */ React.createElement("div", { key: c.id, style: { display: "flex", gap: 10, alignItems: "center", background: theme.card, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: "10px 12px" } }, c.color && /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: "50%", background: c.color, flex: "0 0 auto" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20 } }, c.emoji), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: theme.ink } }, c.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, color: theme.muted } }, usageCount[c.id] || 0, " opravil")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveUp, disabled: i === 0, onClick: () => move(i, -1) }, "\u25B2"), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveDown, disabled: i === categories.length - 1, onClick: () => move(i, 1) }, "\u25BC")), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.common.edit, onClick: () => openEdit(c) }, "\u270E"), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.common.delete, onClick: () => openDelete(c) }, "\u{1F5D1}")))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminCategories.addTitle : strings.adminCategories.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle3 }, strings.adminCategories.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminCategories.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminCategories.nameLabel, /* @__PURE__ */ React.createElement("input", { value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }), style: fieldStyle3 })), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminCategories.colorLabel, /* @__PURE__ */ React.createElement("input", { type: "color", value: form.color || "#EFE2D3", onChange: (e) => setForm({ ...form, color: e.target.value }), style: { ...fieldStyle3, padding: 4, height: 40 } })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn3 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn3, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(Sheet, { open: !!deleteTarget, onClose: () => setDeleteTarget(null) }, deleteTarget && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, strings.adminCategories.deleteTitle), (usageCount[deleteTarget.id] || 0) > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, color: "#7C6A5C" } }, strings.adminCategories.inUseBody(usageCount[deleteTarget.id])), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminCategories.reassignLabel, /* @__PURE__ */ React.createElement("select", { value: reassignTo, onChange: (e) => setReassignTo(e.target.value), style: fieldStyle3 }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), categories.filter((c) => c.id !== deleteTarget.id).map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.emoji, " ", c.name))))) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, color: "#7C6A5C" } }, strings.adminCategories.deleteEmptyBody), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: () => setDeleteTarget(null), style: cancelBtn3 }, strings.common.cancel), /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "button",
         tabIndex: 0,
         onClick: confirmDelete,
-        style: { ...saveBtn2, background: theme.bad, opacity: (usageCount[deleteTarget.id] || 0) > 0 && !reassignTo ? 0.5 : 1 }
+        style: { ...saveBtn3, background: theme.bad, opacity: (usageCount[deleteTarget.id] || 0) > 0 && !reassignTo ? 0.5 : 1 }
       },
       strings.adminCategories.deleteConfirm
     )))));
   }
-  var cancelBtn2 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
-  var saveBtn2 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
+  var cancelBtn3 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
+  var saveBtn3 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
 
   // marsova-opravila/admin/Rewards.jsx
-  var { useState: useState6, useCallback: useCallback6, useMemo: useMemo4 } = React;
-  var fieldStyle3 = {
+  var { useState: useState8, useCallback: useCallback6, useMemo: useMemo4 } = React;
+  var fieldStyle4 = {
     width: "100%",
     height: 46,
     borderRadius: 14,
@@ -21911,16 +22066,16 @@ ${suffix}`;
     fontFamily: theme.fontBody,
     marginTop: 4
   };
-  var labelStyle3 = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
+  var labelStyle4 = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
   function emptyForm3() {
     return { emoji: "", title: "", description: "", cost: "" };
   }
   function AdminRewards({ token, callAdmin, rewards, onSaved, onFailed }) {
-    const [editing, setEditing] = useState6(null);
-    const [form, setForm] = useState6(emptyForm3);
-    const [busy, setBusy] = useState6(false);
-    const [error, setError] = useState6(null);
-    const [archiveTarget, setArchiveTarget] = useState6(null);
+    const [editing, setEditing] = useState8(null);
+    const [form, setForm] = useState8(emptyForm3);
+    const [busy, setBusy] = useState8(false);
+    const [error, setError] = useState8(null);
+    const [archiveTarget, setArchiveTarget] = useState8(null);
     const active = useMemo4(() => rewards.filter((r) => r.active), [rewards]);
     const archived = useMemo4(() => rewards.filter((r) => !r.active), [rewards]);
     const openNew = useCallback6(() => {
@@ -21985,7 +22140,7 @@ ${suffix}`;
         canUp: i > 0,
         canDown: i < active.length - 1
       }
-    ))), archived.length > 0 && /* @__PURE__ */ React.createElement(Section2, { title: strings.adminRewards.archived }, archived.map((r) => /* @__PURE__ */ React.createElement(RewardRow, { key: r.id, reward: r, archived: true, onEdit: () => openEdit(r), onArchive: () => setArchiveTarget(r) }))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminRewards.addTitle : strings.adminRewards.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle3 }, strings.adminRewards.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminRewards.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminRewards.titleLabel, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), style: fieldStyle3 })), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminRewards.descriptionLabel, /* @__PURE__ */ React.createElement("textarea", { value: form.description, onChange: (e) => setForm({ ...form, description: e.target.value }), rows: 2, style: { ...fieldStyle3, height: "auto", padding: 10, resize: "vertical" } })), /* @__PURE__ */ React.createElement("label", { style: labelStyle3 }, strings.adminRewards.costLabel, /* @__PURE__ */ React.createElement("input", { type: "number", inputMode: "numeric", value: form.cost, onChange: (e) => setForm({ ...form, cost: e.target.value }), style: fieldStyle3 })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn3 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn3, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(
+    ))), archived.length > 0 && /* @__PURE__ */ React.createElement(Section2, { title: strings.adminRewards.archived }, archived.map((r) => /* @__PURE__ */ React.createElement(RewardRow, { key: r.id, reward: r, archived: true, onEdit: () => openEdit(r), onArchive: () => setArchiveTarget(r) }))), /* @__PURE__ */ React.createElement(Sheet, { open: !!editing, onClose: close }, editing && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink } }, editing === "new" ? strings.adminRewards.addTitle : strings.adminRewards.editTitle), /* @__PURE__ */ React.createElement("div", { style: labelStyle4 }, strings.adminRewards.emojiLabel, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(EmojiPicker, { value: form.emoji, onChange: (v) => setForm({ ...form, emoji: v }), ariaLabel: strings.adminRewards.emojiLabel }))), /* @__PURE__ */ React.createElement("label", { style: labelStyle4 }, strings.adminRewards.titleLabel, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), style: fieldStyle4 })), /* @__PURE__ */ React.createElement("label", { style: labelStyle4 }, strings.adminRewards.descriptionLabel, /* @__PURE__ */ React.createElement("textarea", { value: form.description, onChange: (e) => setForm({ ...form, description: e.target.value }), rows: 2, style: { ...fieldStyle4, height: "auto", padding: 10, resize: "vertical" } })), /* @__PURE__ */ React.createElement("label", { style: labelStyle4 }, strings.adminRewards.costLabel, /* @__PURE__ */ React.createElement("input", { type: "number", inputMode: "numeric", value: form.cost, onChange: (e) => setForm({ ...form, cost: e.target.value }), style: fieldStyle4 })), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700 } }, error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn4 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: save, style: { ...saveBtn4, opacity: busy ? 0.6 : 1 } }, strings.common.save)))), /* @__PURE__ */ React.createElement(
       ConfirmSheet,
       {
         open: !!archiveTarget,
@@ -22003,11 +22158,11 @@ ${suffix}`;
   function RewardRow({ reward, archived, onEdit, onArchive, onUp, onDown, canUp, canDown }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", background: theme.card, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: "10px 12px", opacity: archived ? 0.6 : 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20 } }, reward.emoji), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: theme.ink } }, reward.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, color: theme.muted } }, reward.cost, " to\u010Dk")), !archived && onUp && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveUp, disabled: !canUp, onClick: onUp }, "\u25B2"), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.adminChores.moveDown, disabled: !canDown, onClick: onDown }, "\u25BC")), /* @__PURE__ */ React.createElement(IconBtn, { label: strings.common.edit, onClick: onEdit }, "\u270E"), /* @__PURE__ */ React.createElement(IconBtn, { label: archived ? strings.common.unarchive : strings.common.archive, onClick: onArchive }, archived ? "\u21BA" : "\u{1F5C4}"));
   }
-  var cancelBtn3 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
-  var saveBtn3 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
+  var cancelBtn4 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
+  var saveBtn4 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
 
   // marsova-opravila/admin/Requests.jsx
-  var { useState: useState7, useCallback: useCallback7, useMemo: useMemo5 } = React;
+  var { useState: useState9, useCallback: useCallback7, useMemo: useMemo5 } = React;
   var STATUS_LABEL = {
     pending: () => strings.rewards.statusPending,
     approved: () => strings.rewards.statusApproved,
@@ -22016,9 +22171,9 @@ ${suffix}`;
     fulfilled: () => strings.rewards.statusFulfilled
   };
   function AdminRequests({ token, callAdmin, requests, points, onSaved, onFailed }) {
-    const [action, setAction] = useState7(null);
-    const [message, setMessage] = useState7("");
-    const [busy, setBusy] = useState7(false);
+    const [action, setAction] = useState9(null);
+    const [message, setMessage] = useState9("");
+    const [busy, setBusy] = useState9(false);
     const pending = useMemo5(() => requests.filter((r) => r.status === "pending").sort((a, b) => new Date(a.requested_at) - new Date(b.requested_at)), [requests]);
     const history = useMemo5(() => requests.filter((r) => r.status !== "pending"), [requests]);
     const open = useCallback7((kind, request) => {
@@ -22056,17 +22211,17 @@ ${suffix}`;
         placeholder: strings.adminRequests.messagePlaceholder,
         style: { width: "100%", marginTop: 4, borderRadius: 14, border: `1.5px solid ${theme.cardBorder}`, background: "#FFFCF7", padding: 10, fontSize: 14, fontFamily: theme.fontBody, resize: "vertical" }
       }
-    )), action.kind === "decline" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: theme.muted } }, strings.adminRequests.resultingBalance(formatPoints(previewAvailable))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn4 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: confirm, style: { ...saveBtn4, opacity: busy ? 0.6 : 1 } }, action.kind === "approve" ? strings.adminRequests.approve : action.kind === "decline" ? strings.adminRequests.decline : strings.adminRequests.fulfill)))));
+    )), action.kind === "decline" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: theme.muted } }, strings.adminRequests.resultingBalance(formatPoints(previewAvailable))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: close, style: cancelBtn5 }, strings.common.cancel), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: confirm, style: { ...saveBtn5, opacity: busy ? 0.6 : 1 } }, action.kind === "approve" ? strings.adminRequests.approve : action.kind === "decline" ? strings.adminRequests.decline : strings.adminRequests.fulfill)))));
   }
   var sectionTitle = { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 20, color: "#7C6A5C", marginBottom: 8 };
   var card = { background: theme.card, border: `1px solid ${theme.cardBorder}`, borderRadius: 18, padding: 12 };
   var declineBtn = { flex: 1, height: 42, borderRadius: 14, background: theme.badBg, border: `1px solid ${theme.bad}33`, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: theme.bad, cursor: "pointer" };
   var approveBtn = { flex: 1, height: 42, borderRadius: 14, background: theme.sageBg, border: `1px solid ${theme.sageBorder}`, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: theme.sage, cursor: "pointer" };
-  var cancelBtn4 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
-  var saveBtn4 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
+  var cancelBtn5 = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
+  var saveBtn5 = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
 
   // marsova-opravila/AdminApp.jsx
-  var { useState: useState8, useEffect: useEffect4, useCallback: useCallback8, useMemo: useMemo6 } = React;
+  var { useState: useState10, useEffect: useEffect5, useCallback: useCallback8, useMemo: useMemo6 } = React;
   var MARS_IDLE3 = "./marsova-opravila/mars-idle.jpg";
   var TABS = [
     { id: "pregled", name: () => strings.adminNav.pregled, icon: "\u{1F3E1}" },
@@ -22078,9 +22233,9 @@ ${suffix}`;
     { id: "nastavitve", name: () => strings.adminNav.nastavitve, icon: "\u2699" }
   ];
   function AdminApp({ onExit }) {
-    const [session, setSession] = useState8(() => getAdminSession());
-    const [checked, setChecked] = useState8(false);
-    useEffect4(() => {
+    const [session, setSession] = useState10(() => getAdminSession());
+    const [checked, setChecked] = useState10(false);
+    useEffect5(() => {
       let cancelled = false;
       const local = getAdminSession();
       if (!local) {
@@ -22114,17 +22269,17 @@ ${suffix}`;
     return /* @__PURE__ */ React.createElement(AdminShell, { session, onExpired, onExit });
   }
   function AdminShell({ session, onExpired, onExit }) {
-    const [tab, setTab] = useState8("pregled");
-    const [categories, setCategories] = useState8([]);
-    const [chores, setChores] = useState8([]);
-    const [rewards, setRewards] = useState8([]);
-    const [requests, setRequests] = useState8([]);
-    const [log, setLog] = useState8([]);
-    const [points, setPoints] = useState8({ current_balance: 0, reserved: 0, available: 0, lifetime: 0 });
-    const [settings, setSettings] = useState8({ display_name: "" });
-    const [loading, setLoading] = useState8(true);
-    const [loadError, setLoadError] = useState8(false);
-    const [toast, setToast] = useState8(null);
+    const [tab, setTab] = useState10("pregled");
+    const [categories, setCategories] = useState10([]);
+    const [chores, setChores] = useState10([]);
+    const [rewards, setRewards] = useState10([]);
+    const [requests, setRequests] = useState10([]);
+    const [log, setLog] = useState10([]);
+    const [points, setPoints] = useState10({ current_balance: 0, reserved: 0, available: 0, lifetime: 0 });
+    const [settings, setSettings] = useState10({ display_name: "" });
+    const [loading, setLoading] = useState10(true);
+    const [loadError, setLoadError] = useState10(false);
+    const [toast, setToast] = useState10(null);
     const loadAll = useCallback8(async () => {
       try {
         const [cats, chs, rws, reqs, lg, pts, st] = await Promise.all([
@@ -22150,10 +22305,10 @@ ${suffix}`;
         setLoading(false);
       }
     }, []);
-    useEffect4(() => {
+    useEffect5(() => {
       loadAll();
     }, [loadAll]);
-    useEffect4(() => {
+    useEffect5(() => {
       const unsubscribe = subscribeToChanges(({ table }) => {
         if (table === "mo_categories") fetchCategories().then(setCategories).catch(() => {
         });
@@ -22330,10 +22485,10 @@ ${suffix}`;
     }));
   }
   function Nastavitve({ token, callAdmin, settings, points, onLock, onSaved, onFailed }) {
-    const [name, setName] = useState8(settings.display_name || "");
-    const [savingName, setSavingName] = useState8(false);
-    const [adjustOpen, setAdjustOpen] = useState8(false);
-    useEffect4(() => {
+    const [name, setName] = useState10(settings.display_name || "");
+    const [savingName, setSavingName] = useState10(false);
+    const [adjustOpen, setAdjustOpen] = useState10(false);
+    useEffect5(() => {
       setName(settings.display_name || "");
     }, [settings.display_name]);
     const saveName = useCallback8(async () => {
@@ -22348,7 +22503,7 @@ ${suffix}`;
         setSavingName(false);
       }
     }, [name, savingName, callAdmin, onSaved, onFailed]);
-    return /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", display: "flex", flexDirection: "column", gap: 18 } }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { style: sectionTitle2 }, strings.adminSettings.displayNameLabel), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { value: name, onChange: (e) => setName(e.target.value), style: fieldStyle4 }), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", display: "flex", flexDirection: "column", gap: 18 } }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { style: sectionTitle2 }, strings.adminSettings.displayNameLabel), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { value: name, onChange: (e) => setName(e.target.value), style: fieldStyle5 }), /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "button",
@@ -22369,14 +22524,14 @@ ${suffix}`;
     )), /* @__PURE__ */ React.createElement(PointAdjustSheet, { open: adjustOpen, onClose: () => setAdjustOpen(false), points, callAdmin, onSaved, onFailed }));
   }
   function PointAdjustSheet({ open, onClose, points, callAdmin, onSaved, onFailed }) {
-    const [amount, setAmount] = useState8("");
-    const [busy, setBusy] = useState8(false);
-    const [error, setError] = useState8(null);
+    const [amount, setAmount] = useState10("");
+    const [busy, setBusy] = useState10(false);
+    const [error, setError] = useState10(null);
     const delta = parseInt(amount, 10);
     const valid = Number.isInteger(delta) && delta !== 0;
     const previewCurrent = valid ? points.current_balance + delta : points.current_balance;
     const previewAvailable = valid ? points.available + delta : points.available;
-    useEffect4(() => {
+    useEffect5(() => {
       if (open) {
         setAmount("");
         setError(null);
@@ -22410,7 +22565,7 @@ ${suffix}`;
         placeholder: "+10 / -10",
         value: amount,
         onChange: (e) => setAmount(e.target.value),
-        style: { ...fieldStyle4, fontSize: 20, textAlign: "center", fontFamily: theme.fontDisplay, fontWeight: 700 },
+        style: { ...fieldStyle5, fontSize: 20, textAlign: "center", fontFamily: theme.fontDisplay, fontWeight: 700 },
         "aria-label": strings.adminPointAdjust.amountLabel
       }
     ), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: theme.bad, fontWeight: 700, textAlign: "center" } }, error), /* @__PURE__ */ React.createElement("div", { style: { borderRadius: 16, background: "#F8F3EA", border: "1px solid #EDE4D6", padding: "10px 14px", display: "flex", justifyContent: "space-around", fontSize: 12.5, color: "#7C6A5C" } }, /* @__PURE__ */ React.createElement("div", null, strings.adminPointAdjust.current, /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("strong", { style: { fontFamily: theme.fontDisplay, fontSize: 16, color: theme.inkSoft } }, formatPoints(previewCurrent))), /* @__PURE__ */ React.createElement("div", null, strings.adminPointAdjust.available, /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("strong", { style: { fontFamily: theme.fontDisplay, fontSize: 16, color: theme.rose } }, formatPoints(previewAvailable)))), /* @__PURE__ */ React.createElement(
@@ -22427,7 +22582,7 @@ ${suffix}`;
   var sectionTitle2 = { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 20, color: "#7C6A5C", marginBottom: 8 };
   var emptyNote = { fontSize: 13, color: theme.muted, padding: "10px 2px" };
   var rowCard = { display: "flex", gap: 10, alignItems: "center", background: theme.card, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: "10px 12px" };
-  var fieldStyle4 = {
+  var fieldStyle5 = {
     flex: 1,
     height: 46,
     borderRadius: 14,
@@ -22440,13 +22595,13 @@ ${suffix}`;
   };
 
   // marsova-opravila/Root.jsx
-  var { useState: useState9, useEffect: useEffect5 } = React;
+  var { useState: useState11, useEffect: useEffect6 } = React;
   function currentRoute() {
     return window.location.hash === "#/admin" ? "admin" : "user";
   }
   function Root() {
-    const [route, setRoute] = useState9(currentRoute);
-    useEffect5(() => {
+    const [route, setRoute] = useState11(currentRoute);
+    useEffect6(() => {
       const onHashChange = () => setRoute(currentRoute());
       window.addEventListener("hashchange", onHashChange);
       return () => window.removeEventListener("hashchange", onHashChange);

@@ -6,6 +6,7 @@ import {
   theme, SoundProvider, useSound, useAnimatedNumber, useReducedMotionPref,
   HoldControl, Toast, Sheet, EmptyState, Chip, SkeletonList,
 } from "./ui.jsx";
+import { AccountButton } from "./Account.jsx";
 
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
@@ -325,6 +326,7 @@ function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly
             style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer" }}>
             {sound.enabled ? "🔊" : "🔇"}
           </div>
+          <AccountButton />
           <div role="button" tabIndex={0} aria-label={strings.header.settings} onClick={onOpenAdmin}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenAdmin(); } }}
             style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }}>
