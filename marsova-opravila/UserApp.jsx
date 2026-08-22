@@ -6,7 +6,7 @@ import {
   theme, SoundProvider, useSound, useAnimatedNumber, useReducedMotionPref,
   HoldControl, Toast, Sheet, EmptyState, Chip, SkeletonList,
 } from "./ui.jsx";
-import { AccountButton } from "./Account.jsx";
+import { AccountIcon, AccountSheet } from "./Account.jsx";
 
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
@@ -60,6 +60,7 @@ function UserAppInner({ onOpenAdmin }) {
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [sheet, setSheet] = useState(null); // { type: 'reward'|'undo'|'why', payload }
+  const [accountOpen, setAccountOpen] = useState(false);
   const [marsHappy, setMarsHappy] = useState(false);
   const [fly, setFly] = useState(null);
   const flyTimer = useRef(null);
@@ -209,7 +210,7 @@ function UserAppInner({ onOpenAdmin }) {
         <Header
           name={settings.display_name} marsLine={marsLine} marsHappy={marsHappy}
           shownAvail={shownAvail} reserved={points.reserved} lifetime={points.lifetime} fly={fly}
-          sound={sound} online={online} onOpenAdmin={onOpenAdmin}
+          sound={sound} online={online} onOpenAdmin={onOpenAdmin} onOpenAccount={() => setAccountOpen(true)}
         />
 
         <div className="mo-hs" style={{ position: "relative", flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 18 }}>
@@ -286,6 +287,8 @@ function UserAppInner({ onOpenAdmin }) {
           </div>
         </Sheet>
 
+        <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+
         <BottomNav screen={screen} setScreen={setScreen} />
       </div>
     </div>
@@ -304,7 +307,7 @@ function ErrorBanner({ onRetry }) {
   );
 }
 
-function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly, sound, online, onOpenAdmin }) {
+function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly, sound, online, onOpenAdmin, onOpenAccount }) {
   return (
     <div style={{ position: "relative", flex: "0 0 auto", padding: "max(20px, env(safe-area-inset-top)) 20px 18px", background: theme.headerGrad, borderBottom: `1px solid ${theme.headerBorder}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -326,7 +329,7 @@ function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly
             style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer" }}>
             {sound.enabled ? "🔊" : "🔇"}
           </div>
-          <AccountButton />
+          <AccountIcon onClick={onOpenAccount} />
           <div role="button" tabIndex={0} aria-label={strings.header.settings} onClick={onOpenAdmin}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenAdmin(); } }}
             style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }}>

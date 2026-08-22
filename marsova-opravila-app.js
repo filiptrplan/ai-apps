@@ -21025,26 +21025,29 @@ ${suffix}`;
   var labelStyle = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
   var cancelBtn = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
   var saveBtn = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
-  function AccountButton() {
+  function AccountIcon({ onClick }) {
     const session = useSession();
-    const [open, setOpen] = useState3(false);
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "button",
         tabIndex: 0,
         "aria-label": strings.account.openAria,
-        onClick: () => setOpen(true),
+        onClick,
         onKeyDown: (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setOpen(true);
+            onClick();
           }
         },
         style: { width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }
       },
       session ? "\u{1F464}" : "\u{1F510}"
-    ), /* @__PURE__ */ React.createElement(Sheet, { open, onClose: () => setOpen(false) }, /* @__PURE__ */ React.createElement(AccountSheetContent, { session })));
+    );
+  }
+  function AccountSheet({ open, onClose }) {
+    const session = useSession();
+    return /* @__PURE__ */ React.createElement(Sheet, { open, onClose }, /* @__PURE__ */ React.createElement(AccountSheetContent, { session }));
   }
   function AccountSheetContent({ session }) {
     const [email, setEmail] = useState3("");
@@ -21164,6 +21167,7 @@ ${suffix}`;
     const [toast, setToast] = useState4(null);
     const toastTimer = useRef2(null);
     const [sheet, setSheet] = useState4(null);
+    const [accountOpen, setAccountOpen] = useState4(false);
     const [marsHappy, setMarsHappy] = useState4(false);
     const [fly, setFly] = useState4(null);
     const flyTimer = useRef2(null);
@@ -21335,7 +21339,8 @@ ${suffix}`;
         fly,
         sound,
         online,
-        onOpenAdmin
+        onOpenAdmin,
+        onOpenAccount: () => setAccountOpen(true)
       }
     ), /* @__PURE__ */ React.createElement("div", { className: "mo-hs", style: { position: "relative", flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 18 } }, loadError && !initialLoading && /* @__PURE__ */ React.createElement(ErrorBanner, { onRetry: loadAll }), screen === "opravila" && /* @__PURE__ */ React.createElement(
       Opravila,
@@ -21402,12 +21407,12 @@ ${suffix}`;
         style: { height: 52, borderRadius: 17, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 15, color: "#FBF3EA", cursor: "pointer" }
       },
       strings.log.undoLockedOk
-    ))), /* @__PURE__ */ React.createElement(BottomNav, { screen, setScreen })));
+    ))), /* @__PURE__ */ React.createElement(AccountSheet, { open: accountOpen, onClose: () => setAccountOpen(false) }), /* @__PURE__ */ React.createElement(BottomNav, { screen, setScreen })));
   }
   function ErrorBanner({ onRetry }) {
     return /* @__PURE__ */ React.createElement("div", { style: { margin: "12px 20px 0", background: theme.badBg, border: `1px solid ${theme.bad}33`, borderRadius: 16, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, "\u{1F648}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 13, color: theme.bad, lineHeight: 1.4 } }, strings.common.genericError), /* @__PURE__ */ React.createElement("div", { role: "button", tabIndex: 0, onClick: onRetry, style: { fontWeight: 800, fontSize: 13, color: theme.bad, cursor: "pointer" } }, strings.common.retry));
   }
-  function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly, sound, online, onOpenAdmin }) {
+  function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly, sound, online, onOpenAdmin, onOpenAccount }) {
     return /* @__PURE__ */ React.createElement("div", { style: { position: "relative", flex: "0 0 auto", padding: "max(20px, env(safe-area-inset-top)) 20px 18px", background: theme.headerGrad, borderBottom: `1px solid ${theme.headerBorder}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", width: 54, height: 54, flex: "0 0 auto" } }, /* @__PURE__ */ React.createElement("img", { src: marsHappy ? MARS_CELEBRATE : MARS_IDLE, alt: "Mars", style: { width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid #FFFFFF", boxShadow: "0 3px 10px rgba(120,80,50,.18)", display: "block" } }), marsHappy && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: 0, left: 0, width: 54, height: 54, borderRadius: "50%", boxShadow: "0 0 0 4px rgba(226,140,162,.35)", animation: "msPop .5s ease-out" } })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: theme.fontScript, fontWeight: 700, fontSize: 28, lineHeight: 1, color: theme.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, strings.header.greeting(name), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 19, color: theme.roseSoft } }, "\u2665")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: theme.muted, lineHeight: 1.25 } }, marsLine)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 7, flex: "0 0 auto" } }, /* @__PURE__ */ React.createElement(
       "div",
       {
@@ -21424,7 +21429,7 @@ ${suffix}`;
         style: { width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer" }
       },
       sound.enabled ? "\u{1F50A}" : "\u{1F507}"
-    ), /* @__PURE__ */ React.createElement(AccountButton, null), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AccountIcon, { onClick: onOpenAccount }), /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "button",

@@ -16,21 +16,28 @@ const labelStyle = { fontSize: 12.5, fontWeight: 700, color: theme.mutedSoft };
 const cancelBtn = { flex: 1, height: 48, borderRadius: 15, background: "#F3EDE4", border: "1px solid #E7DACC", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#7C6A5C", cursor: "pointer" };
 const saveBtn = { flex: 1, height: 48, borderRadius: 15, background: theme.ink, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, color: "#FBF3EA", cursor: "pointer" };
 
-export function AccountButton() {
+// Split in two so only the icon lives inside the header (which is its own
+// `position: relative` box for the "fly" points animation) while the sheet
+// itself renders at the app's root level, alongside the other sheets - a
+// sheet nested inside the header would anchor to the header's small bounding
+// box instead of covering the full screen.
+export function AccountIcon({ onClick }) {
   const session = useSession();
-  const [open, setOpen] = useState(false);
-
   return (
-    <>
-      <div role="button" tabIndex={0} aria-label={strings.account.openAria} onClick={() => setOpen(true)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(true); } }}
-        style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }}>
-        {session ? "👤" : "🔐"}
-      </div>
-      <Sheet open={open} onClose={() => setOpen(false)}>
-        <AccountSheetContent session={session} />
-      </Sheet>
-    </>
+    <div role="button" tabIndex={0} aria-label={strings.account.openAria} onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+      style={{ width: 38, height: 38, borderRadius: 13, background: theme.chip, border: `1px solid ${theme.chipBorder}`, display: "grid", placeItems: "center", fontSize: 14, color: "#9A8574", cursor: "pointer" }}>
+      {session ? "👤" : "🔐"}
+    </div>
+  );
+}
+
+export function AccountSheet({ open, onClose }) {
+  const session = useSession();
+  return (
+    <Sheet open={open} onClose={onClose}>
+      <AccountSheetContent session={session} />
+    </Sheet>
   );
 }
 
