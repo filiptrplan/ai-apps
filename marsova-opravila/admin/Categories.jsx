@@ -1,6 +1,6 @@
 import * as api from "../api.js";
 import { strings, resolveError } from "../strings.js";
-import { theme, Sheet } from "../ui.jsx";
+import { theme, Sheet, EmojiPicker } from "../ui.jsx";
 import { IconBtn, addButtonStyle } from "./Chores.jsx";
 
 const { useState, useCallback, useMemo } = React;
@@ -102,9 +102,9 @@ export function AdminCategories({ token, callAdmin, categories, chores, onSaved,
             <div style={{ fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink }}>
               {editing === "new" ? strings.adminCategories.addTitle : strings.adminCategories.editTitle}
             </div>
-            <label style={labelStyle}>{strings.adminCategories.emojiLabel}
-              <input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} style={{ ...fieldStyle, width: 70 }} maxLength={4} />
-            </label>
+            <div style={labelStyle}>{strings.adminCategories.emojiLabel}
+              <div><EmojiPicker value={form.emoji} onChange={(v) => setForm({ ...form, emoji: v })} ariaLabel={strings.adminCategories.emojiLabel} /></div>
+            </div>
             <label style={labelStyle}>{strings.adminCategories.nameLabel}
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={fieldStyle} />
             </label>

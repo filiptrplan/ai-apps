@@ -1,6 +1,6 @@
 import * as api from "../api.js";
 import { strings, resolveError } from "../strings.js";
-import { theme, Sheet, ConfirmSheet } from "../ui.jsx";
+import { theme, Sheet, ConfirmSheet, EmojiPicker } from "../ui.jsx";
 import { IconBtn, addButtonStyle } from "./Chores.jsx";
 
 const { useState, useCallback, useMemo } = React;
@@ -87,9 +87,9 @@ export function AdminRewards({ token, callAdmin, rewards, onSaved, onFailed }) {
             <div style={{ fontFamily: theme.fontScript, fontWeight: 700, fontSize: 26, color: theme.ink }}>
               {editing === "new" ? strings.adminRewards.addTitle : strings.adminRewards.editTitle}
             </div>
-            <label style={labelStyle}>{strings.adminRewards.emojiLabel}
-              <input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} style={{ ...fieldStyle, width: 70 }} maxLength={4} />
-            </label>
+            <div style={labelStyle}>{strings.adminRewards.emojiLabel}
+              <div><EmojiPicker value={form.emoji} onChange={(v) => setForm({ ...form, emoji: v })} ariaLabel={strings.adminRewards.emojiLabel} /></div>
+            </div>
             <label style={labelStyle}>{strings.adminRewards.titleLabel}
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={fieldStyle} />
             </label>

@@ -379,6 +379,89 @@ export function ConfirmSheet({ open, title, body, confirmLabel, cancelLabel = "P
   );
 }
 
+// ── emoji picker ──────────────────────────────────────────────────────
+// A curated set of emoji relevant to chores/rewards/categories, grouped for
+// browsing - not the full Unicode set, which would be overkill for picking
+// one icon per item. Typing/pasting any other emoji still works via the
+// text field at the top of the popover, so nothing is actually restricted.
+const EMOJI_GROUPS = [
+  { label: "Dom", emojis: ["🏡", "🧹", "🧺", "🧽", "🧴", "🪣", "🛏️", "🚿", "🪟", "🗑️", "🧻", "🕯️", "🧦"] },
+  { label: "Kuhinja", emojis: ["🍳", "🍽️", "🥘", "🍕", "🥗", "🍞", "🧁", "🍪", "☕", "🍷", "🍫", "🍰", "🥞", "🍿"] },
+  { label: "Mars in živali", emojis: ["🐾", "🐕", "🐈", "🦴", "🐇", "🐦", "🐠"] },
+  { label: "Zunaj", emojis: ["🌿", "🌱", "🌻", "🚗", "🚲", "🛒", "📦", "♻️", "☀️", "🌧️"] },
+  { label: "Zabava in nagrade", emojis: ["🎬", "🎮", "🎧", "📚", "🎨", "🎲", "🎁", "🛍️", "🎂", "🎉"] },
+  { label: "Skrb zase", emojis: ["🧖", "💆", "🛁", "💅", "😴", "🧘", "💪", "🧴"] },
+  { label: "Čustva in simboli", emojis: ["❤️", "💛", "💖", "💗", "✨", "⭐", "🌟", "👍", "✅", "⏰", "📅", "🏷️"] },
+];
+
+export function EmojiPicker({ value, onChange, ariaLabel }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDocDown); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
+      <div
+        role="button" tabIndex={0} aria-label={ariaLabel} aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+        style={{
+          width: 52, height: 46, borderRadius: 14, border: `1.5px solid ${theme.cardBorder}`, background: "#FFFCF7",
+          display: "grid", placeItems: "center", fontSize: 22, cursor: "pointer", marginTop: 4,
+        }}
+      >
+        {value || "❓"}
+      </div>
+
+      {open && (
+        <div style={{
+          position: "absolute", zIndex: 20, top: "calc(100% + 6px)", left: 0, width: 288, maxWidth: "min(288px, 80vw)",
+          background: "#FFFCF7", border: `1.5px solid ${theme.cardBorder}`, borderRadius: 18,
+          boxShadow: "0 16px 32px -12px rgba(58,46,40,.35)", padding: 10, display: "flex", flexDirection: "column", gap: 8,
+        }}>
+          <input
+            autoFocus value={value || ""} placeholder="🔍 prilepi ali natipkaj"
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setOpen(false); } }}
+            style={{
+              width: "100%", height: 38, borderRadius: 11, border: `1px solid ${theme.cardBorder}`, background: "#fff",
+              padding: "0 12px", fontSize: 15, color: theme.ink, fontFamily: theme.fontBody,
+            }}
+          />
+          <div className="mo-hs" style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            {EMOJI_GROUPS.map((g) => (
+              <div key={g.label}>
+                <div style={{ fontSize: 10.5, fontWeight: 800, color: theme.mutedSoft, textTransform: "uppercase", letterSpacing: ".03em", margin: "2px 2px 4px" }}>{g.label}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                  {g.emojis.map((e, i) => (
+                    <div key={e + i} role="button" tabIndex={0} aria-label={e}
+                      onClick={() => { onChange(e); setOpen(false); }}
+                      onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onChange(e); setOpen(false); } }}
+                      style={{
+                        height: 34, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 18, cursor: "pointer",
+                        background: value === e ? theme.roseBgFlat : "transparent", border: value === e ? `1px solid ${theme.roseBorder}` : "1px solid transparent",
+                      }}>
+                      {e}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const globalCss = `
   *{box-sizing:border-box}
   body{margin:0;background:${theme.bg};font-family:${theme.fontBody};-webkit-font-smoothing:antialiased}
