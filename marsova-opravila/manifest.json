@@ -1,0 +1,16 @@
+{
+  "name": "Marsova opravila",
+  "short_name": "Marsova opravila",
+  "description": "Opravila in nagrade, z Marsom vred.",
+  "lang": "sl",
+  "start_url": "/marsova-opravila",
+  "scope": "/marsova-opravila",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EFE2D3",
+  "theme_color": "#FBF1E6",
+  "icons": [
+    { "src": "./icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

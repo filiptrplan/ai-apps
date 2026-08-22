@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Marsova opravila</title>
+  <meta name="description" content="Opravila in nagrade, z Marsom vred.">
+  <link rel="manifest" href="./marsova-opravila/manifest.json">
+  <link rel="icon" href="./marsova-opravila/icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="./marsova-opravila/icon.png">
+  <meta name="theme-color" content="#FBF1E6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Marsova opravila">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Caveat:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    html,body,#app{margin:0;min-height:100%}
+    body{background:#EFE2D3}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="./marsova-opravila-app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./marsova-opravila-sw.js", { scope: "./marsova-opravila" });
+      });
+    }
+  </script>
+</body>
+</html>

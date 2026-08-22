@@ -1,0 +1,348 @@
+// Every Slovenian string shown anywhere in Marsova opravila lives here, so
+// wording can be edited without hunting through components. Components
+// consume these keys/functions rather than writing prose inline.
+
+export const strings = {
+  app: {
+    name: "Marsova opravila",
+    tagline: "woof woof mothafucka",
+  },
+
+  nav: {
+    opravila: "Opravila",
+    nagrade: "Nagrade",
+    dogajanje: "Dogajanje",
+  },
+
+  header: {
+    greeting: (name) => `Živjo, ${name}`,
+    available: "na voljo",
+    points: "točk",
+    reserved: "rezervirano",
+    lifetime: "skupaj zbrano",
+    soundOn: "Izklopi zvok",
+    soundOff: "Vklopi zvok",
+    settings: "Skrbniške nastavitve",
+    offline: "Ni povezave — točke se zdaj ne morejo shraniti.",
+    marsIdle: "Mars pravi, da ga danes slayaš.",
+    marsHappy: "Mars je ponosen na tebe.",
+    marsEmpty: "Mars is sooo sleepy",
+  },
+
+  account: {
+    openAria: "Račun",
+    title: "Račun",
+    subtitle:
+      "Prijava ni obvezna — aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, če želiš do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka čez glavno stran.",
+    emailLabel: "E-pošta",
+    emailPlaceholder: "ti@example.com",
+    passwordLabel: "Geslo",
+    signIn: "Prijava",
+    signUp: "Ustvari račun",
+    signUpNotice:
+      "Račun je ustvarjen. Če je potrebna potrditev, preveri e-pošto.",
+    signOut: "Odjava",
+    loggedInAs: (email) => `Prijavljena kot ${email}`,
+    loading: "Nalagam …",
+  },
+
+  chores: {
+    allChip: "Vse",
+    holdLabel: (points) => `Drži za +${points}`,
+    holding: (pct) => `Drži… ${pct} %`,
+    saving: "Shranjujem…",
+    done: "Opravljeno ✓",
+    holdAria: (title, points) => `Drži za dokončanje: ${title}, ${points} točk`,
+    hint: "Drži gumb približno sekundo, dokler se ne napolni.",
+    emptyTitle: "He is so stupid. He doesn't know anything",
+    emptyBody:
+      "Mars čaka na prvo opravilo. Ko ga skrbnik doda, se pojavi točno tukaj.",
+    categoryEmptyTitle: "V tej kategoriji še ni opravil",
+    categoryEmptyBody: "Poskusi Vse ali izberi drugo kategorijo.",
+    completedToast: (title, points) => `${title} · +${points} točk`,
+    undoAction: "Razveljavi",
+    retryAction: "Poskusi znova",
+    offlineToast: "Brez povezave. Opravilo ni shranjeno.",
+    errorToast: "Ni se shranilo. Točke ostajajo enake.",
+    goneToast: "To opravilo je medtem izginilo. Mars ga išče.",
+  },
+
+  rewards: {
+    available: "na voljo",
+    reserved: "rezervirano",
+    reservedNote: "v čakajočih zahtevkih",
+    yourRequestsTitle: "Tvoji zahtevki 🐾",
+    cancel: "Prekliči",
+    forExchange: "Za zamenjavo",
+    gapLabel: (n) => `še ${n} točk`,
+    pointsUnit: "TOČK",
+    lockedNote:
+      "Rezervirane točke počakajo, dokler skrbnik zahtevka ne potrdi ali zavrne.",
+    emptyTitle: "Nagrade še čakajo",
+    emptyBody:
+      "Skrbnik jih še ni dodal. Ko jih doda, se pojavijo točno tukaj, čisto blizu tvojih točk.",
+    sheetCost: "Cena nagrade",
+    sheetAvailableNow: "Zdaj na voljo",
+    sheetAfter: "Po rezervaciji",
+    sheetHold: "Drži za zahtevek",
+    sheetHolding: (pct) => `Držim… ${pct} %`,
+    sheetSaving: "Pošiljam…",
+    sheetAria: (title) => `Drži za zahtevek: ${title}`,
+    sheetCancelNote: "Zahtevek lahko prekličeš, dokler čaka.",
+    requestedToast: "Zahtevek poslan. Mars ga nese naprej.",
+    cancelledToast: "Zahtevek preklican, točke so spet tvoje.",
+    insufficientToast: "Ni dovolj razpoložljivih točk.",
+    offlineToast: "Brez povezave. Zahtevek ni poslan.",
+    errorToast: "Zahtevek se ni poslal. Točke ostajajo enake.",
+    goneToast: "Ta nagrada je medtem izginila.",
+    notPendingToast: "Ta zahtevek je bil medtem že obravnavan.",
+    adminMessageLabel: "Sporočilo od skrbnika",
+    statusPending: "V čakanju",
+    statusApproved: "Odobreno",
+    statusDeclined: "Zavrnjeno",
+    statusCancelled: "Preklicano",
+    statusFulfilled: "Izpolnjeno",
+  },
+
+  log: {
+    filterAll: "Vse",
+    filterChores: "Opravila",
+    filterRewards: "Nagrade",
+    emptyTitle: "Še nič se ni zgodilo",
+    emptyBody: "Prvo opravilo bo prvi vpis v to zgodbo.",
+    choreSub: (time) => `Opravilo · ${time}`,
+    choreUndoneSub: (time) => `Razveljavljeno · ${time}`,
+    choreUndoneTitle: (title) => `Razveljavljeno: ${title}`,
+    adjustSub: (time) => `Skrbnik · ${time}`,
+    adjustTitle: "Prilagoditev točk",
+    requestedSub: (time) => `V čakanju · ${time}`,
+    cancelledSub: (time) => `Preklicano · ${time}`,
+    approvedSub: (time) => `Odobreno · ${time}`,
+    declinedSub: (time) => `Zavrnjeno · ${time}`,
+    fulfilledSub: (time) => `Izpolnjeno · ${time}`,
+    undoAria: "Razveljavi",
+    undoLockedAria: "Razveljavitev ni mogoča",
+    undoSheetTitle: "Razveljavim to opravilo?",
+    undoSheetBody: (title, points) =>
+      `Marsu vzamem ${points} točk za "${title}". Vpis ostane v zgodovini kot razveljavljen.`,
+    undoSheetKeep: "Pusti",
+    undoSheetConfirm: "Razveljavi",
+    undoLockedTitle: "Tega zdaj ne morem razveljaviti",
+    undoLockedBody:
+      "Te točke so že rezervirane za čakajoč zahtevek. Prekliči zahtevek pod Nagrade in poskusi znova.",
+    undoLockedOk: "Razumem",
+    undoAlreadyToast: "To je bilo medtem že razveljavljeno.",
+  },
+
+  common: {
+    close: "Zapri",
+    save: "Shrani",
+    cancel: "Prekliči",
+    add: "Dodaj",
+    edit: "Uredi",
+    delete: "Izbriši",
+    archive: "Arhiviraj",
+    unarchive: "Obnovi",
+    loading: "Nalagam…",
+    retry: "Poskusi znova",
+    genericError: "Nekaj je šlo narobe. Poskusi znova.",
+    offlineError: "Ni povezave. Preveri internet in poskusi znova.",
+    unsavedWarning: "Sprememb nisi shranil.",
+  },
+
+  footer: {
+    tip: "Pridrži gumb za dokončanje opravila in poglej, kam odletijo točke. Nato zahtevaj nagrado pod Nagrade — Mars jo nese naprej.",
+  },
+
+  // ── admin ──────────────────────────────────────────────────────────────
+  adminNav: {
+    pregled: "Pregled",
+    opravila: "Opravila",
+    kategorije: "Kategorije",
+    nagrade: "Nagrade",
+    zahtevki: "Zahtevki",
+    dogajanje: "Dogajanje",
+    nastavitve: "Nastavitve",
+    lock: "Zakleni skrbniški način",
+    backToApp: "Nazaj v aplikacijo",
+  },
+
+  adminPin: {
+    titleLogin: "Skrbniški način",
+    titleBootstrap: "Nastavi skrbniški PIN",
+    subtitleLogin: "Vnesi svoj PIN, da urediš opravila, nagrade in zahtevke.",
+    subtitleBootstrap:
+      "To je prvi obisk skrbniškega dela. Izberi PIN, ki si ga boš zapomnil.",
+    confirmLabel: "Ponovi PIN",
+    submitLogin: "Odkleni",
+    submitBootstrap: "Nastavi PIN",
+    show: "Pokaži",
+    hide: "Skrij",
+    wrongPin: "Napačen PIN. Poskusi znova.",
+    tooShort: "PIN naj ima vsaj 4 številke.",
+    mismatch: "PIN se ne ujema. Poskusi še enkrat.",
+    rateLimited:
+      "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
+    notConfigured: "PIN še ni nastavljen. Osveži stran in poskusi znova.",
+    checking: "Preverjam…",
+    backLink: "Nazaj brez vnosa",
+    expired: "Skrbniška seja je potekla. Vnesi PIN znova.",
+  },
+
+  adminOverview: {
+    title: "Pregled",
+    pendingTitle: "Čakajoči zahtevki",
+    pendingEmpty: "Trenutno ni čakajočih zahtevkov.",
+    pendingCta: "Poglej vse",
+    pointsTitle: "Točke",
+    current: "trenutno",
+    reserved: "rezervirano",
+    available: "na voljo",
+    quickActions: "Hitra dejanja",
+    addChore: "Dodaj opravilo",
+    addReward: "Dodaj nagrado",
+    adjustPoints: "Prilagodi točke",
+    recentActivity: "Zadnje dogajanje",
+    recentEmpty: "Še ni dogajanja za prikaz.",
+  },
+
+  adminChores: {
+    title: "Opravila",
+    active: "Aktivna",
+    archived: "Arhivirana",
+    empty: "Še ni opravil. Dodaj prvo spodaj.",
+    addTitle: "Novo opravilo",
+    editTitle: "Uredi opravilo",
+    emojiLabel: "Emoji",
+    titleLabel: "Naslov",
+    descriptionLabel: "Opis (neobvezno)",
+    categoryLabel: "Kategorija",
+    pointsLabel: "Točke",
+    saveSuccess: "Opravilo shranjeno.",
+    saveError: "Opravila ni bilo mogoče shraniti.",
+    archiveConfirm: (title) =>
+      `Arhiviraj "${title}"? Ne bo več vidno njej, zgodovina ostane nedotaknjena.`,
+    unarchiveConfirm: (title) => `Obnovi "${title}" med aktivna opravila?`,
+    validationTitle: "Vnesi naslov.",
+    validationPoints: "Točke naj bodo celo število, večje od 0.",
+    validationEmoji: "Izberi emoji.",
+    reorderHint: "Povleci za spremembo vrstnega reda, ali uporabi puščici.",
+    moveUp: "Premakni navzgor",
+    moveDown: "Premakni navzdol",
+  },
+
+  adminCategories: {
+    title: "Kategorije",
+    empty: "Še ni kategorij. Dodaj prvo spodaj.",
+    addTitle: "Nova kategorija",
+    editTitle: "Uredi kategorijo",
+    emojiLabel: "Emoji",
+    nameLabel: "Ime",
+    colorLabel: "Barva (neobvezno)",
+    saveSuccess: "Kategorija shranjena.",
+    saveError: "Kategorije ni bilo mogoče shraniti.",
+    deleteTitle: "Izbriši kategorijo?",
+    inUseBody: (count) =>
+      `To kategorijo uporablja ${count} opravil. Izberi, kam naj se prestavijo, ali prekliči.`,
+    reassignLabel: "Prestavi opravila v",
+    deleteConfirm: "Izbriši",
+    deleteEmptyBody:
+      "Kategorija ni v uporabi. Izbrišem jo lahko brez posledic.",
+    validationName: "Vnesi ime kategorije.",
+  },
+
+  adminRewards: {
+    title: "Nagrade",
+    active: "Aktivne",
+    archived: "Arhivirane",
+    empty: "Še ni nagrad. Dodaj prvo spodaj.",
+    addTitle: "Nova nagrada",
+    editTitle: "Uredi nagrado",
+    emojiLabel: "Emoji",
+    titleLabel: "Naslov",
+    descriptionLabel: "Opis (neobvezno)",
+    costLabel: "Cena (točke)",
+    saveSuccess: "Nagrada shranjena.",
+    saveError: "Nagrade ni bilo mogoče shraniti.",
+    archiveConfirm: (title) =>
+      `Arhiviraj "${title}"? Ne bo je več mogoče zahtevati, obstoječi zahtevki ostanejo.`,
+    unarchiveConfirm: (title) => `Obnovi "${title}" med aktivne nagrade?`,
+    validationTitle: "Vnesi naslov.",
+    validationCost: "Cena naj bo celo število, večje od 0.",
+  },
+
+  adminRequests: {
+    title: "Zahtevki",
+    pendingBadge: (n) => `${n}`,
+    empty: "Trenutno ni zahtevkov.",
+    pendingSection: "V čakanju",
+    historySection: "Pretekli zahtevki",
+    requestedAt: (time) => `Zahtevano ob ${time}`,
+    resultingBalance: (n) => `Razpoložljivo po odločitvi: ${n} točk`,
+    approve: "Odobri",
+    decline: "Zavrni",
+    fulfill: "Označi kot izpolnjeno",
+    messageLabel: "Sporočilo zanjo (neobvezno)",
+    messagePlaceholder: "Napiši nekaj toplega…",
+    approveConfirm: "Odobri ta zahtevek?",
+    declineConfirm: "Zavrni ta zahtevek?",
+    fulfillConfirm: "Označi kot izpolnjeno?",
+    changedElsewhere:
+      "Ta zahtevek je bila medtem že obravnavan na drugi napravi.",
+    archivedRewardNote:
+      "Nagrada je medtem arhivirana, a zahtevek je še vedno veljaven.",
+  },
+
+  adminSettings: {
+    title: "Nastavitve",
+    lockNow: "Zakleni skrbniški način",
+    lockedNote: "Skrbniška seja se samodejno konča po 30 dneh na tej napravi.",
+    displayNameLabel: "Njeno ime v pozdravu",
+    displayNameSaved: "Ime shranjeno.",
+  },
+
+  adminPointAdjust: {
+    title: "Prilagodi točke",
+    amountLabel: "Znesek (+ ali −)",
+    preview: "Po potrditvi",
+    current: "trenutno",
+    available: "na voljo",
+    submit: "Potrdi prilagoditev",
+    negativeBlocked: "To bi razpoložljive točke spravilo pod nič.",
+    invalidAmount: "Vnesi znesek, ki ni nič.",
+    success: "Točke prilagojene.",
+  },
+
+  errors: {
+    insufficient_points: "Ni dovolj razpoložljivih točk.",
+    insufficient_available:
+      "Trenutno ni dovolj razpoložljivih točk za razveljavitev.",
+    not_pending: "Ta zahtevek je bil medtem že obravnavan na drugi napravi.",
+    not_approved: "Ta zahtevek še ni odobren.",
+    already_undone: "To je bilo medtem že razveljavljeno.",
+    reward_not_found: "Ta nagrada je medtem izginila.",
+    chore_not_found: "To opravilo je medtem izginilo.",
+    category_in_use: "Kategorijo uporabljajo obstoječa opravila.",
+    would_go_negative: "To bi razpoložljive točke spravilo pod nič.",
+    invalid_points: "Točke naj bodo celo število, večje od 0.",
+    invalid_cost: "Cena naj bo celo število, večje od 0.",
+    invalid_delta: "Vnesi znesek, ki ni nič.",
+    unauthorized: "Skrbniška seja je potekla. Vnesi PIN znova.",
+    invalid_pin: "Napačen PIN. Poskusi znova.",
+    rate_limited:
+      "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
+    not_configured: "PIN še ni nastavljen. Osveži stran in poskusi znova.",
+    pin_too_short: "PIN naj ima vsaj 4 številke.",
+    already_configured: "PIN je že nastavljen.",
+    not_found: "Tega ni bilo mogoče najti. Morda je bilo medtem spremenjeno.",
+  },
+};
+
+// Resolves an ApiError (see api.js) to a Slovenian message: offline first
+// (the same message regardless of which action failed), then a specific
+// business-rule message, then a generic fallback.
+export function resolveError(err) {
+  if (!err) return strings.common.genericError;
+  if (err.offline) return strings.common.offlineError;
+  return strings.errors[err.code] || strings.common.genericError;
+}
