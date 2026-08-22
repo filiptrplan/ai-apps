@@ -5,7 +5,7 @@
 export const strings = {
   app: {
     name: "Marsova opravila",
-    tagline: "za njo, s Marsom vred",
+    tagline: "woof woof mothafucka",
   },
 
   nav: {
@@ -24,21 +24,23 @@ export const strings = {
     soundOff: "Vklopi zvok",
     settings: "Skrbniške nastavitve",
     offline: "Ni povezave — točke se zdaj ne morejo shraniti.",
-    marsIdle: "Mars pravi, da si danes v formi.",
+    marsIdle: "Mars pravi, da ga danes slayaš.",
     marsHappy: "Mars je ponosen na tebe.",
-    marsEmpty: "Mars zeha in čaka.",
+    marsEmpty: "Mars is sooo sleepy",
   },
 
   account: {
     openAria: "Račun",
     title: "Račun",
-    subtitle: "Prijava ni obvezna — aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, če želiš do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka čez glavno stran.",
+    subtitle:
+      "Prijava ni obvezna — aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, če želiš do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka čez glavno stran.",
     emailLabel: "E-pošta",
     emailPlaceholder: "ti@example.com",
     passwordLabel: "Geslo",
     signIn: "Prijava",
     signUp: "Ustvari račun",
-    signUpNotice: "Račun je ustvarjen. Če je potrebna potrditev, preveri e-pošto.",
+    signUpNotice:
+      "Račun je ustvarjen. Če je potrebna potrditev, preveri e-pošto.",
     signOut: "Odjava",
     loggedInAs: (email) => `Prijavljena kot ${email}`,
     loading: "Nalagam …",
@@ -46,15 +48,16 @@ export const strings = {
 
   chores: {
     allChip: "Vse",
-    holdLabel: (points) => `Pridrži za +${points}`,
+    holdLabel: (points) => `Drži za +${points}`,
     holding: (pct) => `Drži… ${pct} %`,
     saving: "Shranjujem…",
     done: "Opravljeno ✓",
-    holdAria: (title, points) => `Pridrži za dokončanje: ${title}, ${points} točk`,
-    hint: "Pridrži gumb približno sekundo, dokler se ne napolni. Spusti prej in nič se ne zgodi.",
-    emptyTitle: "Tu je še tiho",
-    emptyBody: "Mars čaka na prvo opravilo. Ko ga skrbnik doda, se pojavi točno tukaj.",
-    categoryEmptyTitle: "V tej kategoriji ni opravil",
+    holdAria: (title, points) => `Drži za dokončanje: ${title}, ${points} točk`,
+    hint: "Drži gumb približno sekundo, dokler se ne napolni.",
+    emptyTitle: "He is so stupid. He doesn't know anything",
+    emptyBody:
+      "Mars čaka na prvo opravilo. Ko ga skrbnik doda, se pojavi točno tukaj.",
+    categoryEmptyTitle: "V tej kategoriji še ni opravil",
     categoryEmptyBody: "Poskusi Vse ali izberi drugo kategorijo.",
     completedToast: (title, points) => `${title} · +${points} točk`,
     undoAction: "Razveljavi",
@@ -73,16 +76,18 @@ export const strings = {
     forExchange: "Za zamenjavo",
     gapLabel: (n) => `še ${n} točk`,
     pointsUnit: "TOČK",
-    lockedNote: "Rezervirane točke počakajo, dokler skrbnik zahtevka ne potrdi ali zavrne.",
+    lockedNote:
+      "Rezervirane točke počakajo, dokler skrbnik zahtevka ne potrdi ali zavrne.",
     emptyTitle: "Nagrade še čakajo",
-    emptyBody: "Skrbnik jih še ni dodal. Ko jih doda, se pojavijo točno tukaj, čisto blizu tvojih točk.",
+    emptyBody:
+      "Skrbnik jih še ni dodal. Ko jih doda, se pojavijo točno tukaj, čisto blizu tvojih točk.",
     sheetCost: "Cena nagrade",
     sheetAvailableNow: "Zdaj na voljo",
     sheetAfter: "Po rezervaciji",
-    sheetHold: "Pridrži za zahtevek",
+    sheetHold: "Drži za zahtevek",
     sheetHolding: (pct) => `Držim… ${pct} %`,
     sheetSaving: "Pošiljam…",
-    sheetAria: (title) => `Pridrži za zahtevek: ${title}`,
+    sheetAria: (title) => `Drži za zahtevek: ${title}`,
     sheetCancelNote: "Zahtevek lahko prekličeš, dokler čaka.",
     requestedToast: "Zahtevek poslan. Mars ga nese naprej.",
     cancelledToast: "Zahtevek preklican, točke so spet tvoje.",
@@ -118,11 +123,13 @@ export const strings = {
     undoAria: "Razveljavi",
     undoLockedAria: "Razveljavitev ni mogoča",
     undoSheetTitle: "Razveljavim to opravilo?",
-    undoSheetBody: (title, points) => `Marsu vzamem ${points} točk za "${title}". Vpis ostane v zgodovini kot razveljavljen.`,
+    undoSheetBody: (title, points) =>
+      `Marsu vzamem ${points} točk za "${title}". Vpis ostane v zgodovini kot razveljavljen.`,
     undoSheetKeep: "Pusti",
     undoSheetConfirm: "Razveljavi",
     undoLockedTitle: "Tega zdaj ne morem razveljaviti",
-    undoLockedBody: "Te točke so že rezervirane za čakajoč zahtevek. Prekliči zahtevek pod Nagrade in poskusi znova.",
+    undoLockedBody:
+      "Te točke so že rezervirane za čakajoč zahtevek. Prekliči zahtevek pod Nagrade in poskusi znova.",
     undoLockedOk: "Razumem",
     undoAlreadyToast: "To je bilo medtem že razveljavljeno.",
   },
@@ -164,7 +171,8 @@ export const strings = {
     titleLogin: "Skrbniški način",
     titleBootstrap: "Nastavi skrbniški PIN",
     subtitleLogin: "Vnesi svoj PIN, da urediš opravila, nagrade in zahtevke.",
-    subtitleBootstrap: "To je prvi obisk skrbniškega dela. Izberi PIN, ki si ga boš zapomnil.",
+    subtitleBootstrap:
+      "To je prvi obisk skrbniškega dela. Izberi PIN, ki si ga boš zapomnil.",
     confirmLabel: "Ponovi PIN",
     submitLogin: "Odkleni",
     submitBootstrap: "Nastavi PIN",
@@ -173,7 +181,8 @@ export const strings = {
     wrongPin: "Napačen PIN. Poskusi znova.",
     tooShort: "PIN naj ima vsaj 4 številke.",
     mismatch: "PIN se ne ujema. Poskusi še enkrat.",
-    rateLimited: "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
+    rateLimited:
+      "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
     notConfigured: "PIN še ni nastavljen. Osveži stran in poskusi znova.",
     checking: "Preverjam…",
     backLink: "Nazaj brez vnosa",
@@ -211,7 +220,8 @@ export const strings = {
     pointsLabel: "Točke",
     saveSuccess: "Opravilo shranjeno.",
     saveError: "Opravila ni bilo mogoče shraniti.",
-    archiveConfirm: (title) => `Arhiviraj "${title}"? Ne bo več vidno njej, zgodovina ostane nedotaknjena.`,
+    archiveConfirm: (title) =>
+      `Arhiviraj "${title}"? Ne bo več vidno njej, zgodovina ostane nedotaknjena.`,
     unarchiveConfirm: (title) => `Obnovi "${title}" med aktivna opravila?`,
     validationTitle: "Vnesi naslov.",
     validationPoints: "Točke naj bodo celo število, večje od 0.",
@@ -232,10 +242,12 @@ export const strings = {
     saveSuccess: "Kategorija shranjena.",
     saveError: "Kategorije ni bilo mogoče shraniti.",
     deleteTitle: "Izbriši kategorijo?",
-    inUseBody: (count) => `To kategorijo uporablja ${count} opravil. Izberi, kam naj se prestavijo, ali prekliči.`,
+    inUseBody: (count) =>
+      `To kategorijo uporablja ${count} opravil. Izberi, kam naj se prestavijo, ali prekliči.`,
     reassignLabel: "Prestavi opravila v",
     deleteConfirm: "Izbriši",
-    deleteEmptyBody: "Kategorija ni v uporabi. Izbrišem jo lahko brez posledic.",
+    deleteEmptyBody:
+      "Kategorija ni v uporabi. Izbrišem jo lahko brez posledic.",
     validationName: "Vnesi ime kategorije.",
   },
 
@@ -252,7 +264,8 @@ export const strings = {
     costLabel: "Cena (točke)",
     saveSuccess: "Nagrada shranjena.",
     saveError: "Nagrade ni bilo mogoče shraniti.",
-    archiveConfirm: (title) => `Arhiviraj "${title}"? Ne bo je več mogoče zahtevati, obstoječi zahtevki ostanejo.`,
+    archiveConfirm: (title) =>
+      `Arhiviraj "${title}"? Ne bo je več mogoče zahtevati, obstoječi zahtevki ostanejo.`,
     unarchiveConfirm: (title) => `Obnovi "${title}" med aktivne nagrade?`,
     validationTitle: "Vnesi naslov.",
     validationCost: "Cena naj bo celo število, večje od 0.",
@@ -274,8 +287,10 @@ export const strings = {
     approveConfirm: "Odobri ta zahtevek?",
     declineConfirm: "Zavrni ta zahtevek?",
     fulfillConfirm: "Označi kot izpolnjeno?",
-    changedElsewhere: "Ta zahtevek je bila medtem že obravnavan na drugi napravi.",
-    archivedRewardNote: "Nagrada je medtem arhivirana, a zahtevek je še vedno veljaven.",
+    changedElsewhere:
+      "Ta zahtevek je bila medtem že obravnavan na drugi napravi.",
+    archivedRewardNote:
+      "Nagrada je medtem arhivirana, a zahtevek je še vedno veljaven.",
   },
 
   adminSettings: {
@@ -300,7 +315,8 @@ export const strings = {
 
   errors: {
     insufficient_points: "Ni dovolj razpoložljivih točk.",
-    insufficient_available: "Trenutno ni dovolj razpoložljivih točk za razveljavitev.",
+    insufficient_available:
+      "Trenutno ni dovolj razpoložljivih točk za razveljavitev.",
     not_pending: "Ta zahtevek je bil medtem že obravnavan na drugi napravi.",
     not_approved: "Ta zahtevek še ni odobren.",
     already_undone: "To je bilo medtem že razveljavljeno.",
@@ -313,7 +329,8 @@ export const strings = {
     invalid_delta: "Vnesi znesek, ki ni nič.",
     unauthorized: "Skrbniška seja je potekla. Vnesi PIN znova.",
     invalid_pin: "Napačen PIN. Poskusi znova.",
-    rate_limited: "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
+    rate_limited:
+      "Preveč napačnih poskusov. Počakaj nekaj minut in poskusi znova.",
     not_configured: "PIN še ni nastavljen. Osveži stran in poskusi znova.",
     pin_too_short: "PIN naj ima vsaj 4 številke.",
     already_configured: "PIN je že nastavljen.",
