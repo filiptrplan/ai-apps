@@ -2,12 +2,14 @@
   "name": "ai-apps",
   "private": true,
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "dev": "vite"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "vite": "^6.4.3"
   }
 }
