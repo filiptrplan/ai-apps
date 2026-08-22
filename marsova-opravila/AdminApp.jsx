@@ -122,13 +122,15 @@ function AdminShell({ session, onExpired, onExit }) {
   return (
     <div style={{ minHeight: "100vh", background: theme.bgGrad }}>
       <div style={{ maxWidth: 720, margin: "0 auto", minHeight: "100vh", background: theme.panel, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "max(16px, env(safe-area-inset-top)) 20px 12px", background: theme.headerGrad, borderBottom: `1px solid ${theme.headerBorder}`, display: "flex", alignItems: "center", gap: 12 }}>
-          <img src={MARS_IDLE} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ padding: "max(16px, env(safe-area-inset-top)) 20px 12px", background: theme.headerGrad, borderBottom: `1px solid ${theme.headerBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src={MARS_IDLE} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", flex: "0 0 auto" }} />
             <div style={{ fontFamily: theme.fontScript, fontWeight: 700, fontSize: 22, color: theme.ink, lineHeight: 1 }}>{strings.adminPin.titleLogin}</div>
           </div>
-          <div role="button" tabIndex={0} onClick={onExit} style={navLinkStyle}>{strings.adminNav.backToApp}</div>
-          <div role="button" tabIndex={0} onClick={lock} style={{ ...navLinkStyle, color: theme.bad }}>{strings.adminNav.lock}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 50 }}>
+            <div role="button" tabIndex={0} onClick={onExit} style={navLinkStyle}>{strings.adminNav.backToApp}</div>
+            <div role="button" tabIndex={0} onClick={lock} style={{ ...navLinkStyle, color: theme.bad }}>{strings.adminNav.lock}</div>
+          </div>
         </div>
 
         <div className="mo-hs" style={{ display: "flex", gap: 8, padding: "12px 20px", overflowX: "auto", borderBottom: `1px solid ${theme.headerBorder}` }}>
