@@ -3,9 +3,9 @@
 -- render the greeting); writable only through the admin-gated RPC below.
 create table public.mo_settings (
   id            boolean primary key default true check (id),
-  display_name  text not null default 'Ljubica'
+  display_name  text not null default 'Klara'
 );
-insert into public.mo_settings (id, display_name) values (true, 'Ljubica');
+insert into public.mo_settings (id, display_name) values (true, 'Klara');
 
 alter table public.mo_settings enable row level security;
 create policy "anyone can read settings" on public.mo_settings for select using (true);
