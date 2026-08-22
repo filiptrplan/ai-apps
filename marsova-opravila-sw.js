@@ -12,6 +12,9 @@ const ASSETS = [
   "./marsova-opravila/icon.png",
   "./marsova-opravila/icon-maskable.png",
   "./marsova-opravila/mars-idle.jpg",
+  "./marsova-opravila/mars-sleepy.jpg",
+  "./marsova-opravila/mars-celebrate.jpg",
+  "./marsova-opravila/mars-excited.jpg",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
 ];

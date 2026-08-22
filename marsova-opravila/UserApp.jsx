@@ -10,6 +10,9 @@ import {
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const MARS_IDLE = "./marsova-opravila/mars-idle.jpg";
+const MARS_SLEEPY = "./marsova-opravila/mars-sleepy.jpg";
+const MARS_CELEBRATE = "./marsova-opravila/mars-celebrate.jpg";
+const MARS_EXCITED = "./marsova-opravila/mars-excited.jpg";
 const CHORE_HOLD_MS = 800;
 const REWARD_HOLD_MS = 650;
 
@@ -305,7 +308,7 @@ function Header({ name, marsLine, marsHappy, shownAvail, reserved, lifetime, fly
     <div style={{ position: "relative", flex: "0 0 auto", padding: "max(20px, env(safe-area-inset-top)) 20px 18px", background: theme.headerGrad, borderBottom: `1px solid ${theme.headerBorder}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ position: "relative", width: 54, height: 54, flex: "0 0 auto" }}>
-          <img src={MARS_IDLE} alt="Mars" style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid #FFFFFF", boxShadow: "0 3px 10px rgba(120,80,50,.18)", display: "block" }} />
+          <img src={marsHappy ? MARS_CELEBRATE : MARS_IDLE} alt="Mars" style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid #FFFFFF", boxShadow: "0 3px 10px rgba(120,80,50,.18)", display: "block" }} />
           {marsHappy && (
             <div style={{ position: "absolute", top: 0, left: 0, width: 54, height: 54, borderRadius: "50%", boxShadow: "0 0 0 4px rgba(226,140,162,.35)", animation: "msPop .5s ease-out" }} />
           )}
@@ -401,7 +404,7 @@ function Opravila({ loading, categories, chores, category, setCategory, onComple
   if (loading) return <SkeletonList count={3} />;
 
   if (activeChores.length === 0) {
-    return <EmptyState image={MARS_IDLE} title={strings.chores.emptyTitle} body={strings.chores.emptyBody} />;
+    return <EmptyState image={MARS_SLEEPY} title={strings.chores.emptyTitle} body={strings.chores.emptyBody} />;
   }
 
   return (
@@ -524,7 +527,7 @@ function Nagrade({ loading, rewards, requests, available, reserved, onOpen, onCa
       )}
 
       {activeRewards.length === 0 ? (
-        <EmptyState image={MARS_IDLE} title={strings.rewards.emptyTitle} body={strings.rewards.emptyBody} size={100} />
+        <EmptyState image={MARS_SLEEPY} title={strings.rewards.emptyTitle} body={strings.rewards.emptyBody} size={100} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ fontFamily: theme.fontScript, fontWeight: 700, fontSize: 23, lineHeight: 1, color: "#7C6A5C", marginTop: 6 }}>{strings.rewards.forExchange}</div>
@@ -576,7 +579,7 @@ function RewardSheet({ reward, available, onConfirm, onError }) {
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ position: "relative", width: 62, height: 62, flex: "0 0 auto" }}>
           <div style={{ width: 62, height: 62, borderRadius: 20, background: theme.roseBgFlat, border: "1px solid #F4DBE1", display: "grid", placeItems: "center", fontSize: 31 }}>{reward.emoji}</div>
-          <img src={MARS_IDLE} alt="" style={{ position: "absolute", right: -8, bottom: -8, width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "2px solid #FDF7F0", boxShadow: "0 2px 6px rgba(120,80,50,.22)" }} />
+          <img src={MARS_EXCITED} alt="" style={{ position: "absolute", right: -8, bottom: -8, width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "2px solid #FDF7F0", boxShadow: "0 2px 6px rgba(120,80,50,.22)" }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: theme.fontScript, fontWeight: 700, fontSize: 30, color: theme.ink, lineHeight: 1.05, textWrap: "pretty" }}>{reward.title}</div>
@@ -652,7 +655,7 @@ function Dogajanje({ loading, log, filter, setFilter, available, onUndo, onWhy }
       </div>
 
       {log.length === 0 ? (
-        <EmptyState emoji="🕰️" title={strings.log.emptyTitle} body={strings.log.emptyBody} />
+        <EmptyState image={MARS_SLEEPY} title={strings.log.emptyTitle} body={strings.log.emptyBody} size={96} />
       ) : (
         <div style={{ padding: "8px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
           {groups.map((row) => row.isDay ? (
