@@ -125,12 +125,12 @@ function UserAppInner({ onOpenAdmin }) {
 
   // ── chore completion ──────────────────────────────────────────────────
   const completeChore = useCallback(async (chore) => {
+    celebrate(chore.points);
     const row = await api.completeChore(chore.id);
     setLog((l) => [row, ...l]);
     setHasCompletedOnce(true);
     const pts = await api.fetchPointsSummary();
     setPoints(pts);
-    celebrate(chore.points);
     showToast({
       icon: "🎉", text: strings.chores.completedToast(chore.title, chore.points),
       actionLabel: strings.chores.undoAction, ms: 6000,
@@ -455,10 +455,11 @@ function Opravila({ loading, categories, chores, category, setCategory, onComple
               <HoldControl
                 durationMs={CHORE_HOLD_MS}
                 ariaLabel={strings.chores.holdAria(c.title, c.points)}
+                optimistic
                 onComplete={async () => {
-                  await onComplete(c);
                   setParty(c.id);
                   setTimeout(() => setParty(null), 1400);
+                  await onComplete(c);
                 }}
                 onError={onError(c)}
                 label={(phase, pct) => {

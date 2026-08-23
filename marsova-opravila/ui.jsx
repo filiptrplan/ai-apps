@@ -142,13 +142,14 @@ export function SoundProvider({ children }) {
 // ── hold-to-confirm control ──────────────────────────────────────────────
 // Shared by chore completion and reward requests. Phases: idle -> holding
 // -> saving -> done (auto-resets to idle) | idle (on cancel or failure).
-// onComplete must return a Promise; rejecting it (with an ApiError) leaves
-// the balance untouched and restores the idle state - the caller shows the
-// error toast.
+// Optimistic controls skip the saving phase while onComplete runs in the
+// background. Rejecting onComplete restores idle and lets the caller report
+// the error.
 export function HoldControl({
   durationMs = 800,
   onComplete,
   onError,
+  optimistic = false,
   label,
   ariaLabel,
   disabled,
@@ -171,19 +172,27 @@ export function HoldControl({
 
   const finish = useCallback(async () => {
     cancelAnimationFrame(rafRef.current);
-    setPhase("saving");
+    setPhase(optimistic ? "done" : "saving");
+    if (optimistic) sound && sound.buzz(28);
     try {
-      await onComplete();
-      setPhase("done");
-      sound && sound.buzz(28);
-      setTimeout(() => { setPhase("idle"); setPct(0); }, 1400);
+      await Promise.all([
+        onComplete(),
+        optimistic && new Promise((resolve) => setTimeout(resolve, 1400)),
+      ]);
+      if (!optimistic) {
+        setPhase("done");
+        sound && sound.buzz(28);
+        await new Promise((resolve) => setTimeout(resolve, 1400));
+      }
+      setPhase("idle");
+      setPct(0);
     } catch (err) {
       setPhase("idle");
       setPct(0);
       sound && sound.beep("bad");
       onError && onError(err);
     }
-  }, [onComplete, onError, sound]);
+  }, [onComplete, onError, optimistic, sound]);
 
   const start = useCallback(() => {
     if (disabled || phase !== "idle") return;

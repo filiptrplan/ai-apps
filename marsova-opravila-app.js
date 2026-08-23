@@ -20065,7 +20065,7 @@ ${suffix}`;
   var strings = {
     app: {
       name: "Marsova opravila",
-      tagline: "za njo, s Marsom vred"
+      tagline: "woof woof mothafucka"
     },
     nav: {
       opravila: "Opravila",
@@ -20082,9 +20082,9 @@ ${suffix}`;
       soundOff: "Vklopi zvok",
       settings: "Skrbni\u0161ke nastavitve",
       offline: "Ni povezave \u2014 to\u010Dke se zdaj ne morejo shraniti.",
-      marsIdle: "Mars pravi, da si danes v formi.",
+      marsIdle: "Mars pravi, da ga danes slaya\u0161.",
       marsHappy: "Mars je ponosen na tebe.",
-      marsEmpty: "Mars zeha in \u010Daka."
+      marsEmpty: "Mars is sooo sleepy"
     },
     account: {
       openAria: "Ra\u010Dun",
@@ -20102,15 +20102,15 @@ ${suffix}`;
     },
     chores: {
       allChip: "Vse",
-      holdLabel: (points) => `Pridr\u017Ei za +${points}`,
+      holdLabel: (points) => `Dr\u017Ei za +${points}`,
       holding: (pct) => `Dr\u017Ei\u2026 ${pct} %`,
       saving: "Shranjujem\u2026",
       done: "Opravljeno \u2713",
-      holdAria: (title, points) => `Pridr\u017Ei za dokon\u010Danje: ${title}, ${points} to\u010Dk`,
-      hint: "Pridr\u017Ei gumb pribli\u017Eno sekundo, dokler se ne napolni. Spusti prej in ni\u010D se ne zgodi.",
-      emptyTitle: "Tu je \u0161e tiho",
+      holdAria: (title, points) => `Dr\u017Ei za dokon\u010Danje: ${title}, ${points} to\u010Dk`,
+      hint: "Dr\u017Ei gumb pribli\u017Eno sekundo, dokler se ne napolni.",
+      emptyTitle: "He is so stupid. He doesn't know anything",
       emptyBody: "Mars \u010Daka na prvo opravilo. Ko ga skrbnik doda, se pojavi to\u010Dno tukaj.",
-      categoryEmptyTitle: "V tej kategoriji ni opravil",
+      categoryEmptyTitle: "V tej kategoriji \u0161e ni opravil",
       categoryEmptyBody: "Poskusi Vse ali izberi drugo kategorijo.",
       completedToast: (title, points) => `${title} \xB7 +${points} to\u010Dk`,
       undoAction: "Razveljavi",
@@ -20134,10 +20134,10 @@ ${suffix}`;
       sheetCost: "Cena nagrade",
       sheetAvailableNow: "Zdaj na voljo",
       sheetAfter: "Po rezervaciji",
-      sheetHold: "Pridr\u017Ei za zahtevek",
+      sheetHold: "Dr\u017Ei za zahtevek",
       sheetHolding: (pct) => `Dr\u017Eim\u2026 ${pct} %`,
       sheetSaving: "Po\u0161iljam\u2026",
-      sheetAria: (title) => `Pridr\u017Ei za zahtevek: ${title}`,
+      sheetAria: (title) => `Dr\u017Ei za zahtevek: ${title}`,
       sheetCancelNote: "Zahtevek lahko prekli\u010De\u0161, dokler \u010Daka.",
       requestedToast: "Zahtevek poslan. Mars ga nese naprej.",
       cancelledToast: "Zahtevek preklican, to\u010Dke so spet tvoje.",
@@ -20578,6 +20578,7 @@ ${suffix}`;
     durationMs = 800,
     onComplete,
     onError,
+    optimistic = false,
     label,
     ariaLabel,
     disabled,
@@ -20598,22 +20599,27 @@ ${suffix}`;
     useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
     const finish = useCallback(async () => {
       cancelAnimationFrame(rafRef.current);
-      setPhase("saving");
+      setPhase(optimistic ? "done" : "saving");
+      if (optimistic) sound && sound.buzz(28);
       try {
-        await onComplete();
-        setPhase("done");
-        sound && sound.buzz(28);
-        setTimeout(() => {
-          setPhase("idle");
-          setPct(0);
-        }, 1400);
+        await Promise.all([
+          onComplete(),
+          optimistic && new Promise((resolve) => setTimeout(resolve, 1400))
+        ]);
+        if (!optimistic) {
+          setPhase("done");
+          sound && sound.buzz(28);
+          await new Promise((resolve) => setTimeout(resolve, 1400));
+        }
+        setPhase("idle");
+        setPct(0);
       } catch (err) {
         setPhase("idle");
         setPct(0);
         sound && sound.beep("bad");
         onError && onError(err);
       }
-    }, [onComplete, onError, sound]);
+    }, [onComplete, onError, optimistic, sound]);
     const start = useCallback(() => {
       if (disabled || phase !== "idle") return;
       t0Ref.current = performance.now();
@@ -21248,12 +21254,12 @@ ${suffix}`;
     }, []);
     const shownAvail = useAnimatedNumber(points.available, reducedMotion);
     const completeChore2 = useCallback2(async (chore) => {
+      celebrate(chore.points);
       const row = await completeChore(chore.id);
       setLog((l) => [row, ...l]);
       setHasCompletedOnce(true);
       const pts = await fetchPointsSummary();
       setPoints(pts);
-      celebrate(chore.points);
       showToast({
         icon: "\u{1F389}",
         text: strings.chores.completedToast(chore.title, chore.points),
@@ -21527,10 +21533,11 @@ ${suffix}`;
         {
           durationMs: CHORE_HOLD_MS,
           ariaLabel: strings.chores.holdAria(c.title, c.points),
+          optimistic: true,
           onComplete: async () => {
-            await onComplete(c);
             setParty(c.id);
             setTimeout(() => setParty(null), 1400);
+            await onComplete(c);
           },
           onError: onError(c),
           label: (phase, pct) => {
