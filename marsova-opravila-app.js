@@ -21323,9 +21323,10 @@ ${suffix}`;
       }
     }, [showToast]);
     const marsLine = initialLoading ? "" : chores.filter((c) => c.active).length === 0 ? strings.header.marsEmpty : marsHappy ? strings.header.marsHappy : strings.header.marsIdle;
-    return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", background: theme.bgGrad } }, /* @__PURE__ */ React.createElement("div", { style: {
+    return /* @__PURE__ */ React.createElement("div", { style: { height: "100vh", maxHeight: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden", background: theme.bgGrad } }, /* @__PURE__ */ React.createElement("div", { style: {
       position: "relative",
       flex: 1,
+      minHeight: 0,
       display: "flex",
       flexDirection: "column",
       maxWidth: 560,
@@ -21460,7 +21461,8 @@ ${suffix}`;
       { id: "dogajanje", icon: "\u{1F570}\uFE0F", name: strings.nav.dogajanje }
     ];
     return /* @__PURE__ */ React.createElement("div", { style: {
-      position: "relative",
+      position: "sticky",
+      bottom: 0,
       zIndex: 30,
       flex: "0 0 auto",
       background: "#FDF7F0",

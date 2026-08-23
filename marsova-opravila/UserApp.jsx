@@ -201,9 +201,9 @@ function UserAppInner({ onOpenAdmin }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: theme.bgGrad }}>
+    <div style={{ height: "100vh", maxHeight: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden", background: theme.bgGrad }}>
       <div style={{
-        position: "relative", flex: 1, display: "flex", flexDirection: "column",
+        position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
         maxWidth: 560, width: "100%", margin: "0 auto", background: theme.panel,
         boxShadow: "0 0 0 1px rgba(210,191,169,.4)",
       }}>
@@ -375,7 +375,7 @@ function BottomNav({ screen, setScreen }) {
   ];
   return (
     <div style={{
-      position: "relative", zIndex: 30, flex: "0 0 auto", background: "#FDF7F0", borderTop: `1px solid ${theme.headerBorder}`,
+      position: "sticky", bottom: 0, zIndex: 30, flex: "0 0 auto", background: "#FDF7F0", borderTop: `1px solid ${theme.headerBorder}`,
       padding: "9px 12px max(14px, env(safe-area-inset-bottom)) 12px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6,
     }}>
       {tabs.map((t) => {
