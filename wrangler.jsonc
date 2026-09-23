@@ -2,7 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ai-apps",
   "compatibility_date": "2026-06-30",
+  // Only runs for paths that aren't static files (e.g. /api/...).
+  "main": "worker.js",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS"
   }
 }

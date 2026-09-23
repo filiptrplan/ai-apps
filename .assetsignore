@@ -10,3 +10,4 @@ wrangler.jsonc
 README.md
 LICENSE
 *.jsx
+worker.js

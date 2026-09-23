@@ -1,0 +1,22 @@
+{
+  "name": "Moped Route",
+  "short_name": "Moped Route",
+  "description": "Check Google Maps routes for roads over 50 km/h, and avoid them.",
+  "lang": "en",
+  "start_url": "/moped-route",
+  "scope": "/moped-route",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f5f2",
+  "theme_color": "#f6f5f2",
+  "icons": [
+    { "src": "./icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/moped-route",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}
