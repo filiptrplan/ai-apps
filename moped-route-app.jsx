@@ -460,6 +460,33 @@ function Result({ result, stops, maxSpeed }) {
 
 // Text shared into the app (Android share sheet, via the manifest's
 // share_target), or null when the page was opened normally.
+// Chrome's install prompt, captured so the app can offer its own Install
+// button instead of waiting for Chrome to show one.
+function useInstallPrompt() {
+  const [prompt, setPrompt] = useState(null);
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
+  useEffect(() => {
+    const onPrompt = (e) => {
+      e.preventDefault();
+      setPrompt(e);
+    };
+    const onInstalled = () => setPrompt(null);
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+  const install = async () => {
+    if (!prompt) return;
+    prompt.prompt();
+    await prompt.userChoice.catch(() => {});
+    setPrompt(null);
+  };
+  return { canInstall: !!prompt, install, standalone };
+}
+
 function readShareParams() {
   const q = new URLSearchParams(location.search);
   const text = ["title", "text", "url"].map((k) => q.get(k)).filter(Boolean).join("\n");
@@ -482,6 +509,7 @@ function App() {
   const [plan, setPlan] = useState(null);
   const [showSettings, setShowSettings] = useState(!apiKey);
   const autoRan = useRef(false);
+  const { canInstall, install, standalone } = useInstallPrompt();
 
   const progress = (msg) =>
     setLog((l) =>
@@ -574,6 +602,15 @@ function App() {
         </button>
       </header>
 
+      {canInstall && (
+        <section className="card install">
+          <p>Install Moped Route to share routes to it straight from Google Maps.</p>
+          <button type="button" className="btn primary" onClick={install}>
+            Install app
+          </button>
+        </section>
+      )}
+
       {showSettings && (
         <section className="card settings">
           <label className="field-label" htmlFor="apikey">Google Maps API key</label>
@@ -616,6 +653,12 @@ function App() {
             Up to {MAX_WAYPOINTS_LIMIT}. A Google Maps link holds 9 waypoints, so more than that splits the trip into several
             links you open one after another. The app only uses as many as it needs.
           </p>
+          {!standalone && !canInstall && (
+            <p className="hint">
+              To share routes from Google Maps, install this app from Chrome: menu ⋮ → Install app (or Add to home screen
+              → Install).
+            </p>
+          )}
         </section>
       )}
 

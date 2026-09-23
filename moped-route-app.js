@@ -1345,6 +1345,32 @@ out body geom;`;
     );
     return /* @__PURE__ */ React.createElement("section", { className: "card result", ref: el }, strayed.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "status warn" }, /* @__PURE__ */ React.createElement("p", null, "Google still strays onto ", strayed.length, " fast stretch", strayed.length === 1 ? "" : "es", " that the planned route avoids:"), /* @__PURE__ */ React.createElement(Stretches, { stretches: strayed })) : planned.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "status note" }, /* @__PURE__ */ React.createElement("p", null, "Google follows the planned route", waypointText, " It has ", Math.round(plannedLength), " m over ", maxSpeed, " km/h where there's no reasonable way around:"), /* @__PURE__ */ React.createElement(Stretches, { stretches: planned })) : /* @__PURE__ */ React.createElement("p", { className: "status ok" }, "Google follows a route with no roads over ", maxSpeed, " km/h", waypointText), links.length === 1 ? /* @__PURE__ */ React.createElement(LinkButtons, { link: links[0], label: "Open in Google Maps" }) : /* @__PURE__ */ React.createElement("div", { className: "parts" }, /* @__PURE__ */ React.createElement("p", { className: "muted small" }, "More than 9 waypoints don't fit in one Google Maps link, so the trip is split into ", links.length, " parts. Each part ends where the next one starts: when Maps says you've arrived, open the next part."), links.map((link, i) => /* @__PURE__ */ React.createElement(LinkButtons, { key: i, link, label: `Part ${i + 1} of ${links.length}` }))), /* @__PURE__ */ React.createElement("dl", { className: "stats" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "New route"), /* @__PURE__ */ React.createElement("dd", null, km(final.route.distance), " \xB7 ", minutes(final.route.duration))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Google's own"), /* @__PURE__ */ React.createElement("dd", null, km(original.route.distance), " \xB7 ", minutes(original.route.duration))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Planned (OSM)"), /* @__PURE__ */ React.createElement("dd", null, km(path.distance), " \xB7 ", minutes(path.duration)))), avoided.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "avoided" }, /* @__PURE__ */ React.createElement("summary", null, "Avoided ", avoided.length, " fast stretch", avoided.length === 1 ? "" : "es", " on Google's own route"), /* @__PURE__ */ React.createElement(Stretches, { stretches: avoided })), /* @__PURE__ */ React.createElement(RouteMap, { lines, markers }), /* @__PURE__ */ React.createElement(Legend, { items: [["osm", "Planned"], ["google", "Google route"], ["bad", "Over limit"], ["waypoint", "Waypoint"]] }), unsafe && /* @__PURE__ */ React.createElement("p", { className: "muted small" }, "Some waypoints sit close to a fast road, so Google might snap onto it. Check the route in Maps before you ride."), /* @__PURE__ */ React.createElement("p", { className: "muted small" }, "Google Maps shows waypoints as stops. Keep \u201CAvoid highways\u201D and \u201CAvoid tolls\u201D switched on in the Maps app's route options, because links can't carry those settings."));
   }
+  function useInstallPrompt() {
+    var _a, _b;
+    const [prompt, setPrompt] = useState(null);
+    const standalone = (_b = (_a = window.matchMedia) == null ? void 0 : _a.call(window, "(display-mode: standalone)").matches) != null ? _b : false;
+    useEffect(() => {
+      const onPrompt = (e) => {
+        e.preventDefault();
+        setPrompt(e);
+      };
+      const onInstalled = () => setPrompt(null);
+      window.addEventListener("beforeinstallprompt", onPrompt);
+      window.addEventListener("appinstalled", onInstalled);
+      return () => {
+        window.removeEventListener("beforeinstallprompt", onPrompt);
+        window.removeEventListener("appinstalled", onInstalled);
+      };
+    }, []);
+    const install = async () => {
+      if (!prompt) return;
+      prompt.prompt();
+      await prompt.userChoice.catch(() => {
+      });
+      setPrompt(null);
+    };
+    return { canInstall: !!prompt, install, standalone };
+  }
   function readShareParams() {
     const q = new URLSearchParams(location.search);
     const text = ["title", "text", "url"].map((k) => q.get(k)).filter(Boolean).join("\n");
@@ -1367,6 +1393,7 @@ out body geom;`;
     const [plan, setPlan] = useState(null);
     const [showSettings, setShowSettings] = useState(!apiKey);
     const autoRan = useRef(false);
+    const { canInstall, install, standalone } = useInstallPrompt();
     const progress = (msg) => setLog(
       (l) => l.length && l[l.length - 1].startsWith("Loading roads") && msg.startsWith("Loading roads") ? [...l.slice(0, -1), msg] : [...l, msg]
     );
@@ -1430,7 +1457,7 @@ out body geom;`;
       setLog([]);
     };
     const plannedTrip = origin && destination ? [origin, destination] : null;
-    return /* @__PURE__ */ React.createElement("main", null, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", null, "Moped Route"), /* @__PURE__ */ React.createElement("p", { className: "muted" }, "Check Google Maps routes for roads over ", maxSpeed, " km/h, and avoid them.")), /* @__PURE__ */ React.createElement("button", { type: "button", className: "icon-btn", onClick: () => setShowSettings((s) => !s), "aria-label": "Settings", title: "Settings" }, "\u2699")), showSettings && /* @__PURE__ */ React.createElement("section", { className: "card settings" }, /* @__PURE__ */ React.createElement("label", { className: "field-label", htmlFor: "apikey" }, "Google Maps API key"), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("main", null, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", null, "Moped Route"), /* @__PURE__ */ React.createElement("p", { className: "muted" }, "Check Google Maps routes for roads over ", maxSpeed, " km/h, and avoid them.")), /* @__PURE__ */ React.createElement("button", { type: "button", className: "icon-btn", onClick: () => setShowSettings((s) => !s), "aria-label": "Settings", title: "Settings" }, "\u2699")), canInstall && /* @__PURE__ */ React.createElement("section", { className: "card install" }, /* @__PURE__ */ React.createElement("p", null, "Install Moped Route to share routes to it straight from Google Maps."), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn primary", onClick: install }, "Install app")), showSettings && /* @__PURE__ */ React.createElement("section", { className: "card settings" }, /* @__PURE__ */ React.createElement("label", { className: "field-label", htmlFor: "apikey" }, "Google Maps API key"), /* @__PURE__ */ React.createElement(
       "input",
       {
         id: "apikey",
@@ -1465,7 +1492,7 @@ out body geom;`;
         value: maxWaypoints,
         onChange: (e) => setMaxWaypoints(e.target.value === "" ? "" : Number(e.target.value))
       }
-    ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Up to ", MAX_WAYPOINTS_LIMIT, ". A Google Maps link holds 9 waypoints, so more than that splits the trip into several links you open one after another. The app only uses as many as it needs.")), /* @__PURE__ */ React.createElement("div", { className: "tabs", role: "tablist" }, /* @__PURE__ */ React.createElement("button", { type: "button", role: "tab", "aria-selected": mode === "check", onClick: () => switchMode("check") }, "Check a route"), /* @__PURE__ */ React.createElement("button", { type: "button", role: "tab", "aria-selected": mode === "plan", onClick: () => switchMode("plan") }, "Plan A \u2192 B")), mode === "check" ? /* @__PURE__ */ React.createElement("section", { className: "card trip" }, /* @__PURE__ */ React.createElement("label", { className: "field-label", htmlFor: "link" }, "Google Maps link"), /* @__PURE__ */ React.createElement("div", { className: "place-row" }, /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Up to ", MAX_WAYPOINTS_LIMIT, ". A Google Maps link holds 9 waypoints, so more than that splits the trip into several links you open one after another. The app only uses as many as it needs."), !standalone && !canInstall && /* @__PURE__ */ React.createElement("p", { className: "hint" }, "To share routes from Google Maps, install this app from Chrome: menu \u22EE \u2192 Install app (or Add to home screen \u2192 Install).")), /* @__PURE__ */ React.createElement("div", { className: "tabs", role: "tablist" }, /* @__PURE__ */ React.createElement("button", { type: "button", role: "tab", "aria-selected": mode === "check", onClick: () => switchMode("check") }, "Check a route"), /* @__PURE__ */ React.createElement("button", { type: "button", role: "tab", "aria-selected": mode === "plan", onClick: () => switchMode("plan") }, "Plan A \u2192 B")), mode === "check" ? /* @__PURE__ */ React.createElement("section", { className: "card trip" }, /* @__PURE__ */ React.createElement("label", { className: "field-label", htmlFor: "link" }, "Google Maps link"), /* @__PURE__ */ React.createElement("div", { className: "place-row" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         id: "link",

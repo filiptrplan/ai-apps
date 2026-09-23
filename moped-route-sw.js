@@ -1,4 +1,4 @@
-const CACHE_NAME = "moped-route-v1";
+const CACHE_NAME = "moped-route-v2";
 const STATIC_CDN_HOSTS = ["unpkg.com", "cdnjs.cloudflare.com"];
 const ASSETS = [
   // Production serves the page at the extensionless path, so cache both.
@@ -7,7 +7,9 @@ const ASSETS = [
   "./moped-route-app.js",
   "./moped-route/manifest.json",
   "./moped-route/icon.png",
+  "./moped-route/icon-192.png",
   "./moped-route/icon-maskable.png",
+  "./moped-route/icon-maskable-192.png",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
