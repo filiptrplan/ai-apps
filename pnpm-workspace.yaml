@@ -1,2 +1,7 @@
+# Cloudflare's build installs with pnpm 9, which rejects a workspace file
+# without `packages`; this repo is a single package at the root.
+packages:
+  - "."
+# pnpm 11 only runs dependency build scripts listed here.
 allowBuilds:
   esbuild: true
