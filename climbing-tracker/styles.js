@@ -1,220 +1,323 @@
+// Design tokens. Everything is dark-only (the app is used on a phone at the
+// wall/gym), with one warm accent for primary actions and green for rest/done.
+export const C = {
+  bg: "#0E0E10",
+  surface: "#17171A",
+  surface2: "#202024",
+  border: "#2A2A2F",
+  text: "#F2F2F3",
+  muted: "#8E8E96",
+  dim: "#5E5E66",
+  accent: "#E8B04B",
+  accentInk: "#1B1400",
+  accentSoft: "rgba(232,176,75,0.12)",
+  green: "#4CC38A",
+  greenInk: "#04140C",
+  greenSoft: "rgba(76,195,138,0.12)",
+  danger: "#F0604D",
+  dangerSoft: "rgba(240,96,77,0.12)",
+};
+
+const SAFE_TOP = "env(safe-area-inset-top, 0px)";
+const SAFE_BOTTOM = "env(safe-area-inset-bottom, 0px)";
+export const TAB_BAR_HEIGHT = 60;
+
+const btnBase = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+  minHeight: 48, padding: "0 18px", borderRadius: 12, fontSize: 16, fontWeight: 600,
+  cursor: "pointer", border: "none", whiteSpace: "nowrap",
+};
+
 export const s = {
   root: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    maxWidth: 440, margin: "0 auto", minHeight: "100vh",
-    background: "#111", color: "#E8E8E8",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, sans-serif",
+    maxWidth: 480, margin: "0 auto", minHeight: "100dvh",
+    background: C.bg, color: C.text, WebkitFontSmoothing: "antialiased",
   },
-  tabs: {
-    display: "flex", borderBottom: "1px solid #282828",
-    position: "sticky", top: 0, background: "#111", zIndex: 10,
+
+  // App chrome
+  header: {
+    position: "sticky", top: 0, zIndex: 20,
+    display: "flex", alignItems: "center", gap: 8, minHeight: 56,
+    padding: `calc(${SAFE_TOP} + 8px) 16px 8px`,
+    background: "rgba(14,14,16,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+    borderBottom: `1px solid ${C.border}`,
+  },
+  headerTitle: { flex: 1, minWidth: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" },
+  headerTitleSmall: {
+    flex: 1, minWidth: 0, fontSize: 17, fontWeight: 600, textAlign: "center",
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  headerSub: { fontSize: 12, color: C.muted, fontWeight: 500, fontVariantNumeric: "tabular-nums", marginTop: 1 },
+  headerSide: { minWidth: 72, display: "flex", alignItems: "center" },
+  tabBar: {
+    position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+    width: "100%", maxWidth: 480, zIndex: 30, display: "flex",
+    paddingBottom: SAFE_BOTTOM,
+    background: "rgba(20,20,23,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+    borderTop: `1px solid ${C.border}`,
   },
   tab: {
-    flex: 1, padding: "14px 0", background: "none", border: "none",
-    color: "#666", fontSize: 14, fontWeight: 500, cursor: "pointer",
-    borderBottom: "2px solid transparent", transition: "color 0.15s",
+    flex: 1, height: TAB_BAR_HEIGHT, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center", gap: 3,
+    background: "none", border: "none", color: C.dim, fontSize: 11, fontWeight: 600, cursor: "pointer",
   },
-  tabActive: { color: "#E8E8E8", borderBottomColor: "#E8E8E8" },
-  page: { padding: "20px 16px" },
-  label: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-  numField: { flex: 1, minWidth: 0 },
-  numFieldInputWrap: {
-    display: "flex", alignItems: "center", gap: 6, marginTop: 6,
-    background: "#1A1A1A", border: "1px solid #333", borderRadius: 8, padding: "6px 10px",
+  tabActive: { color: C.accent },
+  page: { padding: `16px 16px calc(${TAB_BAR_HEIGHT + 28}px + ${SAFE_BOTTOM})` },
+  pagePlain: { padding: `16px 16px calc(28px + ${SAFE_BOTTOM})` },
+  pageWithBottomBar: { padding: `16px 16px calc(104px + ${SAFE_BOTTOM})` },
+  bottomBar: {
+    position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+    width: "100%", maxWidth: 480, zIndex: 30,
+    padding: `12px 16px calc(12px + ${SAFE_BOTTOM})`,
+    background: "linear-gradient(to top, rgba(14,14,16,1) 65%, rgba(14,14,16,0))",
   },
-  numFieldInput: {
-    width: "100%", border: "none", outline: "none", background: "transparent",
-    color: "#E8E8E8", fontSize: 15, fontWeight: 600, fontVariantNumeric: "tabular-nums",
+
+  // Buttons
+  btnPrimary: { ...btnBase, background: C.accent, color: C.accentInk, fontWeight: 700 },
+  btnSecondary: { ...btnBase, background: C.surface2, color: C.text, border: `1px solid ${C.border}` },
+  btnDanger: { ...btnBase, background: C.danger, color: "#fff", fontWeight: 700 },
+  btnDangerText: { ...btnBase, background: "transparent", color: C.danger, fontWeight: 600 },
+  btnDashed: { ...btnBase, width: "100%", background: "transparent", color: C.muted, border: `1.5px dashed ${C.border}` },
+  btnBlock: { width: "100%" },
+  btnSmall: { minHeight: 40, padding: "0 14px", fontSize: 14, borderRadius: 10 },
+  textBtn: {
+    display: "inline-flex", alignItems: "center", gap: 2, minHeight: 40, padding: "0 6px",
+    marginLeft: -6, background: "none", border: "none", color: C.accent,
+    fontSize: 16, fontWeight: 500, cursor: "pointer",
   },
-  numFieldSuffix: { fontSize: 12, color: "#777", whiteSpace: "nowrap" },
-  addBtn: {
-    width: "100%", padding: "12px 0", borderRadius: 10, border: "1px dashed #444",
-    background: "transparent", color: "#CCC", fontSize: 14, fontWeight: 600, cursor: "pointer",
-    marginBottom: 16,
+  iconBtn: {
+    width: 40, height: 40, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 20, border: "none", background: "transparent", color: C.muted, cursor: "pointer",
   },
+  iconBtnFilled: {
+    width: 40, height: 40, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 20, border: "none", background: C.accent, color: C.accentInk, cursor: "pointer",
+  },
+  playBtn: {
+    width: 46, height: 46, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 23, border: "none", background: C.accent, color: C.accentInk, cursor: "pointer",
+  },
+  btnRow: { display: "flex", gap: 10 },
+
+  // Lists
+  list: { display: "flex", flexDirection: "column", gap: 10 },
+  row: {
+    display: "flex", alignItems: "center", gap: 12,
+    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16,
+    padding: "6px 12px 6px 4px",
+  },
+  rowMain: {
+    flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none",
+    color: "inherit", padding: "10px 12px", cursor: "pointer", font: "inherit",
+  },
+  rowTitle: {
+    fontSize: 16, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+    display: "flex", alignItems: "center", gap: 8,
+  },
+  rowMeta: {
+    fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35,
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  badge: {
+    fontSize: 10, fontWeight: 700, color: C.muted, background: C.surface2,
+    borderRadius: 6, padding: "3px 6px", textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0,
+  },
+  empty: { textAlign: "center", padding: "56px 24px", color: C.muted },
+  emptyIcon: {
+    width: 64, height: 64, borderRadius: 32, margin: "0 auto 16px", background: C.surface,
+    display: "flex", alignItems: "center", justifyContent: "center", color: C.dim,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: 600, color: C.text, marginBottom: 6 },
+  emptyText: { fontSize: 14, lineHeight: 1.5, marginBottom: 20 },
+
+  // Cards / sections
   card: {
-    background: "#161616", border: "1px solid #282828", borderRadius: 12,
-    padding: 14, marginBottom: 16,
+    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16,
+    padding: 16, marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 12, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em",
+    fontWeight: 600, margin: "4px 4px 8px",
+  },
+  sectionTitle: { fontSize: 16, fontWeight: 600, marginBottom: 4 },
+  hint: { fontSize: 13, color: C.muted, lineHeight: 1.5, marginBottom: 14 },
+  stats: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 },
+  stat: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "14px 16px" },
+  statValue: { fontSize: 26, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 },
+  statLabel: { fontSize: 12, color: C.muted, marginTop: 4, fontWeight: 500 },
+
+  // Form controls
+  label: {
+    display: "block", fontSize: 12, color: C.muted, textTransform: "uppercase",
+    letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8,
   },
   input: {
-    flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #333",
-    background: "#1A1A1A", color: "#E8E8E8", fontSize: 14, outline: "none",
-    marginBottom: 12, width: "100%", boxSizing: "border-box",
+    width: "100%", height: 48, padding: "0 14px", borderRadius: 12,
+    border: `1px solid ${C.border}`, background: C.surface2, color: C.text,
+    fontSize: 16, outline: "none",
   },
-  select: {
-    flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #333",
-    background: "#1A1A1A", color: "#E8E8E8", fontSize: 14, outline: "none",
+  titleInput: {
+    width: "100%", padding: "4px 0 12px", marginBottom: 12, border: "none",
+    borderBottom: `1px solid ${C.border}`, borderRadius: 0, background: "transparent",
+    color: C.text, fontSize: 24, fontWeight: 700, outline: "none",
   },
-  typeRow: { display: "flex", gap: 8, marginBottom: 14 },
-  typeChip: {
-    flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid #333",
-    background: "#1A1A1A", color: "#999", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  field: { marginBottom: 18 },
+  fieldGrid: {
+    display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))",
+    gap: 14, marginBottom: 18,
   },
-  typeChipActive: { background: "#D9A441", color: "#1A1300", border: "1px solid #D9A441" },
-  fieldRow: { display: "flex", gap: 10, marginBottom: 14 },
-  saveBtn: {
-    padding: "10px 16px", borderRadius: 8, border: "none",
-    background: "#D9A441", color: "#1A1300", fontSize: 13, fontWeight: 700, cursor: "pointer",
-    whiteSpace: "nowrap",
+  segmented: {
+    display: "flex", padding: 3, gap: 3, borderRadius: 12,
+    background: C.surface2, border: `1px solid ${C.border}`,
   },
-  modalActions: { display: "flex", gap: 8, marginTop: 4 },
-  exportBtn: {
-    flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid #333",
-    background: "#1A1A1A", color: "#CCC", fontSize: 13, fontWeight: 500, cursor: "pointer",
+  segment: {
+    flex: 1, minHeight: 40, borderRadius: 9, border: "none", background: "transparent",
+    color: C.muted, fontSize: 14, fontWeight: 600, cursor: "pointer",
   },
-  empty: { color: "#555", fontSize: 14, textAlign: "center", marginTop: 24, marginBottom: 24 },
-  listItem: {
-    display: "flex", alignItems: "center", padding: "14px 0",
-    borderBottom: "1px solid #1E1E1E", gap: 10,
+  segmentActive: { background: C.accent, color: C.accentInk },
+
+  stepper: {
+    display: "flex", alignItems: "center", height: 48, borderRadius: 12,
+    background: C.surface2, border: `1px solid ${C.border}`, overflow: "hidden",
   },
-  listMain: { flex: 1, cursor: "pointer", minWidth: 0 },
-  listTitle: { fontSize: 15, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 },
-  listMeta: { fontSize: 13, color: "#666", marginTop: 2 },
-  listActions: { display: "flex", alignItems: "center", gap: 6, flexShrink: 0 },
-  smallBtn: {
-    padding: "8px 12px", borderRadius: 8, border: "none",
-    background: "#D9A441", color: "#1A1300", fontSize: 12, fontWeight: 700, cursor: "pointer",
+  stepperBtn: {
+    width: 44, height: "100%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+    border: "none", background: "transparent", color: C.text, cursor: "pointer",
   },
-  smallBtnGhost: {
-    padding: "8px 12px", borderRadius: 8, border: "1px solid #333",
-    background: "transparent", color: "#CCC", fontSize: 12, fontWeight: 600, cursor: "pointer",
+  stepperValue: { flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 },
+  stepperInput: {
+    width: "100%", minWidth: 0, border: "none", outline: "none", background: "transparent",
+    color: C.text, fontSize: 17, fontWeight: 600, textAlign: "center", fontVariantNumeric: "tabular-nums", padding: 0,
   },
-  tinyBtn: {
-    width: 26, height: 26, borderRadius: 6, border: "1px solid #333",
-    background: "#1A1A1A", color: "#CCC", fontSize: 12, cursor: "pointer",
-  },
-  restBtn: {
-    padding: "5px 10px", borderRadius: 6, border: "1px solid #333",
-    background: "#1A1A1A", color: "#CCC", fontSize: 12, cursor: "pointer",
-    whiteSpace: "nowrap", flexShrink: 0,
-  },
-  deleteBtn: {
-    width: 30, height: 30, borderRadius: 8, border: "none",
-    background: "transparent", color: "#555", fontSize: 18, cursor: "pointer", flexShrink: 0,
-  },
-  kindBadge: {
-    fontSize: 10, fontWeight: 700, color: "#999", background: "#222",
-    borderRadius: 5, padding: "2px 6px", textTransform: "uppercase", letterSpacing: "0.04em",
-  },
-  presetForm: { display: "flex", gap: 8, marginBottom: 16 },
-  routineStepFieldLabel: {
-    display: "flex", flexDirection: "column", gap: 4, fontSize: 10, color: "#666",
-    textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600,
-  },
-  routineStepInput: {
-    width: 52, padding: "5px 6px", borderRadius: 6, border: "1px solid #333",
-    background: "#1A1A1A", color: "#E8E8E8", fontSize: 13, outline: "none",
-    fontVariantNumeric: "tabular-nums",
-  },
-  routineAddRow: { display: "flex", gap: 8, marginTop: 10 },
-  clearBtn: {
-    padding: "8px 14px", borderRadius: 8, border: "1px solid #333",
-    background: "transparent", color: "#888", fontSize: 13, cursor: "pointer",
-    marginBottom: 16, display: "block",
-  },
-  historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
-  driftRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" },
-  driftText: { fontSize: 12, color: "#D9A441" },
-  driftBtn: {
-    padding: "3px 9px", borderRadius: 6, border: "1px solid #D9A441",
-    background: "rgba(217,164,65,0.12)", color: "#D9A441", fontSize: 12, fontWeight: 600, cursor: "pointer",
-  },
-  settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
-  exportRow: { display: "flex", gap: 8 },
-  exportHint: { fontSize: 12, color: "#555", marginTop: 8 },
+  stepperSuffix: { fontSize: 13, color: C.muted, flexShrink: 0, paddingRight: 4 },
+
+  // Bottom sheet
   overlay: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-    display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100,
+    position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)",
+    display: "flex", alignItems: "flex-end", justifyContent: "center",
+    animation: "ct-fade .18s ease-out",
   },
-  modal: {
-    background: "#1A1A1A", borderRadius: "16px 16px 0 0", width: "100%",
-    maxWidth: 440, padding: "20px 16px 24px", maxHeight: "80vh",
-    display: "flex", flexDirection: "column",
+  sheet: {
+    width: "100%", maxWidth: 480, maxHeight: "88dvh", display: "flex", flexDirection: "column",
+    background: C.surface, borderRadius: "20px 20px 0 0", borderTop: `1px solid ${C.border}`,
+    animation: "ct-sheet .24s cubic-bezier(.2,.8,.2,1)",
   },
-  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  modalTitle: { fontSize: 16, fontWeight: 600 },
-  modalClose: { background: "none", border: "none", color: "#888", fontSize: 24, cursor: "pointer", padding: "0 4px" },
-  confirmMessage: { fontSize: 14, color: "#CCC", lineHeight: 1.5, marginBottom: 16 },
-  dangerBtn: {
-    padding: "10px 0", borderRadius: 8, border: "none",
-    background: "#E8553A", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+  sheetHandle: { width: 36, height: 5, borderRadius: 3, background: C.border, margin: "8px auto 0" },
+  sheetHeader: { display: "flex", alignItems: "center", gap: 8, padding: "8px 8px 4px 20px" },
+  sheetTitle: { flex: 1, fontSize: 18, fontWeight: 700 },
+  sheetBody: {
+    overflowY: "auto", WebkitOverflowScrolling: "touch",
+    padding: `8px 20px calc(20px + ${SAFE_BOTTOM})`,
+  },
+  sheetMessage: { fontSize: 15, color: "#C8C8CE", lineHeight: 1.5, margin: "0 0 20px" },
+  pickerItem: {
+    display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left",
+    padding: "14px 4px", background: "none", border: "none", borderBottom: `1px solid ${C.border}`,
+    color: C.text, cursor: "pointer", font: "inherit",
   },
   transferArea: {
-    width: "100%", minHeight: 140, maxHeight: 260, resize: "vertical",
-    background: "#111", color: "#CCC", border: "1px solid #333",
-    borderRadius: 8, padding: 12, fontSize: 13, fontFamily: "monospace",
-    outline: "none", boxSizing: "border-box",
+    width: "100%", height: 220, resize: "vertical", background: C.bg, color: "#C8C8CE",
+    border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontSize: 13,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", outline: "none", marginBottom: 12,
   },
-  importError: { color: "#E8553A", fontSize: 13, marginTop: 6 },
+  error: { color: C.danger, fontSize: 14, margin: "-4px 0 12px" },
 
-  // Session page
-  sessionTopBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  cancelBtn: {
-    padding: "8px 14px", borderRadius: 8, border: "1px solid #333",
-    background: "transparent", color: "#999", fontSize: 13, fontWeight: 500, cursor: "pointer",
+  // Template drift
+  drift: {
+    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginTop: 8,
+    borderRadius: 12, background: C.accentSoft, border: `1px solid rgba(232,176,75,0.3)`,
   },
-  sessionTitle: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
+  driftText: { flex: 1, minWidth: 0, fontSize: 13, color: C.accent, lineHeight: 1.4 },
+  driftBtn: {
+    minHeight: 34, padding: "0 12px", borderRadius: 9, border: "none", flexShrink: 0,
+    background: C.accent, color: C.accentInk, fontSize: 13, fontWeight: 700, cursor: "pointer",
+  },
 
+  // History
+  historyCard: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" },
+  historyHead: {
+    display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+    padding: "14px 12px 14px 16px", background: "none", border: "none", color: "inherit", cursor: "pointer", font: "inherit",
+  },
+  historyBody: { padding: "0 16px 14px" },
+  historySteps: { borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 4 },
+  historyStep: { display: "flex", gap: 10, padding: "6px 0", fontSize: 14, lineHeight: 1.4 },
+  historyStepName: { color: C.text, fontWeight: 600, flexShrink: 0, maxWidth: "45%" },
+  historyStepValue: { color: C.muted, flex: 1, minWidth: 0 },
+
+  // Session / exercise cards
   exerciseCard: {
-    background: "#161616", border: "1px solid #282828", borderRadius: 12,
-    padding: 14, marginBottom: 14,
+    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18,
+    marginBottom: 12, overflow: "hidden", transition: "border-color .2s",
   },
-  exerciseCardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  exerciseCardHeaderMain: { flex: 1, minWidth: 0, cursor: "pointer" },
-  exerciseCardName: { fontSize: 17, fontWeight: 700 },
-  exerciseCardTarget: { fontSize: 13, color: "#888", marginTop: 2 },
+  exerciseCardDone: { borderColor: "rgba(76,195,138,0.45)" },
+  exerciseCardHeader: { display: "flex", alignItems: "center", gap: 4, padding: "6px 6px 6px 0" },
+  exerciseCardHeaderMain: {
+    flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none",
+    color: "inherit", padding: "10px 8px 10px 16px", cursor: "pointer", font: "inherit",
+  },
+  exerciseCardName: { fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 },
+  exerciseCardTarget: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35 },
+  exerciseCardBody: { padding: "4px 16px 16px" },
+  stepNumber: {
+    width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: C.surface2,
+    color: C.muted, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
+  },
+  progressPill: {
+    flexShrink: 0, minWidth: 44, height: 28, padding: "0 10px", borderRadius: 14,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+    background: C.surface2, color: C.muted, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+  },
+  progressPillDone: { background: C.greenSoft, color: C.green },
   hidden: { display: "none" },
 
-  setsTarget: { fontSize: 13, color: "#888", margin: "14px 0" },
-  setsTable: { marginBottom: 12, marginTop: 14 },
-  setsHeaderRow: { display: "flex", gap: 10, marginBottom: 6, alignItems: "center" },
-  setsHeaderCell: { fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: "0.04em", flex: 1 },
-  setsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 8 },
-  setsRowDone: { opacity: 0.55 },
-  setsCheckbox: { width: 20, height: 20, flexShrink: 0, cursor: "pointer", accentColor: "#D9A441" },
-  setsIndex: { width: 22, fontSize: 13, color: "#888", fontWeight: 600, flexShrink: 0 },
-  setsInput: {
-    flex: 1, padding: "10px 10px", borderRadius: 8, border: "1px solid #333",
-    background: "#1A1A1A", color: "#E8E8E8", fontSize: 15, outline: "none",
-    fontVariantNumeric: "tabular-nums", minWidth: 0,
+  setRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
+  setIndex: { width: 22, flexShrink: 0, fontSize: 14, fontWeight: 700, color: C.dim, textAlign: "center" },
+  setInputWrap: {
+    flex: 1, minWidth: 0, display: "flex", alignItems: "center", height: 48, padding: "0 12px",
+    borderRadius: 12, background: C.surface2, border: `1px solid ${C.border}`, transition: "opacity .15s",
   },
-  restInline: {
-    display: "flex", alignItems: "center", gap: 8, margin: "-2px 0 10px 32px",
-    padding: "6px 10px", borderRadius: 8, background: "rgba(58,158,110,0.1)",
-    border: "1px solid rgba(58,158,110,0.3)",
+  setInput: {
+    flex: 1, minWidth: 0, width: "100%", border: "none", outline: "none", background: "transparent",
+    color: C.text, fontSize: 17, fontWeight: 600, fontVariantNumeric: "tabular-nums", padding: 0,
   },
-  restInlineLabel: { fontSize: 13, color: "#3A9E6E", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
-  interRestBanner: {
-    display: "flex", alignItems: "center", gap: 8, margin: "-6px 0 14px",
-    padding: "10px 12px", borderRadius: 10, background: "rgba(217,164,65,0.1)",
-    border: "1px solid rgba(217,164,65,0.35)",
+  setInputSuffix: { fontSize: 13, color: C.muted, flexShrink: 0, marginLeft: 4 },
+  setDone: { opacity: 0.45 },
+  checkBtn: {
+    width: 52, height: 48, flexShrink: 0, borderRadius: 12, cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: C.surface2, border: `1.5px solid ${C.border}`, color: C.dim,
   },
-  interRestLabel: { fontSize: 13, color: "#D9A441", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
-  addSetBtn: {
-    width: "100%", padding: "10px 0", borderRadius: 8, border: "1px dashed #444",
-    background: "transparent", color: "#CCC", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  checkBtnDone: { background: C.green, borderColor: C.green, color: C.greenInk },
+  setFooter: { display: "flex", gap: 8, marginTop: 4 },
+
+  restBar: {
+    position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 6,
+    margin: "0 0 10px", padding: "6px 6px 6px 14px", borderRadius: 12,
+    background: C.greenSoft, border: "1px solid rgba(76,195,138,0.35)",
   },
-  startBtn: {
-    width: "100%", padding: "14px 0", borderRadius: 10, border: "none",
-    background: "#D9A441", color: "#1A1300", fontSize: 16, fontWeight: 700, cursor: "pointer",
+  restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
+  restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 },
+  restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
+  restBarBtn: {
+    position: "relative", width: 40, height: 40, borderRadius: 10, border: "none", flexShrink: 0,
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(0,0,0,0.25)", cursor: "pointer",
   },
-  controls: { display: "flex", gap: 10, justifyContent: "center" },
-  pauseBtn: {
-    flex: 1, padding: "14px 0", borderRadius: 10, border: "1px solid #444",
-    background: "#1A1A1A", color: "#E8E8E8", fontSize: 15, fontWeight: 500, cursor: "pointer",
+
+  // Interval timer
+  timer: {
+    display: "flex", flexDirection: "column", alignItems: "center",
+    borderRadius: 16, padding: "20px 0 22px", marginBottom: 14, transition: "background .3s",
   },
-  stopBtn: {
-    flex: 1, padding: "14px 0", borderRadius: 10, border: "1px solid #333",
-    background: "transparent", color: "#999", fontSize: 15, fontWeight: 500, cursor: "pointer",
+  timerRing: { position: "relative", width: 220, height: 220 },
+  timerCenter: {
+    position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
   },
-  skipBtn: {
-    flex: 1, padding: "14px 0", borderRadius: 10, border: "1px solid #444",
-    background: "transparent", color: "#CCC", fontSize: 15, fontWeight: 500, cursor: "pointer",
-  },
-  timerBox: {
-    borderRadius: 16, padding: "36px 20px", textAlign: "center",
-    border: "1px solid #222", marginBottom: 20, transition: "background 0.3s",
-  },
-  phaseLabel: { fontSize: 14, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 8 },
-  timerDigits: { fontSize: 64, fontWeight: 200, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 },
-  timerSub: { marginTop: 12, fontSize: 14, color: "#888" },
+  phaseLabel: { fontSize: 13, fontWeight: 800, letterSpacing: "0.16em", marginBottom: 6 },
+  timerDigits: { fontSize: 60, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
+  timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
+  controls: { display: "flex", gap: 10 },
 };

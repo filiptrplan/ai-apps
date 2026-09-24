@@ -1,128 +1,115 @@
-import { s } from "../styles.js";
-import { resolveStepTargetSets } from "../format.js";
+import { s, C } from "../styles.js";
+import { resolveStepTargetSets, formatTargetSummary } from "../format.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
+import { NumberField } from "./NumberField.jsx";
+import { Header, Sheet } from "./Layout.jsx";
+import { Icon } from "./Icons.jsx";
 
 const { useState } = React;
+
+const toStepValue = (v) => v === "" ? null : Math.round(v);
 
 // Full-page routine editor, laid out like the active session page (one card
 // per exercise) rather than a cramped inline expansion. Reps/weighted steps
 // get the same per-set row editor used while actually logging a workout
-// (minus the done checkboxes), so a routine can target a heterogeneous
+// (minus the done buttons), so a routine can target a heterogeneous
 // pattern like 2 sets of 12 followed by 1 set of 24.
-export function RoutineEditPage({ routine, exercises, onBack, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
-  const [addSelect, setAddSelect] = useState("");
+export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const resolved = routine.steps
     .map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) }))
     .filter(x => x.exercise);
 
   return (
-    <div style={s.page}>
-      <div style={s.sessionTopBar}>
-        <button style={s.cancelBtn} onClick={onBack}>Back</button>
-        <div style={s.sessionTitle}>Edit routine</div>
-      </div>
+    <>
+      <Header
+        title="Edit routine"
+        left={<button style={s.textBtn} onClick={onBack}><Icon.back size={20} /> Routines</button>}
+        right={null}
+      />
+      <div style={s.pageWithBottomBar}>
+        <input
+          style={s.titleInput}
+          value={routine.name}
+          onChange={e => onRename(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && e.target.blur()}
+          placeholder="Routine name"
+          autoFocus={!routine.name}
+        />
 
-      <input style={s.input} value={routine.name} onChange={e => onRename(e.target.value)} placeholder="Routine name" />
-
-      {resolved.length === 0 && <p style={s.empty}>No exercises in this routine yet.</p>}
-
-      {resolved.map(({ step, exercise: ex }, i) => (
-        <div key={step.id} style={s.exerciseCard}>
-          <div style={s.exerciseCardHeader}>
-            <div style={s.exerciseCardHeaderMain}>
-              <div style={s.exerciseCardName}>{i + 1}. {ex.name}</div>
+        {resolved.map(({ step, exercise: ex }, i) => (
+          <div key={step.id} style={s.exerciseCard}>
+            <div style={s.exerciseCardHeader}>
+              <div style={{ ...s.exerciseCardHeaderMain, cursor: "default" }}>
+                <div style={s.exerciseCardName}>
+                  <span style={s.stepNumber}>{i + 1}</span>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{ex.name}</span>
+                </div>
+              </div>
+              <button style={s.iconBtn} onClick={() => onMoveStep(i, -1)} disabled={i === 0} aria-label="Move up"><Icon.up size={20} /></button>
+              <button style={s.iconBtn} onClick={() => onMoveStep(i, 1)} disabled={i === resolved.length - 1} aria-label="Move down"><Icon.down size={20} /></button>
+              <button style={s.iconBtn} onClick={() => onRemoveStep(i)} aria-label={`Remove ${ex.name}`}><Icon.x size={20} /></button>
             </div>
-            <div style={s.listActions}>
-              <button style={s.tinyBtn} onClick={() => onMoveStep(i, -1)} disabled={i === 0}>&uarr;</button>
-              <button style={s.tinyBtn} onClick={() => onMoveStep(i, 1)} disabled={i === resolved.length - 1}>&darr;</button>
-              <button style={s.deleteBtn} onClick={() => onRemoveStep(i)}>&times;</button>
+
+            <div style={s.exerciseCardBody}>
+              {ex.type === "interval" ? (
+                <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+                  <NumberField label="Sets" value={step.sets ?? ex.sets} onChange={v => onUpdateStep(step.id, { sets: toStepValue(v) })} min={1} />
+                  <NumberField label="Rest" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} suffix="s" />
+                  <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+                </div>
+              ) : (
+                <>
+                  <SetTargetsEditor
+                    sets={resolveStepTargetSets(step, ex)}
+                    isWeighted={ex.type === "weighted"}
+                    onChange={targetSets => onUpdateStep(step.id, { targetSets })}
+                  />
+                  <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+                    <NumberField label="Rest / set" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+                    <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+                  </div>
+                </>
+              )}
             </div>
           </div>
+        ))}
 
-          {ex.type === "interval" ? (
-            <div style={s.fieldRow}>
-              <label style={s.routineStepFieldLabel}>
-                Sets
-                <input
-                  style={s.routineStepInput}
-                  type="number"
-                  min={1}
-                  value={step.sets ?? ex.sets}
-                  onChange={e => onUpdateStep(step.id, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                />
-              </label>
-              <label style={s.routineStepFieldLabel}>
-                Rest (s)
-                <input
-                  style={s.routineStepInput}
-                  type="number"
-                  min={0}
-                  value={step.restSec ?? (ex.restSec ?? 0)}
-                  onChange={e => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                />
-              </label>
-              <label style={s.routineStepFieldLabel}>
-                Rest after (s)
-                <input
-                  style={s.routineStepInput}
-                  type="number"
-                  min={0}
-                  value={step.restAfterSec ?? 0}
-                  onChange={e => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                />
-              </label>
-            </div>
-          ) : (
-            <>
-              <SetTargetsEditor
-                sets={resolveStepTargetSets(step, ex)}
-                isWeighted={ex.type === "weighted"}
-                onChange={targetSets => onUpdateStep(step.id, { targetSets })}
-              />
-              <div style={s.fieldRow}>
-                <label style={s.routineStepFieldLabel}>
-                  Rest between sets (s)
-                  <input
-                    style={s.routineStepInput}
-                    type="number"
-                    min={0}
-                    value={step.restSec ?? (ex.restSec ?? 0)}
-                    onChange={e => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                  />
-                </label>
-                <label style={s.routineStepFieldLabel}>
-                  Rest after exercise (s)
-                  <input
-                    style={s.routineStepInput}
-                    type="number"
-                    min={0}
-                    value={step.restAfterSec ?? 0}
-                    onChange={e => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
-                  />
-                </label>
-              </div>
-            </>
+        <button style={s.btnDashed} onClick={() => setPickerOpen(true)}>
+          <Icon.plus size={20} /> Add exercise
+        </button>
+
+        <button style={{ ...s.btnDangerText, ...s.btnBlock, marginTop: 28 }} onClick={onDelete}>
+          <Icon.trash size={18} /> Delete routine
+        </button>
+      </div>
+
+      <div style={s.bottomBar}>
+        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }} onClick={onStart} disabled={resolved.length === 0}>
+          <Icon.play size={18} /> Start routine
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <Sheet title="Add exercise" onClose={() => setPickerOpen(false)}>
+          {exercises.length === 0 && (
+            <p style={s.sheetMessage}>No exercises yet — create some in the Exercises tab first.</p>
           )}
-        </div>
-      ))}
-
-      {exercises.length === 0 ? (
-        <p style={s.empty}>No exercises defined yet.</p>
-      ) : (
-        <div style={s.routineAddRow}>
-          <select style={s.select} value={addSelect} onChange={e => setAddSelect(e.target.value)}>
-            <option value="">Add exercise&hellip;</option>
-            {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-          </select>
-          <button
-            style={s.saveBtn}
-            onClick={() => { onAddStep(addSelect); setAddSelect(""); }}
-            disabled={!addSelect}
-          >
-            Add
-          </button>
-        </div>
+          {exercises.map(ex => (
+            <button
+              key={ex.id}
+              style={s.pickerItem}
+              onClick={() => { onAddStep(ex.id); setPickerOpen(false); }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{ex.name}</span>
+                <span style={{ display: "block", fontSize: 13, color: C.muted, marginTop: 2 }}>{formatTargetSummary(ex)}</span>
+              </span>
+              <span style={{ color: C.accent }}><Icon.plus size={22} /></span>
+            </button>
+          ))}
+        </Sheet>
       )}
-    </div>
+    </>
   );
 }

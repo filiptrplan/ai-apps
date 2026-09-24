@@ -1,7 +1,8 @@
-import { s } from "../styles.js";
+import { s, C } from "../styles.js";
 import { formatTime } from "../format.js";
 import { sounds, getAudioCtx } from "../sounds.js";
 import { NumberField } from "./NumberField.jsx";
+import { Icon } from "./Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
 
@@ -142,56 +143,97 @@ export function IntervalCard({ exercise, onChange }) {
   useEffect(() => () => clearTick(), []);
 
   const running = phase === "work" || phase === "rest";
-  const phaseColor = phase === "work" ? "#D9A441" : phase === "rest" ? "#3A9E6E" : "#888";
-  const phaseBg = phase === "work" ? "rgba(217,164,65,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
+  const phaseColor = phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
+  const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
   const completed = phase === "done" ? (completedRef.current >= totalSets ? totalSets : completedRef.current) : completedRef.current;
+  const phaseTotal = phase === "rest" ? restSec : workSec;
+  const fraction = running ? (phaseTotal > 0 ? timeLeft / phaseTotal : 0) : phase === "done" ? 0 : 1;
 
   return (
     <div>
       {phase === "idle" && (
-        <div style={s.fieldRow}>
+        <div style={s.fieldGrid}>
           <NumberField label="Work" value={workSec} onChange={setWorkSec} min={1} suffix="s" />
           <NumberField label="Rest" value={restSec} onChange={setRestSec} min={0} suffix="s" />
           <NumberField label="Sets" value={totalSets} onChange={setTotalSets} min={1} />
         </div>
       )}
 
-      <div style={{ ...s.timerBox, background: phaseBg }}>
-        {phase === "idle" && (
-          <>
-            <div style={s.timerDigits}>{formatTime(workSec)}</div>
-            <div style={s.timerSub}>{totalSets} sets &middot; {formatTime(workSec)} on &middot; {formatTime(restSec)} off</div>
-          </>
-        )}
-        {running && (
-          <>
-            <div style={{ ...s.phaseLabel, color: phaseColor }}>{phase.toUpperCase()}</div>
-            <div style={{ ...s.timerDigits, color: phaseColor }}>{formatTime(timeLeft)}</div>
-            <div style={s.timerSub}>Set {currentSet} / {totalSets}</div>
-            {paused && <div style={{ ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 }}>PAUSED</div>}
-          </>
-        )}
-        {phase === "done" && (
-          <>
-            <div style={{ ...s.phaseLabel, color: "#3A9E6E" }}>DONE</div>
-            <div style={s.timerSub}>{completed} / {totalSets} sets completed</div>
-          </>
-        )}
+      <div style={{ ...s.timer, background: phaseBg }}>
+        <div style={s.timerRing}>
+          <Ring
+            key={`${phase}-${currentSet}`}
+            fraction={fraction}
+            color={phaseColor}
+            animate={running && !paused}
+          />
+          <div style={s.timerCenter}>
+            {phase === "idle" && (
+              <>
+                <div style={{ ...s.phaseLabel, color: C.muted }}>READY</div>
+                <div style={s.timerDigits}>{formatTime(workSec || 0)}</div>
+                <div style={s.timerSub}>{totalSets} &times; {workSec}s / {restSec}s</div>
+              </>
+            )}
+            {running && (
+              <>
+                <div style={{ ...s.phaseLabel, color: paused ? C.muted : phaseColor }}>{paused ? "PAUSED" : phase.toUpperCase()}</div>
+                <div style={{ ...s.timerDigits, color: phaseColor }}>{formatTime(timeLeft)}</div>
+                <div style={s.timerSub}>Set {currentSet} of {totalSets}</div>
+              </>
+            )}
+            {phase === "done" && (
+              <>
+                <div style={{ color: C.green, marginBottom: 6 }}><Icon.check size={44} /></div>
+                <div style={{ ...s.phaseLabel, color: C.green }}>DONE</div>
+                <div style={s.timerSub}>{completed} / {totalSets} sets</div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <div style={s.controls}>
-        {phase === "idle" && <button style={s.startBtn} onClick={start}>Start</button>}
+        {phase === "idle" && (
+          <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }} onClick={start}>
+            <Icon.play size={20} /> Start
+          </button>
+        )}
         {running && (
           <>
-            <button style={s.pauseBtn} onClick={togglePause}>{paused ? "Resume" : "Pause"}</button>
-            <button style={s.skipBtn} onClick={skip}>Skip</button>
-            <button style={s.stopBtn} onClick={finishNow}>Finish now</button>
+            <button style={{ ...(paused ? s.btnPrimary : s.btnSecondary), flex: 2, minHeight: 56 }} onClick={togglePause}>
+              {paused ? <><Icon.play size={20} /> Resume</> : <><Icon.pause size={20} /> Pause</>}
+            </button>
+            <button style={{ ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }} onClick={skip} aria-label="Skip phase">
+              <Icon.skip size={22} />
+            </button>
+            <button style={{ ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }} onClick={finishNow} aria-label="Finish exercise now">
+              <Icon.flag size={22} />
+            </button>
           </>
         )}
         {phase === "done" && (
-          <button style={s.exportBtn} onClick={restart}>Restart</button>
+          <button style={{ ...s.btnSecondary, ...s.btnBlock }} onClick={restart}>
+            <Icon.restart size={18} /> Restart
+          </button>
         )}
       </div>
     </div>
+  );
+}
+
+// Circular countdown. Remounted (via key) at each phase change so it snaps to
+// full instead of animating backwards.
+function Ring({ fraction, color, animate }) {
+  const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.surface2} strokeWidth={stroke} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, fraction)))}
+        style={{ transition: animate ? "stroke-dashoffset 1s linear" : "none" }}
+      />
+    </svg>
   );
 }

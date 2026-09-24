@@ -1,8 +1,28 @@
 import { s } from "../styles.js";
-import { formatTargetSummary, formatTime } from "../format.js";
 import { sounds } from "../sounds.js";
+import { Icon } from "./Icons.jsx";
+import { RestBar } from "./RestBar.jsx";
 
 const { useState, useEffect, useRef } = React;
+
+export function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
+  return (
+    <div style={{ ...s.setInputWrap, ...(dim ? s.setDone : {}) }}>
+      <input
+        style={s.setInput}
+        type="number"
+        inputMode={decimal ? "decimal" : "numeric"}
+        min={0}
+        step={decimal ? 0.5 : 1}
+        value={value}
+        onFocus={e => e.target.select()}
+        onChange={e => onChange(e.target.value)}
+        aria-label={label}
+      />
+      <span style={s.setInputSuffix}>{suffix}</span>
+    </div>
+  );
+}
 
 // Checklist-style set logger: every set is visible at once and can be ticked
 // done in any order. Ticking a set starts an inline, non-blocking rest countdown
@@ -60,9 +80,10 @@ export function SetsCard({ exercise, onChange }) {
   };
 
   const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const removeRow = (i) => {
-    setRows(rows.filter((_, idx) => idx !== i));
-    if (restRowIndex === i) skipRest();
+  const removeLastRow = () => {
+    const last = rows.length - 1;
+    setRows(rows.slice(0, last));
+    if (restRowIndex === last) skipRest();
   };
   const addRow = () => setRows([...rows, { ...(rows[rows.length - 1] || makeRow()), done: false }]);
 
@@ -74,54 +95,58 @@ export function SetsCard({ exercise, onChange }) {
     else if (!nowDone && restRowIndex === i) skipRest();
   };
 
-  const doneCount = rows.filter(r => r.done).length;
-
   return (
     <div>
-      <div style={s.setsTarget}>{doneCount} / {rows.length} sets done &middot; target {formatTargetSummary(exercise)}</div>
-      <div style={s.setsTable}>
-        <div style={s.setsHeaderRow}>
-          <span style={{ ...s.setsHeaderCell, width: 22 }} />
-          <span style={s.setsHeaderCell}>Set</span>
-          <span style={s.setsHeaderCell}>Reps</span>
-          {isWeighted && <span style={s.setsHeaderCell}>Weight (kg)</span>}
-          <span style={{ ...s.setsHeaderCell, width: 28 }} />
-        </div>
-        {rows.map((row, i) => (
-          <React.Fragment key={i}>
-            <div style={{ ...s.setsRow, ...(row.done ? s.setsRowDone : {}) }}>
-              <input type="checkbox" style={s.setsCheckbox} checked={row.done} onChange={() => toggleDone(i)} />
-              <span style={s.setsIndex}>{i + 1}</span>
-              <input
-                style={s.setsInput}
-                type="number"
-                min={0}
-                value={row.reps}
-                onChange={e => updateRow(i, { reps: e.target.value })}
+      {rows.map((row, i) => (
+        <React.Fragment key={i}>
+          <div style={s.setRow}>
+            <span style={s.setIndex}>{i + 1}</span>
+            <SetValueInput
+              value={row.reps}
+              onChange={v => updateRow(i, { reps: v })}
+              suffix="reps"
+              dim={row.done}
+              label={`Set ${i + 1} reps`}
+            />
+            {isWeighted && (
+              <SetValueInput
+                value={row.weight}
+                onChange={v => updateRow(i, { weight: v })}
+                suffix="kg"
+                decimal
+                dim={row.done}
+                label={`Set ${i + 1} weight`}
               />
-              {isWeighted && (
-                <input
-                  style={s.setsInput}
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={row.weight}
-                  onChange={e => updateRow(i, { weight: e.target.value })}
-                />
-              )}
-              <button style={s.deleteBtn} onClick={() => removeRow(i)} disabled={rows.length <= 1}>&times;</button>
-            </div>
-            {restRowIndex === i && (
-              <div style={s.restInline}>
-                <span style={s.restInlineLabel}>Rest {formatTime(restTimeLeft)}</span>
-                <button style={s.restBtn} onClick={toggleRestPause}>{restPaused ? "Resume" : "Pause"}</button>
-                <button style={s.restBtn} onClick={skipRest}>Skip</button>
-              </div>
             )}
-          </React.Fragment>
-        ))}
+            <button
+              style={{ ...s.checkBtn, ...(row.done ? s.checkBtnDone : {}) }}
+              onClick={() => toggleDone(i)}
+              aria-pressed={row.done}
+              aria-label={`Set ${i + 1} ${row.done ? "done" : "not done"}`}
+            >
+              <Icon.check size={24} />
+            </button>
+          </div>
+          {restRowIndex === i && (
+            <RestBar
+              label="Rest"
+              timeLeft={restTimeLeft}
+              total={restSec}
+              paused={restPaused}
+              onTogglePause={toggleRestPause}
+              onSkip={skipRest}
+            />
+          )}
+        </React.Fragment>
+      ))}
+      <div style={s.setFooter}>
+        <button style={{ ...s.btnSecondary, ...s.btnSmall, flex: 1 }} onClick={addRow}>
+          <Icon.plus size={18} /> Add set
+        </button>
+        <button style={{ ...s.btnSecondary, ...s.btnSmall }} onClick={removeLastRow} disabled={rows.length <= 1} aria-label="Remove last set">
+          <Icon.minus size={18} />
+        </button>
       </div>
-      <button style={s.addSetBtn} onClick={addRow}>+ Add set</button>
     </div>
   );
 }

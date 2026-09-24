@@ -1,9 +1,47 @@
-import { s } from "../styles.js";
+import { s, C } from "../styles.js";
 import { formatTime, isStepComplete } from "../format.js";
 import { sounds } from "../sounds.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
+import { Header } from "./Layout.jsx";
+import { RestBar } from "./RestBar.jsx";
+import { Icon } from "./Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
+
+function ElapsedTime({ since }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return formatTime(Math.max(0, Math.floor((now - since) / 1000)));
+}
+
+// Keep the screen on during a workout - timers and rest beeps are useless if
+// the phone locks between sets. The lock is dropped by the browser whenever
+// the page is hidden, so re-acquire it on return.
+function useWakeLock() {
+  useEffect(() => {
+    if (!("wakeLock" in navigator)) return;
+    let lock = null;
+    let active = true;
+    const acquire = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const l = await navigator.wakeLock.request("screen");
+        if (active) lock = l; else l.release().catch(() => {});
+      } catch {}
+    };
+    const onVisible = () => { if (document.visibilityState === "visible") acquire(); };
+    acquire();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      if (lock) lock.release().catch(() => {});
+    };
+  }, []);
+}
 
 // All exercises in the session are shown on one page at once, so a routine
 // can be worked through in whatever order feels right rather than a forced
@@ -17,9 +55,11 @@ const { useState, useEffect, useRef } = React;
 export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const [order, setOrder] = useState(() => session.exercises.map((_, i) => i));
   const completedRef = useRef(session.exercises.map(() => false));
-  const [interRest, setInterRest] = useState(null); // { afterPos, timeLeft, paused }
+  const [interRest, setInterRest] = useState(null); // { afterPos, timeLeft, total, paused }
   const intervalRef = useRef(null);
   const timeLeftRef = useRef(0);
+
+  useWakeLock();
 
   const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
 
@@ -38,7 +78,7 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const startInterRest = (afterPos, restAfterSec) => {
     clearTick();
     timeLeftRef.current = restAfterSec;
-    setInterRest({ afterPos, timeLeft: restAfterSec, paused: false });
+    setInterRest({ afterPos, timeLeft: restAfterSec, total: restAfterSec, paused: false });
     sounds.restStart();
     intervalRef.current = setInterval(tick, 1000);
   };
@@ -79,30 +119,42 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   };
 
   return (
-    <div style={s.page}>
-      <div style={s.sessionTopBar}>
-        <button style={s.cancelBtn} onClick={onCancel}>Cancel</button>
-        <div style={s.sessionTitle}>{session.kind === "routine" ? session.refName : "Exercise"}</div>
+    <>
+      <Header
+        title={session.kind === "routine" ? session.refName : session.exercises[0]?.name}
+        subtitle={<ElapsedTime since={session.startedAt} />}
+        left={<button style={{ ...s.textBtn, color: C.muted }} onClick={onCancel}>Cancel</button>}
+        right={null}
+      />
+      <div style={s.pageWithBottomBar}>
+        {order.map((exIdx, position) => (
+          <React.Fragment key={exIdx}>
+            <ExerciseCard
+              exercise={session.exercises[exIdx]}
+              position={position}
+              total={order.length}
+              onChange={log => handleCardChange(exIdx, log)}
+              onMove={dir => moveCard(position, dir)}
+            />
+            {interRest && interRest.afterPos === position && (
+              <RestBar
+                label="Next exercise in"
+                tone="accent"
+                timeLeft={interRest.timeLeft}
+                total={interRest.total}
+                paused={interRest.paused}
+                onTogglePause={toggleInterRestPause}
+                onSkip={skipInterRest}
+              />
+            )}
+          </React.Fragment>
+        ))}
       </div>
-      {order.map((exIdx, position) => (
-        <React.Fragment key={exIdx}>
-          <ExerciseCard
-            exercise={session.exercises[exIdx]}
-            position={position}
-            total={order.length}
-            onChange={log => handleCardChange(exIdx, log)}
-            onMove={dir => moveCard(position, dir)}
-          />
-          {interRest && interRest.afterPos === position && (
-            <div style={s.interRestBanner}>
-              <span style={s.interRestLabel}>Rest before next exercise: {formatTime(interRest.timeLeft)}</span>
-              <button style={s.restBtn} onClick={toggleInterRestPause}>{interRest.paused ? "Resume" : "Pause"}</button>
-              <button style={s.restBtn} onClick={skipInterRest}>Skip</button>
-            </div>
-          )}
-        </React.Fragment>
-      ))}
-      <button style={s.startBtn} onClick={onFinish}>Finish workout</button>
-    </div>
+      <div style={s.bottomBar}>
+        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }} onClick={onFinish}>
+          <Icon.flag size={20} /> Finish workout
+        </button>
+      </div>
+    </>
   );
 }

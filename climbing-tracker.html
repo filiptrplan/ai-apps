@@ -8,20 +8,34 @@
   <link rel="manifest" href="./climbing-tracker/manifest.json">
   <link rel="icon" href="./climbing-tracker/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./climbing-tracker/icon.svg">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#0E0E10">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Climbing">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <style>
+    :root{color-scheme:dark}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body,#app{margin:0;min-height:100%}
-    body{background:#111}
+    body{background:#0E0E10;overscroll-behavior-y:none;-webkit-text-size-adjust:100%}
+    button{font-family:inherit;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .08s ease,opacity .15s ease,background-color .15s ease,color .15s ease}
+    button:active:not(:disabled){transform:scale(.96)}
+    button:disabled{opacity:.35;cursor:default}
+    button:focus-visible{outline:2px solid #E8B04B;outline-offset:2px}
+    input,textarea,select{font-family:inherit}
+    input:focus,textarea:focus{border-color:#E8B04B !important}
+    input::placeholder,textarea::placeholder{color:#5E5E66}
+    input[type=number]{-moz-appearance:textfield;appearance:textfield}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    @keyframes ct-fade{from{opacity:0}}
+    @keyframes ct-sheet{from{transform:translateY(100%)}}
+    @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
   </style>
 </head>
 <body>
   <div id="app"></div>
-  <script src="./climbing-tracker-app.js"></script>
+  <script type="module" src="./climbing-tracker-app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

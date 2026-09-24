@@ -14,15 +14,22 @@ import {
   formatDriftSummary,
 } from "./format.js";
 import { LLM_GUIDANCE } from "./llmGuidance.js";
-import { s } from "./styles.js";
+import { s, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
+import { Header, TabBar, Sheet, EmptyState } from "./components/Layout.jsx";
+import { Icon } from "./components/Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
 
-const TABS = ["Exercises", "Routines", "History", "Settings"];
+const TABS = [
+  { id: "Exercises", label: "Exercises", icon: "exercises" },
+  { id: "Routines", label: "Routines", icon: "routines" },
+  { id: "History", label: "History", icon: "history" },
+  { id: "Settings", label: "Settings", icon: "settings" },
+];
 
 export function ClimbingTrackerApp() {
   const [tab, setTab] = useState("Exercises");
@@ -68,7 +75,6 @@ export function ClimbingTrackerApp() {
   };
 
   // Routine state
-  const [newRoutineName, setNewRoutineName] = useState("");
   const [editingRoutineId, setEditingRoutineId] = useState(null);
 
   // One-time migration for routines saved before per-step sets/rest overrides existed.
@@ -90,12 +96,17 @@ export function ClimbingTrackerApp() {
     });
   }, []);
 
-  const addRoutine = () => {
-    if (!newRoutineName.trim()) return;
-    const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
+  // New routines open straight into the editor (name field focused); one
+  // abandoned with no name and no exercises is discarded on the way out.
+  const createRoutine = () => {
+    const r = { id: uid(), name: "", steps: [] };
     setRoutines([...routines, r]);
-    setNewRoutineName("");
     setEditingRoutineId(r.id);
+  };
+  const closeRoutineEditor = () => {
+    const r = routines.find(x => x.id === editingRoutineId);
+    if (r && !r.name.trim() && r.steps.length === 0) deleteRoutine(r.id);
+    setEditingRoutineId(null);
   };
   const deleteRoutine = (id) => setRoutines(routines.filter(r => r.id !== id));
   const renameRoutine = (id, name) => setRoutines(routines.map(r => r.id === id ? { ...r, name } : r));
@@ -145,7 +156,7 @@ export function ClimbingTrackerApp() {
     }).filter(Boolean);
     if (exs.length === 0) return;
     sessionLogsRef.current = exs.map(() => null);
-    setActiveSession({ kind: "routine", refId: r.id, refName: r.name, exercises: exs, startedAt: Date.now() });
+    setActiveSession({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
   };
   const cancelSession = () => setActiveSession(null);
   const requestCancelSession = () => {
@@ -341,7 +352,13 @@ export function ClimbingTrackerApp() {
         <RoutineEditPage
           routine={editingRoutine}
           exercises={exercises}
-          onBack={() => setEditingRoutineId(null)}
+          onBack={closeRoutineEditor}
+          onStart={() => { closeRoutineEditor(); startRoutine(editingRoutine); }}
+          onDelete={() => requestConfirm(
+            "Delete routine?",
+            `Delete "${editingRoutine.name || "Untitled routine"}"? This cannot be undone.`,
+            () => { deleteRoutine(editingRoutine.id); setEditingRoutineId(null); }
+          )}
           onRename={name => renameRoutine(editingRoutine.id, name)}
           onAddStep={exerciseId => addStepToRoutine(editingRoutine.id, exerciseId)}
           onUpdateStep={(stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch)}
@@ -353,231 +370,276 @@ export function ClimbingTrackerApp() {
     );
   }
 
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const sessionsThisWeek = history.filter(h => new Date(h.date).getTime() >= weekAgo).length;
+  const addButton = (onClick, label) => (
+    <button style={s.iconBtnFilled} onClick={onClick} aria-label={label}><Icon.plus size={22} /></button>
+  );
+
   return (
     <div style={s.root}>
-      <div style={s.tabs}>
-        {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ ...s.tab, ...(tab === t ? s.tabActive : {}) }}>
-            {t}{t === "History" && history.length > 0 ? ` (${history.length})` : ""}
-          </button>
-        ))}
-      </div>
-
       {tab === "Exercises" && (
-        <div style={s.page}>
-          {!formOpen && <button style={s.addBtn} onClick={openNewExercise}>+ New exercise</button>}
-          {formOpen && (
-            <ExerciseForm draft={draft} onChange={setDraft} onSave={saveExercise} onCancel={() => setFormOpen(false)} />
-          )}
-
-          {exercises.length === 0 && <p style={s.empty}>No exercises yet. Add one to get started.</p>}
-          {exercises.map(ex => (
-            <div key={ex.id} style={s.listItem}>
-              <div style={s.listMain}>
-                <div style={s.listTitle}>{ex.name}</div>
-                <div style={s.listMeta}>{formatTargetSummary(ex)}</div>
+        <>
+          <Header title="Exercises" right={exercises.length > 0 && addButton(openNewExercise, "New exercise")} />
+          <div style={s.page}>
+            {exercises.length === 0 ? (
+              <EmptyState
+                icon="exercises"
+                title="No exercises yet"
+                text="Add hangs, pull-ups, core work — anything you want to track."
+                action={<button style={s.btnPrimary} onClick={openNewExercise}><Icon.plus size={20} /> New exercise</button>}
+              />
+            ) : (
+              <div style={s.list}>
+                {exercises.map(ex => (
+                  <div key={ex.id} style={s.row}>
+                    <button style={s.rowMain} onClick={() => openEditExercise(ex)}>
+                      <div style={s.rowTitle}>{ex.name}</div>
+                      <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
+                    </button>
+                    <button style={s.playBtn} onClick={() => startExercise(ex)} aria-label={`Start ${ex.name}`}>
+                      <Icon.play size={20} />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <div style={s.listActions}>
-                <button style={s.smallBtn} onClick={() => startExercise(ex)}>Start</button>
-                <button style={s.smallBtnGhost} onClick={() => openEditExercise(ex)}>Edit</button>
-                <button
-                  style={s.deleteBtn}
-                  onClick={() => requestConfirm(
-                    "Delete exercise?",
-                    `Delete "${ex.name}"? This also removes it from any routines that use it.`,
-                    () => deleteExercise(ex.id)
-                  )}
-                >
-                  &times;
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
       {tab === "Routines" && (
-        <div style={s.page}>
-          <div style={s.presetForm}>
-            <input
-              style={s.input}
-              placeholder="Routine name"
-              value={newRoutineName}
-              onChange={e => setNewRoutineName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addRoutine()}
-            />
-            <button style={s.saveBtn} onClick={addRoutine} disabled={!newRoutineName.trim()}>Add</button>
-          </div>
-
-          {routines.length === 0 && <p style={s.empty}>No routines yet. Create one and add exercises to it.</p>}
-          {routines.map(r => {
-            const stepCount = r.steps.filter(step => exercises.some(e => e.id === step.exerciseId)).length;
-            return (
-              <div key={r.id} style={s.listItem}>
-                <div style={s.listMain}>
-                  <div style={s.listTitle}>{r.name}</div>
-                  <div style={s.listMeta}>{stepCount} exercise{stepCount === 1 ? "" : "s"}</div>
-                </div>
-                <div style={s.listActions}>
-                  <button style={s.smallBtn} onClick={() => startRoutine(r)} disabled={stepCount === 0}>Start</button>
-                  <button style={s.smallBtnGhost} onClick={() => setEditingRoutineId(r.id)}>Edit</button>
-                  <button
-                    style={s.deleteBtn}
-                    onClick={() => requestConfirm(
-                      "Delete routine?",
-                      `Delete "${r.name}"? This cannot be undone.`,
-                      () => deleteRoutine(r.id)
-                    )}
-                  >
-                    &times;
-                  </button>
-                </div>
+        <>
+          <Header title="Routines" right={routines.length > 0 && addButton(createRoutine, "New routine")} />
+          <div style={s.page}>
+            {routines.length === 0 ? (
+              <EmptyState
+                icon="routines"
+                title="No routines yet"
+                text="Chain exercises into a session with per-set targets and rests."
+                action={<button style={s.btnPrimary} onClick={createRoutine}><Icon.plus size={20} /> New routine</button>}
+              />
+            ) : (
+              <div style={s.list}>
+                {routines.map(r => {
+                  const names = r.steps.map(step => exercises.find(e => e.id === step.exerciseId)?.name).filter(Boolean);
+                  return (
+                    <div key={r.id} style={s.row}>
+                      <button style={s.rowMain} onClick={() => setEditingRoutineId(r.id)}>
+                        <div style={s.rowTitle}>{r.name || "Untitled routine"}</div>
+                        <div style={s.rowMeta}>
+                          {names.length === 0 ? "No exercises" : `${names.length} · ${names.join(", ")}`}
+                        </div>
+                      </button>
+                      <button
+                        style={s.playBtn}
+                        onClick={() => startRoutine(r)}
+                        disabled={names.length === 0}
+                        aria-label={`Start ${r.name || "routine"}`}
+                      >
+                        <Icon.play size={20} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
       {tab === "History" && (
-        <div style={s.page}>
-          {history.length > 0 && <button style={s.clearBtn} onClick={requestClearHistory}>Clear all</button>}
-          {history.length === 0 && <p style={s.empty}>No logged sessions yet.</p>}
-          {history.map(h => {
-            const expanded = expandedHistoryId === h.id;
-            return (
-              <div key={h.id} style={s.listItem}>
-                <div style={s.listMain} onClick={() => setExpandedHistoryId(expanded ? null : h.id)}>
-                  <div style={s.listTitle}>
-                    {h.refName} <span style={s.kindBadge}>{h.kind === "routine" ? "Routine" : "Exercise"}</span>
+        <>
+          <Header title="History" />
+          <div style={s.page}>
+            {history.length === 0 ? (
+              <EmptyState icon="history" title="Nothing logged yet" text="Finished workouts show up here." />
+            ) : (
+              <>
+                <div style={s.stats}>
+                  <div style={s.stat}>
+                    <div style={s.statValue}>{sessionsThisWeek}</div>
+                    <div style={s.statLabel}>Last 7 days</div>
                   </div>
-                  <div style={s.listMeta}>
-                    {formatDate(h.date)}{h.durationSec != null ? ` · ${formatDuration(h.durationSec)}` : ""}
+                  <div style={s.stat}>
+                    <div style={s.statValue}>{history.length}</div>
+                    <div style={s.statLabel}>Total sessions</div>
                   </div>
-
-                  {h.steps.map((step, i) => {
-                    const drift = computeTemplateDrift(h, step, exercises, routines);
-                    if (!drift) return null;
-                    return (
-                      <div key={`drift-${i}`} style={s.driftRow}>
-                        <span style={s.driftText}>
-                          {h.kind === "routine" ? `${step.exerciseName}: ` : ""}Differs from template ({formatDriftSummary(drift)})
-                        </span>
-                        <button
-                          style={s.driftBtn}
-                          onClick={e => { e.stopPropagation(); applyDrift(drift); }}
-                        >
-                          Update template
-                        </button>
-                      </div>
-                    );
-                  })}
-
-                  {expanded && h.steps.map((step, i) => (
-                    <div key={i} style={s.historyStep}>
-                      {h.kind === "routine" ? `${step.exerciseName}: ` : ""}{formatPerformedSummary(step)}
-                    </div>
-                  ))}
                 </div>
-                <button style={s.deleteBtn} onClick={() => requestDeleteHistoryEntry(h.id)}>&times;</button>
-              </div>
-            );
-          })}
-        </div>
+
+                {history.map(h => {
+                  const expanded = expandedHistoryId === h.id;
+                  const drifts = h.steps
+                    .map(step => ({ step, drift: computeTemplateDrift(h, step, exercises, routines) }))
+                    .filter(x => x.drift);
+                  return (
+                    <div key={h.id} style={s.historyCard}>
+                      <button style={s.historyHead} onClick={() => setExpandedHistoryId(expanded ? null : h.id)} aria-expanded={expanded}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={s.rowTitle}>
+                            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{h.refName}</span>
+                            {h.kind === "routine" && <span style={s.badge}>Routine</span>}
+                          </div>
+                          <div style={s.rowMeta}>
+                            {formatDate(h.date)}{h.durationSec != null ? ` · ${formatDuration(h.durationSec)}` : ""}
+                          </div>
+                        </div>
+                        <span style={{ color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" }}>
+                          <Icon.chevronDown size={20} />
+                        </span>
+                      </button>
+
+                      {(drifts.length > 0 || expanded) && (
+                        <div style={s.historyBody}>
+                          {drifts.map(({ step, drift }, i) => (
+                            <div key={`drift-${i}`} style={{ ...s.drift, marginTop: i === 0 ? 0 : 8 }}>
+                              <span style={s.driftText}>
+                                {h.kind === "routine" ? `${step.exerciseName}: ` : ""}differs from template ({formatDriftSummary(drift)})
+                              </span>
+                              <button style={s.driftBtn} onClick={() => applyDrift(drift)}>Update</button>
+                            </div>
+                          ))}
+
+                          {expanded && (
+                            <div style={{ ...s.historySteps, ...(drifts.length > 0 ? { marginTop: 12 } : {}) }}>
+                              {h.steps.map((step, i) => (
+                                <div key={i} style={s.historyStep}>
+                                  {h.kind === "routine" && <span style={s.historyStepName}>{step.exerciseName}</span>}
+                                  <span style={s.historyStepValue}>{formatPerformedSummary(step)}</span>
+                                </div>
+                              ))}
+                              <button
+                                style={{ ...s.btnDangerText, ...s.btnSmall, marginTop: 6, marginLeft: -14 }}
+                                onClick={() => requestDeleteHistoryEntry(h.id)}
+                              >
+                                <Icon.trash size={16} /> Delete entry
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {tab === "Settings" && (
-        <div style={s.page}>
-          <div style={s.settingsSection}>
-            <div style={{ ...s.label, marginBottom: 10 }}>Generate with AI</div>
-            <div style={s.exportHint}>
-              Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want
-              (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then
-              paste the JSON it gives you into "Import exercises &amp; routines" below.
+        <>
+          <Header title="Settings" />
+          <div style={s.page}>
+            <div style={s.card}>
+              <div style={s.sectionTitle}>Generate with AI</div>
+              <div style={s.hint}>
+                Copy this prompt into an LLM along with what you want (e.g. "a finger-strength
+                routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you
+                into Import below.
+              </div>
+              <button style={{ ...s.btnSecondary, ...s.btnBlock }} onClick={copyLlmGuidance}>
+                {llmCopied ? <><Icon.check size={18} /> Copied</> : "Copy AI prompt"}
+              </button>
             </div>
-            <button style={{ ...s.exportBtn, marginTop: 10 }} onClick={copyLlmGuidance}>
-              {llmCopied ? "Copied!" : "Copy AI prompt"}
-            </button>
-          </div>
 
-          <div style={s.settingsSection}>
-            <div style={{ ...s.label, marginBottom: 10 }}>Exercises &amp; routines</div>
-            <div style={s.exportRow}>
-              <button style={s.exportBtn} onClick={() => openExport("partial")}>Export</button>
-              <button style={s.exportBtn} onClick={() => openImport("partial")}>Import</button>
+            <div style={s.card}>
+              <div style={s.sectionTitle}>Exercises &amp; routines</div>
+              <div style={s.hint}>Imported items are added to (or update) your existing ones — nothing is deleted.</div>
+              <div style={s.btnRow}>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => openExport("partial")}>Export</button>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => openImport("partial")}>Import</button>
+              </div>
             </div>
-            <div style={s.exportHint}>Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones — nothing is deleted.</div>
-          </div>
 
-          <div style={s.settingsSection}>
-            <div style={{ ...s.label, marginBottom: 10 }}>All data</div>
-            <div style={s.exportRow}>
-              <button style={s.exportBtn} onClick={() => openExport("all")}>Export</button>
-              <button style={s.exportBtn} onClick={() => openImport("all")}>Import</button>
+            <div style={s.card}>
+              <div style={s.sectionTitle}>All data</div>
+              <div style={s.hint}>Full backup including history. Importing replaces everything.</div>
+              <div style={s.btnRow}>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => openExport("all")}>Export</button>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => openImport("all")}>Import</button>
+              </div>
             </div>
-            <div style={s.exportHint}>Full backup, including history. Importing replaces everything currently stored.</div>
+
+            {history.length > 0 && (
+              <div style={s.card}>
+                <div style={s.sectionTitle}>Danger zone</div>
+                <div style={s.hint}>Permanently delete all {history.length} logged workouts.</div>
+                <button style={{ ...s.btnSecondary, ...s.btnBlock, color: C.danger }} onClick={requestClearHistory}>
+                  Clear history
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        </>
+      )}
+
+      <TabBar
+        tabs={TABS}
+        active={tab}
+        onChange={t => { setTab(t); window.scrollTo(0, 0); }}
+      />
+
+      {formOpen && (
+        <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>
+          <ExerciseForm
+            draft={draft}
+            onChange={setDraft}
+            onSave={saveExercise}
+            onDelete={editingId ? () => requestConfirm(
+              "Delete exercise?",
+              `Delete "${draft.name}"? This also removes it from any routines that use it.`,
+              () => { deleteExercise(editingId); setFormOpen(false); }
+            ) : null}
+          />
+        </Sheet>
       )}
 
       {transferMode && (
-        <div style={s.overlay} onClick={() => setTransferMode(null)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <div style={s.modalHeader}>
-              <span style={s.modalTitle}>
-                {transferMode === "export" ? "Export" : "Import"} {transferScope === "all" ? "all data" : "exercises & routines"}
-              </span>
-              <button style={s.modalClose} onClick={() => setTransferMode(null)}>&times;</button>
-            </div>
+        <Sheet
+          title={`${transferMode === "export" ? "Export" : "Import"} ${transferScope === "all" ? "all data" : "exercises & routines"}`}
+          onClose={() => setTransferMode(null)}
+        >
+          {transferMode === "export" && (
+            <>
+              <textarea data-transfer-text style={s.transferArea} value={transferText} readOnly onFocus={e => e.target.select()} />
+              <div style={s.btnRow}>
+                <button style={{ ...s.btnPrimary, flex: 1 }} onClick={copyExport}>{copied ? "Copied!" : "Copy"}</button>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={downloadExport}>Download</button>
+              </div>
+            </>
+          )}
 
-            {transferMode === "export" && (
-              <>
-                <textarea data-transfer-text style={s.transferArea} value={transferText} readOnly onFocus={e => e.target.select()} />
-                <div style={s.modalActions}>
-                  <button style={{ ...s.exportBtn, flex: 1 }} onClick={copyExport}>{copied ? "Copied!" : "Copy"}</button>
-                  <button style={{ ...s.exportBtn, flex: 1 }} onClick={downloadExport}>Download</button>
-                </div>
-              </>
-            )}
-
-            {transferMode === "import" && (
-              <>
-                <textarea
-                  style={s.transferArea}
-                  value={transferText}
-                  onChange={e => { setTransferText(e.target.value); setImportError(""); }}
-                  placeholder="Paste exported JSON here..."
-                />
-                {importError && <div style={s.importError}>{importError}</div>}
-                <div style={s.modalActions}>
-                  <button style={{ ...s.exportBtn, flex: 1 }} onClick={() => applyImport()} disabled={!transferText.trim()}>Apply</button>
-                  <button style={{ ...s.exportBtn, flex: 1 }} onClick={() => fileInputRef.current?.click()}>From file</button>
-                  <input ref={fileInputRef} type="file" accept=".json" onChange={importFromFile} style={{ display: "none" }} />
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+          {transferMode === "import" && (
+            <>
+              <textarea
+                style={s.transferArea}
+                value={transferText}
+                onChange={e => { setTransferText(e.target.value); setImportError(""); }}
+                placeholder="Paste exported JSON here..."
+              />
+              {importError && <div style={s.error}>{importError}</div>}
+              <div style={s.btnRow}>
+                <button style={{ ...s.btnPrimary, flex: 1 }} onClick={() => applyImport()} disabled={!transferText.trim()}>Apply</button>
+                <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => fileInputRef.current?.click()}>From file</button>
+                <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={importFromFile} style={{ display: "none" }} />
+              </div>
+            </>
+          )}
+        </Sheet>
       )}
 
       {postSessionDrifts.length > 0 && (
-        <div style={s.overlay} onClick={() => setPostSessionDrifts([])}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <div style={s.modalHeader}>
-              <span style={s.modalTitle}>Update exercise templates?</span>
-              <button style={s.modalClose} onClick={() => setPostSessionDrifts([])}>&times;</button>
+        <Sheet title="Update templates?" onClose={() => setPostSessionDrifts([])}>
+          <p style={s.sheetMessage}>What you just logged differs from the saved targets.</p>
+          {postSessionDrifts.map(drift => (
+            <div key={driftKey(drift)} style={s.drift}>
+              <span style={s.driftText}>{drift.exercise.name}: {formatDriftSummary(drift)}</span>
+              <button style={s.driftBtn} onClick={() => applyPostSessionDrift(drift)}>Update</button>
             </div>
-            <p style={s.confirmMessage}>What you just logged differs from the saved settings.</p>
-            {postSessionDrifts.map(drift => (
-              <div key={driftKey(drift)} style={s.driftRow}>
-                <span style={s.driftText}>{drift.exercise.name}: {formatDriftSummary(drift)}</span>
-                <button style={s.driftBtn} onClick={() => applyPostSessionDrift(drift)}>Update</button>
-              </div>
-            ))}
-            <div style={s.modalActions}>
-              <button style={{ ...s.exportBtn, flex: 1 }} onClick={() => setPostSessionDrifts([])}>Done</button>
-            </div>
-          </div>
-        </div>
+          ))}
+          <button style={{ ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }} onClick={() => setPostSessionDrifts([])}>Done</button>
+        </Sheet>
       )}
 
       <ConfirmModal confirm={confirm} onCancel={() => setConfirm(null)} />

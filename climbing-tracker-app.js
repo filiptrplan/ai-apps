@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/tslib/tslib.es6.mjs
+  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
   function __rest(s2, e) {
     var t = {};
     for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/iceberg-js/dist/index.mjs
+  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -20315,12 +20315,24 @@ ${suffix}`;
       if (p.workSec !== target.workSec) patch.workSec = p.workSec;
       if (p.restSec !== target.restSec) patch.restSec = p.restSec;
     } else {
+      const isWeighted = p.type === "weighted";
       if (p.sets.length !== target.sets) patch.sets = p.sets.length;
       const reps = uniformValue(p.sets.map((row) => row.reps));
       if (reps !== null && reps !== target.reps) patch.reps = reps;
-      if (p.type === "weighted") {
-        const weight = uniformValue(p.sets.map((row) => row.weight));
-        if (weight !== null && weight !== target.weight) patch.weight = weight;
+      const weight = isWeighted ? uniformValue(p.sets.map((row) => row.weight)) : null;
+      if (isWeighted && weight !== null && weight !== target.weight) patch.weight = weight;
+      if (reps === null || isWeighted && weight === null) {
+        const previous = Array.from({ length: target.sets }, () => ({ reps: target.reps, weight: target.weight }));
+        const patternChanged = previous.length !== p.sets.length || p.sets.some((row) => {
+          var _a2;
+          if (row.reps !== target.reps) return true;
+          if (isWeighted && row.weight !== ((_a2 = target.weight) != null ? _a2 : 0)) return true;
+          return false;
+        });
+        if (patternChanged) {
+          const targetSetsPatch = p.sets.map((row) => isWeighted ? { reps: row.reps, weight: row.weight } : { reps: row.reps });
+          return { exercise: ex, routine, routineStep, isWeighted, previousTargetSets: previous, targetSetsPatch };
+        }
       }
     }
     if (Object.keys(patch).length === 0) return null;
@@ -20420,498 +20432,729 @@ Rules:
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
 
   // climbing-tracker/styles.js
+  var C = {
+    bg: "#0E0E10",
+    surface: "#17171A",
+    surface2: "#202024",
+    border: "#2A2A2F",
+    text: "#F2F2F3",
+    muted: "#8E8E96",
+    dim: "#5E5E66",
+    accent: "#E8B04B",
+    accentInk: "#1B1400",
+    accentSoft: "rgba(232,176,75,0.12)",
+    green: "#4CC38A",
+    greenInk: "#04140C",
+    greenSoft: "rgba(76,195,138,0.12)",
+    danger: "#F0604D",
+    dangerSoft: "rgba(240,96,77,0.12)"
+  };
+  var SAFE_TOP = "env(safe-area-inset-top, 0px)";
+  var SAFE_BOTTOM = "env(safe-area-inset-bottom, 0px)";
+  var TAB_BAR_HEIGHT = 60;
+  var btnBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 48,
+    padding: "0 18px",
+    borderRadius: 12,
+    fontSize: 16,
+    fontWeight: 600,
+    cursor: "pointer",
+    border: "none",
+    whiteSpace: "nowrap"
+  };
   var s = {
     root: {
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      maxWidth: 440,
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, sans-serif",
+      maxWidth: 480,
       margin: "0 auto",
-      minHeight: "100vh",
-      background: "#111",
-      color: "#E8E8E8"
+      minHeight: "100dvh",
+      background: C.bg,
+      color: C.text,
+      WebkitFontSmoothing: "antialiased"
     },
-    tabs: {
-      display: "flex",
-      borderBottom: "1px solid #282828",
+    // App chrome
+    header: {
       position: "sticky",
       top: 0,
-      background: "#111",
-      zIndex: 10
+      zIndex: 20,
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      minHeight: 56,
+      padding: `calc(${SAFE_TOP} + 8px) 16px 8px`,
+      background: "rgba(14,14,16,0.86)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)",
+      borderBottom: `1px solid ${C.border}`
+    },
+    headerTitle: { flex: 1, minWidth: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" },
+    headerTitleSmall: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 17,
+      fontWeight: 600,
+      textAlign: "center",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    headerSub: { fontSize: 12, color: C.muted, fontWeight: 500, fontVariantNumeric: "tabular-nums", marginTop: 1 },
+    headerSide: { minWidth: 72, display: "flex", alignItems: "center" },
+    tabBar: {
+      position: "fixed",
+      bottom: 0,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "100%",
+      maxWidth: 480,
+      zIndex: 30,
+      display: "flex",
+      paddingBottom: SAFE_BOTTOM,
+      background: "rgba(20,20,23,0.92)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)",
+      borderTop: `1px solid ${C.border}`
     },
     tab: {
       flex: 1,
-      padding: "14px 0",
-      background: "none",
-      border: "none",
-      color: "#666",
-      fontSize: 14,
-      fontWeight: 500,
-      cursor: "pointer",
-      borderBottom: "2px solid transparent",
-      transition: "color 0.15s"
-    },
-    tabActive: { color: "#E8E8E8", borderBottomColor: "#E8E8E8" },
-    page: { padding: "20px 16px" },
-    label: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-    numField: { flex: 1, minWidth: 0 },
-    numFieldInputWrap: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      marginTop: 6,
-      background: "#1A1A1A",
-      border: "1px solid #333",
-      borderRadius: 8,
-      padding: "6px 10px"
-    },
-    numFieldInput: {
-      width: "100%",
-      border: "none",
-      outline: "none",
-      background: "transparent",
-      color: "#E8E8E8",
-      fontSize: 15,
-      fontWeight: 600,
-      fontVariantNumeric: "tabular-nums"
-    },
-    numFieldSuffix: { fontSize: 12, color: "#777", whiteSpace: "nowrap" },
-    addBtn: {
-      width: "100%",
-      padding: "12px 0",
-      borderRadius: 10,
-      border: "1px dashed #444",
-      background: "transparent",
-      color: "#CCC",
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: "pointer",
-      marginBottom: 16
-    },
-    card: {
-      background: "#161616",
-      border: "1px solid #282828",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 16
-    },
-    input: {
-      flex: 1,
-      padding: "10px 12px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#E8E8E8",
-      fontSize: 14,
-      outline: "none",
-      marginBottom: 12,
-      width: "100%",
-      boxSizing: "border-box"
-    },
-    select: {
-      flex: 1,
-      padding: "10px 12px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#E8E8E8",
-      fontSize: 14,
-      outline: "none"
-    },
-    typeRow: { display: "flex", gap: 8, marginBottom: 14 },
-    typeChip: {
-      flex: 1,
-      padding: "9px 0",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#999",
-      fontSize: 13,
-      fontWeight: 600,
-      cursor: "pointer"
-    },
-    typeChipActive: { background: "#D9A441", color: "#1A1300", border: "1px solid #D9A441" },
-    fieldRow: { display: "flex", gap: 10, marginBottom: 14 },
-    saveBtn: {
-      padding: "10px 16px",
-      borderRadius: 8,
-      border: "none",
-      background: "#D9A441",
-      color: "#1A1300",
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: "pointer",
-      whiteSpace: "nowrap"
-    },
-    modalActions: { display: "flex", gap: 8, marginTop: 4 },
-    exportBtn: {
-      flex: 1,
-      padding: "10px 0",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#CCC",
-      fontSize: 13,
-      fontWeight: 500,
-      cursor: "pointer"
-    },
-    empty: { color: "#555", fontSize: 14, textAlign: "center", marginTop: 24, marginBottom: 24 },
-    listItem: {
-      display: "flex",
-      alignItems: "center",
-      padding: "14px 0",
-      borderBottom: "1px solid #1E1E1E",
-      gap: 10
-    },
-    listMain: { flex: 1, cursor: "pointer", minWidth: 0 },
-    listTitle: { fontSize: 15, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 },
-    listMeta: { fontSize: 13, color: "#666", marginTop: 2 },
-    listActions: { display: "flex", alignItems: "center", gap: 6, flexShrink: 0 },
-    smallBtn: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      border: "none",
-      background: "#D9A441",
-      color: "#1A1300",
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: "pointer"
-    },
-    smallBtnGhost: {
-      padding: "8px 12px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "transparent",
-      color: "#CCC",
-      fontSize: 12,
-      fontWeight: 600,
-      cursor: "pointer"
-    },
-    tinyBtn: {
-      width: 26,
-      height: 26,
-      borderRadius: 6,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#CCC",
-      fontSize: 12,
-      cursor: "pointer"
-    },
-    restBtn: {
-      padding: "5px 10px",
-      borderRadius: 6,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#CCC",
-      fontSize: 12,
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-      flexShrink: 0
-    },
-    deleteBtn: {
-      width: 30,
-      height: 30,
-      borderRadius: 8,
-      border: "none",
-      background: "transparent",
-      color: "#555",
-      fontSize: 18,
-      cursor: "pointer",
-      flexShrink: 0
-    },
-    kindBadge: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "#999",
-      background: "#222",
-      borderRadius: 5,
-      padding: "2px 6px",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em"
-    },
-    presetForm: { display: "flex", gap: 8, marginBottom: 16 },
-    routineStepFieldLabel: {
+      height: TAB_BAR_HEIGHT,
       display: "flex",
       flexDirection: "column",
-      gap: 4,
-      fontSize: 10,
-      color: "#666",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-      fontWeight: 600
-    },
-    routineStepInput: {
-      width: 52,
-      padding: "5px 6px",
-      borderRadius: 6,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#E8E8E8",
-      fontSize: 13,
-      outline: "none",
-      fontVariantNumeric: "tabular-nums"
-    },
-    routineAddRow: { display: "flex", gap: 8, marginTop: 10 },
-    clearBtn: {
-      padding: "8px 14px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "transparent",
-      color: "#888",
-      fontSize: 13,
-      cursor: "pointer",
-      marginBottom: 16,
-      display: "block"
-    },
-    historyStep: { fontSize: 13, color: "#999", marginTop: 4 },
-    driftRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" },
-    driftText: { fontSize: 12, color: "#D9A441" },
-    driftBtn: {
-      padding: "3px 9px",
-      borderRadius: 6,
-      border: "1px solid #D9A441",
-      background: "rgba(217,164,65,0.12)",
-      color: "#D9A441",
-      fontSize: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 3,
+      background: "none",
+      border: "none",
+      color: C.dim,
+      fontSize: 11,
       fontWeight: 600,
       cursor: "pointer"
     },
-    settingsSection: { marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid #222" },
-    exportRow: { display: "flex", gap: 8 },
-    exportHint: { fontSize: 12, color: "#555", marginTop: 8 },
+    tabActive: { color: C.accent },
+    page: { padding: `16px 16px calc(${TAB_BAR_HEIGHT + 28}px + ${SAFE_BOTTOM})` },
+    pagePlain: { padding: `16px 16px calc(28px + ${SAFE_BOTTOM})` },
+    pageWithBottomBar: { padding: `16px 16px calc(104px + ${SAFE_BOTTOM})` },
+    bottomBar: {
+      position: "fixed",
+      bottom: 0,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "100%",
+      maxWidth: 480,
+      zIndex: 30,
+      padding: `12px 16px calc(12px + ${SAFE_BOTTOM})`,
+      background: "linear-gradient(to top, rgba(14,14,16,1) 65%, rgba(14,14,16,0))"
+    },
+    // Buttons
+    btnPrimary: { ...btnBase, background: C.accent, color: C.accentInk, fontWeight: 700 },
+    btnSecondary: { ...btnBase, background: C.surface2, color: C.text, border: `1px solid ${C.border}` },
+    btnDanger: { ...btnBase, background: C.danger, color: "#fff", fontWeight: 700 },
+    btnDangerText: { ...btnBase, background: "transparent", color: C.danger, fontWeight: 600 },
+    btnDashed: { ...btnBase, width: "100%", background: "transparent", color: C.muted, border: `1.5px dashed ${C.border}` },
+    btnBlock: { width: "100%" },
+    btnSmall: { minHeight: 40, padding: "0 14px", fontSize: 14, borderRadius: 10 },
+    textBtn: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2,
+      minHeight: 40,
+      padding: "0 6px",
+      marginLeft: -6,
+      background: "none",
+      border: "none",
+      color: C.accent,
+      fontSize: 16,
+      fontWeight: 500,
+      cursor: "pointer"
+    },
+    iconBtn: {
+      width: 40,
+      height: 40,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 20,
+      border: "none",
+      background: "transparent",
+      color: C.muted,
+      cursor: "pointer"
+    },
+    iconBtnFilled: {
+      width: 40,
+      height: 40,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 20,
+      border: "none",
+      background: C.accent,
+      color: C.accentInk,
+      cursor: "pointer"
+    },
+    playBtn: {
+      width: 46,
+      height: 46,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 23,
+      border: "none",
+      background: C.accent,
+      color: C.accentInk,
+      cursor: "pointer"
+    },
+    btnRow: { display: "flex", gap: 10 },
+    // Lists
+    list: { display: "flex", flexDirection: "column", gap: 10 },
+    row: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 16,
+      padding: "6px 12px 6px 4px"
+    },
+    rowMain: {
+      flex: 1,
+      minWidth: 0,
+      textAlign: "left",
+      background: "none",
+      border: "none",
+      color: "inherit",
+      padding: "10px 12px",
+      cursor: "pointer",
+      font: "inherit"
+    },
+    rowTitle: {
+      fontSize: 16,
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    },
+    rowMeta: {
+      fontSize: 13,
+      color: C.muted,
+      marginTop: 3,
+      lineHeight: 1.35,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    badge: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: C.muted,
+      background: C.surface2,
+      borderRadius: 6,
+      padding: "3px 6px",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      flexShrink: 0
+    },
+    empty: { textAlign: "center", padding: "56px 24px", color: C.muted },
+    emptyIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      margin: "0 auto 16px",
+      background: C.surface,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: C.dim
+    },
+    emptyTitle: { fontSize: 17, fontWeight: 600, color: C.text, marginBottom: 6 },
+    emptyText: { fontSize: 14, lineHeight: 1.5, marginBottom: 20 },
+    // Cards / sections
+    card: {
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12
+    },
+    sectionLabel: {
+      fontSize: 12,
+      color: C.muted,
+      textTransform: "uppercase",
+      letterSpacing: "0.07em",
+      fontWeight: 600,
+      margin: "4px 4px 8px"
+    },
+    sectionTitle: { fontSize: 16, fontWeight: 600, marginBottom: 4 },
+    hint: { fontSize: 13, color: C.muted, lineHeight: 1.5, marginBottom: 14 },
+    stats: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 },
+    stat: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "14px 16px" },
+    statValue: { fontSize: 26, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 },
+    statLabel: { fontSize: 12, color: C.muted, marginTop: 4, fontWeight: 500 },
+    // Form controls
+    label: {
+      display: "block",
+      fontSize: 12,
+      color: C.muted,
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      fontWeight: 600,
+      marginBottom: 8
+    },
+    input: {
+      width: "100%",
+      height: 48,
+      padding: "0 14px",
+      borderRadius: 12,
+      border: `1px solid ${C.border}`,
+      background: C.surface2,
+      color: C.text,
+      fontSize: 16,
+      outline: "none"
+    },
+    titleInput: {
+      width: "100%",
+      padding: "4px 0 12px",
+      marginBottom: 12,
+      border: "none",
+      borderBottom: `1px solid ${C.border}`,
+      borderRadius: 0,
+      background: "transparent",
+      color: C.text,
+      fontSize: 24,
+      fontWeight: 700,
+      outline: "none"
+    },
+    field: { marginBottom: 18 },
+    fieldGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))",
+      gap: 14,
+      marginBottom: 18
+    },
+    segmented: {
+      display: "flex",
+      padding: 3,
+      gap: 3,
+      borderRadius: 12,
+      background: C.surface2,
+      border: `1px solid ${C.border}`
+    },
+    segment: {
+      flex: 1,
+      minHeight: 40,
+      borderRadius: 9,
+      border: "none",
+      background: "transparent",
+      color: C.muted,
+      fontSize: 14,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
+    segmentActive: { background: C.accent, color: C.accentInk },
+    stepper: {
+      display: "flex",
+      alignItems: "center",
+      height: 48,
+      borderRadius: 12,
+      background: C.surface2,
+      border: `1px solid ${C.border}`,
+      overflow: "hidden"
+    },
+    stepperBtn: {
+      width: 44,
+      height: "100%",
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "none",
+      background: "transparent",
+      color: C.text,
+      cursor: "pointer"
+    },
+    stepperValue: { flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", justifyContent: "center", gap: 2 },
+    stepperInput: {
+      width: "100%",
+      minWidth: 0,
+      border: "none",
+      outline: "none",
+      background: "transparent",
+      color: C.text,
+      fontSize: 17,
+      fontWeight: 600,
+      textAlign: "center",
+      fontVariantNumeric: "tabular-nums",
+      padding: 0
+    },
+    stepperSuffix: { fontSize: 13, color: C.muted, flexShrink: 0, paddingRight: 4 },
+    // Bottom sheet
     overlay: {
       position: "fixed",
       inset: 0,
-      background: "rgba(0,0,0,0.7)",
+      zIndex: 100,
+      background: "rgba(0,0,0,0.6)",
       display: "flex",
       alignItems: "flex-end",
       justifyContent: "center",
-      zIndex: 100
+      animation: "ct-fade .18s ease-out"
     },
-    modal: {
-      background: "#1A1A1A",
-      borderRadius: "16px 16px 0 0",
+    sheet: {
       width: "100%",
-      maxWidth: 440,
-      padding: "20px 16px 24px",
-      maxHeight: "80vh",
+      maxWidth: 480,
+      maxHeight: "88dvh",
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      background: C.surface,
+      borderRadius: "20px 20px 0 0",
+      borderTop: `1px solid ${C.border}`,
+      animation: "ct-sheet .24s cubic-bezier(.2,.8,.2,1)"
     },
-    modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-    modalTitle: { fontSize: 16, fontWeight: 600 },
-    modalClose: { background: "none", border: "none", color: "#888", fontSize: 24, cursor: "pointer", padding: "0 4px" },
-    confirmMessage: { fontSize: 14, color: "#CCC", lineHeight: 1.5, marginBottom: 16 },
-    dangerBtn: {
-      padding: "10px 0",
-      borderRadius: 8,
+    sheetHandle: { width: 36, height: 5, borderRadius: 3, background: C.border, margin: "8px auto 0" },
+    sheetHeader: { display: "flex", alignItems: "center", gap: 8, padding: "8px 8px 4px 20px" },
+    sheetTitle: { flex: 1, fontSize: 18, fontWeight: 700 },
+    sheetBody: {
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      padding: `8px 20px calc(20px + ${SAFE_BOTTOM})`
+    },
+    sheetMessage: { fontSize: 15, color: "#C8C8CE", lineHeight: 1.5, margin: "0 0 20px" },
+    pickerItem: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      textAlign: "left",
+      padding: "14px 4px",
+      background: "none",
       border: "none",
-      background: "#E8553A",
-      color: "#fff",
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: "pointer"
+      borderBottom: `1px solid ${C.border}`,
+      color: C.text,
+      cursor: "pointer",
+      font: "inherit"
     },
     transferArea: {
       width: "100%",
-      minHeight: 140,
-      maxHeight: 260,
+      height: 220,
       resize: "vertical",
-      background: "#111",
-      color: "#CCC",
-      border: "1px solid #333",
-      borderRadius: 8,
+      background: C.bg,
+      color: "#C8C8CE",
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
       padding: 12,
       fontSize: 13,
-      fontFamily: "monospace",
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
       outline: "none",
-      boxSizing: "border-box"
+      marginBottom: 12
     },
-    importError: { color: "#E8553A", fontSize: 13, marginTop: 6 },
-    // Session page
-    sessionTopBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-    cancelBtn: {
-      padding: "8px 14px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "transparent",
-      color: "#999",
-      fontSize: 13,
-      fontWeight: 500,
-      cursor: "pointer"
-    },
-    sessionTitle: { fontSize: 12, color: "#777", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
-    exerciseCard: {
-      background: "#161616",
-      border: "1px solid #282828",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 14
-    },
-    exerciseCardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
-    exerciseCardHeaderMain: { flex: 1, minWidth: 0, cursor: "pointer" },
-    exerciseCardName: { fontSize: 17, fontWeight: 700 },
-    exerciseCardTarget: { fontSize: 13, color: "#888", marginTop: 2 },
-    hidden: { display: "none" },
-    setsTarget: { fontSize: 13, color: "#888", margin: "14px 0" },
-    setsTable: { marginBottom: 12, marginTop: 14 },
-    setsHeaderRow: { display: "flex", gap: 10, marginBottom: 6, alignItems: "center" },
-    setsHeaderCell: { fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: "0.04em", flex: 1 },
-    setsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 8 },
-    setsRowDone: { opacity: 0.55 },
-    setsCheckbox: { width: 20, height: 20, flexShrink: 0, cursor: "pointer", accentColor: "#D9A441" },
-    setsIndex: { width: 22, fontSize: 13, color: "#888", fontWeight: 600, flexShrink: 0 },
-    setsInput: {
-      flex: 1,
-      padding: "10px 10px",
-      borderRadius: 8,
-      border: "1px solid #333",
-      background: "#1A1A1A",
-      color: "#E8E8E8",
-      fontSize: 15,
-      outline: "none",
-      fontVariantNumeric: "tabular-nums",
-      minWidth: 0
-    },
-    restInline: {
+    error: { color: C.danger, fontSize: 14, margin: "-4px 0 12px" },
+    // Template drift
+    drift: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      margin: "-2px 0 10px 32px",
-      padding: "6px 10px",
-      borderRadius: 8,
-      background: "rgba(58,158,110,0.1)",
-      border: "1px solid rgba(58,158,110,0.3)"
-    },
-    restInlineLabel: { fontSize: 13, color: "#3A9E6E", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
-    interRestBanner: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      margin: "-6px 0 14px",
+      gap: 10,
       padding: "10px 12px",
-      borderRadius: 10,
-      background: "rgba(217,164,65,0.1)",
-      border: "1px solid rgba(217,164,65,0.35)"
+      marginTop: 8,
+      borderRadius: 12,
+      background: C.accentSoft,
+      border: `1px solid rgba(232,176,75,0.3)`
     },
-    interRestLabel: { fontSize: 13, color: "#D9A441", fontWeight: 600, flex: 1, fontVariantNumeric: "tabular-nums" },
-    addSetBtn: {
-      width: "100%",
-      padding: "10px 0",
-      borderRadius: 8,
-      border: "1px dashed #444",
-      background: "transparent",
-      color: "#CCC",
-      fontSize: 13,
-      fontWeight: 600,
-      cursor: "pointer"
-    },
-    startBtn: {
-      width: "100%",
-      padding: "14px 0",
-      borderRadius: 10,
+    driftText: { flex: 1, minWidth: 0, fontSize: 13, color: C.accent, lineHeight: 1.4 },
+    driftBtn: {
+      minHeight: 34,
+      padding: "0 12px",
+      borderRadius: 9,
       border: "none",
-      background: "#D9A441",
-      color: "#1A1300",
-      fontSize: 16,
+      flexShrink: 0,
+      background: C.accent,
+      color: C.accentInk,
+      fontSize: 13,
       fontWeight: 700,
       cursor: "pointer"
     },
-    controls: { display: "flex", gap: 10, justifyContent: "center" },
-    pauseBtn: {
-      flex: 1,
-      padding: "14px 0",
-      borderRadius: 10,
-      border: "1px solid #444",
-      background: "#1A1A1A",
-      color: "#E8E8E8",
-      fontSize: 15,
-      fontWeight: 500,
-      cursor: "pointer"
+    // History
+    historyCard: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" },
+    historyHead: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      textAlign: "left",
+      padding: "14px 12px 14px 16px",
+      background: "none",
+      border: "none",
+      color: "inherit",
+      cursor: "pointer",
+      font: "inherit"
     },
-    stopBtn: {
+    historyBody: { padding: "0 16px 14px" },
+    historySteps: { borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 4 },
+    historyStep: { display: "flex", gap: 10, padding: "6px 0", fontSize: 14, lineHeight: 1.4 },
+    historyStepName: { color: C.text, fontWeight: 600, flexShrink: 0, maxWidth: "45%" },
+    historyStepValue: { color: C.muted, flex: 1, minWidth: 0 },
+    // Session / exercise cards
+    exerciseCard: {
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 18,
+      marginBottom: 12,
+      overflow: "hidden",
+      transition: "border-color .2s"
+    },
+    exerciseCardDone: { borderColor: "rgba(76,195,138,0.45)" },
+    exerciseCardHeader: { display: "flex", alignItems: "center", gap: 4, padding: "6px 6px 6px 0" },
+    exerciseCardHeaderMain: {
       flex: 1,
-      padding: "14px 0",
-      borderRadius: 10,
-      border: "1px solid #333",
+      minWidth: 0,
+      textAlign: "left",
+      background: "none",
+      border: "none",
+      color: "inherit",
+      padding: "10px 8px 10px 16px",
+      cursor: "pointer",
+      font: "inherit"
+    },
+    exerciseCardName: { fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 },
+    exerciseCardTarget: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35 },
+    exerciseCardBody: { padding: "4px 16px 16px" },
+    stepNumber: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      flexShrink: 0,
+      background: C.surface2,
+      color: C.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    progressPill: {
+      flexShrink: 0,
+      minWidth: 44,
+      height: 28,
+      padding: "0 10px",
+      borderRadius: 14,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      background: C.surface2,
+      color: C.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      fontVariantNumeric: "tabular-nums"
+    },
+    progressPillDone: { background: C.greenSoft, color: C.green },
+    hidden: { display: "none" },
+    setRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
+    setIndex: { width: 22, flexShrink: 0, fontSize: 14, fontWeight: 700, color: C.dim, textAlign: "center" },
+    setInputWrap: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      alignItems: "center",
+      height: 48,
+      padding: "0 12px",
+      borderRadius: 12,
+      background: C.surface2,
+      border: `1px solid ${C.border}`,
+      transition: "opacity .15s"
+    },
+    setInput: {
+      flex: 1,
+      minWidth: 0,
+      width: "100%",
+      border: "none",
+      outline: "none",
       background: "transparent",
-      color: "#999",
-      fontSize: 15,
-      fontWeight: 500,
-      cursor: "pointer"
+      color: C.text,
+      fontSize: 17,
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums",
+      padding: 0
     },
-    skipBtn: {
-      flex: 1,
-      padding: "14px 0",
+    setInputSuffix: { fontSize: 13, color: C.muted, flexShrink: 0, marginLeft: 4 },
+    setDone: { opacity: 0.45 },
+    checkBtn: {
+      width: 52,
+      height: 48,
+      flexShrink: 0,
+      borderRadius: 12,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: C.surface2,
+      border: `1.5px solid ${C.border}`,
+      color: C.dim
+    },
+    checkBtnDone: { background: C.green, borderColor: C.green, color: C.greenInk },
+    setFooter: { display: "flex", gap: 8, marginTop: 4 },
+    restBar: {
+      position: "relative",
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      margin: "0 0 10px",
+      padding: "6px 6px 6px 14px",
+      borderRadius: 12,
+      background: C.greenSoft,
+      border: "1px solid rgba(76,195,138,0.35)"
+    },
+    restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
+    restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 },
+    restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
+    restBarBtn: {
+      position: "relative",
+      width: 40,
+      height: 40,
       borderRadius: 10,
-      border: "1px solid #444",
-      background: "transparent",
-      color: "#CCC",
-      fontSize: 15,
-      fontWeight: 500,
+      border: "none",
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.25)",
       cursor: "pointer"
     },
-    timerBox: {
+    // Interval timer
+    timer: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
       borderRadius: 16,
-      padding: "36px 20px",
-      textAlign: "center",
-      border: "1px solid #222",
-      marginBottom: 20,
-      transition: "background 0.3s"
+      padding: "20px 0 22px",
+      marginBottom: 14,
+      transition: "background .3s"
     },
-    phaseLabel: { fontSize: 14, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 8 },
-    timerDigits: { fontSize: 64, fontWeight: 200, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 },
-    timerSub: { marginTop: 12, fontSize: 14, color: "#888" }
+    timerRing: { position: "relative", width: 220, height: 220 },
+    timerCenter: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    phaseLabel: { fontSize: 13, fontWeight: 800, letterSpacing: "0.16em", marginBottom: 6 },
+    timerDigits: { fontSize: 60, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
+    timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
+    controls: { display: "flex", gap: 10 }
+  };
+
+  // climbing-tracker/components/Icons.jsx
+  function Svg({ size = 22, strokeWidth = 2, children }) {
+    return /* @__PURE__ */ React.createElement(
+      "svg",
+      {
+        width: size,
+        height: size,
+        viewBox: "0 0 24 24",
+        "aria-hidden": "true",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth,
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      },
+      children
+    );
+  }
+  var Icon = {
+    exercises: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" })),
+    routines: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M9 6h11M9 12h11M9 18h11" }), /* @__PURE__ */ React.createElement("circle", { cx: "4.5", cy: "6", r: "1.2" }), /* @__PURE__ */ React.createElement("circle", { cx: "4.5", cy: "12", r: "1.2" }), /* @__PURE__ */ React.createElement("circle", { cx: "4.5", cy: "18", r: "1.2" })),
+    history: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "8.5" }), /* @__PURE__ */ React.createElement("path", { d: "M12 7.5V12l3 2" })),
+    settings: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 7h9M17 7h3M4 17h3M11 17h9" }), /* @__PURE__ */ React.createElement("circle", { cx: "15", cy: "7", r: "2" }), /* @__PURE__ */ React.createElement("circle", { cx: "9", cy: "17", r: "2" })),
+    play: ({ size = 20 }) => /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2z", fill: "currentColor" })),
+    pause: ({ size = 20 }) => /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("rect", { x: "6.5", y: "5", width: "4", height: "14", rx: "1", fill: "currentColor" }), /* @__PURE__ */ React.createElement("rect", { x: "13.5", y: "5", width: "4", height: "14", rx: "1", fill: "currentColor" })),
+    skip: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6 6l9 6-9 6V6zM18 6v12" })),
+    plus: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12h14" })),
+    minus: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 12h14" })),
+    x: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6 6l12 12M18 6L6 18" })),
+    check: (p) => /* @__PURE__ */ React.createElement(Svg, { strokeWidth: 2.6, ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 12.5l4.5 4.5L19 7.5" })),
+    back: (p) => /* @__PURE__ */ React.createElement(Svg, { strokeWidth: 2.4, ...p }, /* @__PURE__ */ React.createElement("path", { d: "M15 5l-7 7 7 7" })),
+    chevronDown: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6 9l6 6 6-6" })),
+    up: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 19V5M6 11l6-6 6 6" })),
+    down: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M6 13l6 6 6-6" })),
+    trash: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 7h16M10 11v6M14 11v6M6 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5L18 7M9 7V4.5h6V7" })),
+    restart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" })),
+    flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
   // climbing-tracker/components/NumberField.jsx
-  function NumberField({ label, value, onChange, min = 0, step = 1, suffix = "" }) {
-    return /* @__PURE__ */ React.createElement("div", { style: s.numField }, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.numFieldInputWrap }, /* @__PURE__ */ React.createElement(
+  function NumberField({ label, value, onChange, min = 0, step = 1, inc, suffix = "" }) {
+    const delta = inc != null ? inc : step;
+    const num = typeof value === "number" && !isNaN(value) ? value : min;
+    const bump = (dir) => {
+      const next = Math.round((num + dir * delta) * 100) / 100;
+      onChange(Math.max(min, next));
+    };
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.stepper }, /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(-1), disabled: num <= min, "aria-label": `Decrease ${label}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 20 })), /* @__PURE__ */ React.createElement("div", { style: s.stepperValue }, /* @__PURE__ */ React.createElement(
       "input",
       {
-        style: s.numFieldInput,
+        style: s.stepperInput,
         type: "number",
+        inputMode: step % 1 === 0 ? "numeric" : "decimal",
         min,
         step,
         value,
-        onChange: (e) => onChange(e.target.value === "" ? "" : parseFloat(e.target.value))
+        onFocus: (e) => e.target.select(),
+        onChange: (e) => onChange(e.target.value === "" ? "" : parseFloat(e.target.value)),
+        "aria-label": label
       }
-    ), suffix && /* @__PURE__ */ React.createElement("span", { style: s.numFieldSuffix }, suffix)));
+    ), suffix && /* @__PURE__ */ React.createElement("span", { style: s.stepperSuffix }, suffix)), /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(1), "aria-label": `Increase ${label}` }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }))));
   }
 
   // climbing-tracker/components/ExerciseForm.jsx
-  function ExerciseForm({ draft, onChange, onSave, onCancel }) {
+  function Segmented({ options, value, onChange }) {
+    return /* @__PURE__ */ React.createElement("div", { style: s.segmented }, options.map((o) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: o.value,
+        style: { ...s.segment, ...value === o.value ? s.segmentActive : {} },
+        onClick: () => onChange(o.value)
+      },
+      o.label
+    )));
+  }
+  function ExerciseForm({ draft, onChange, onSave, onDelete }) {
     const set = (patch) => onChange({ ...draft, ...patch });
-    return /* @__PURE__ */ React.createElement("div", { style: s.card }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Name"), /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.input,
-        placeholder: "Exercise name",
+        placeholder: "e.g. Max hangs 20mm",
         value: draft.name,
         onChange: (e) => set({ name: e.target.value }),
-        autoFocus: true
+        onKeyDown: (e) => e.key === "Enter" && e.target.blur(),
+        autoFocus: !draft.name
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: s.typeRow }, EXERCISE_TYPES.map((t) => /* @__PURE__ */ React.createElement(
-      "button",
+    )), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Type"), /* @__PURE__ */ React.createElement(
+      Segmented,
       {
-        key: t.value,
-        style: { ...s.typeChip, ...draft.type === t.value ? s.typeChipActive : {} },
-        onClick: () => set({ type: t.value, ...defaultFieldsForType(t.value) })
-      },
-      t.label
-    ))), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 })), /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.typeRow }, /* @__PURE__ */ React.createElement(
-      "button",
+        options: EXERCISE_TYPES,
+        value: draft.type,
+        onChange: (type) => set({ type, ...defaultFieldsForType(type) })
+      }
+    )), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
+      Segmented,
       {
-        style: { ...s.typeChip, ...draft.weightMode === "added" ? s.typeChipActive : {} },
-        onClick: () => set({ weightMode: "added" })
-      },
-      "Bodyweight + kg"
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        style: { ...s.typeChip, ...draft.weightMode === "total" ? s.typeChipActive : {} },
-        onClick: () => set({ weightMode: "total" })
-      },
-      "Total weight"
-    ))), draft.type === "interval" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 })), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.saveBtn, flex: 1 }, onClick: onSave, disabled: !draft.name.trim() }, "Save"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: onCancel }, "Cancel")));
+        options: [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }],
+        value: draft.weightMode,
+        onChange: (weightMode) => set({ weightMode })
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" }))), draft.type === "interval" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, onClick: onSave, disabled: !draft.name.trim() }, "Save exercise"), onDelete && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 8 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete exercise"));
   }
 
   // climbing-tracker/sounds.js
@@ -20953,8 +21196,32 @@ Now generate the exercises and/or routines described by the user's request that 
     }
   };
 
+  // climbing-tracker/components/RestBar.jsx
+  function RestBar({ label, timeLeft, total, paused, onTogglePause, onSkip, tone = "green" }) {
+    const color = tone === "green" ? C.green : C.accent;
+    const soft = tone === "green" ? "rgba(76,195,138,0.18)" : "rgba(232,176,75,0.18)";
+    const pct = total > 0 ? Math.max(0, Math.min(100, timeLeft / total * 100)) : 0;
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.restBar, ...tone === "green" ? {} : { background: "rgba(232,176,75,0.08)", borderColor: "rgba(232,176,75,0.35)" } } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${pct}%`, background: soft } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
+  }
+
   // climbing-tracker/components/SetsCard.jsx
   var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.setInputWrap, ...dim ? s.setDone : {} } }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.setInput,
+        type: "number",
+        inputMode: decimal ? "decimal" : "numeric",
+        min: 0,
+        step: decimal ? 0.5 : 1,
+        value,
+        onFocus: (e) => e.target.select(),
+        onChange: (e) => onChange(e.target.value),
+        "aria-label": label
+      }
+    ), /* @__PURE__ */ React.createElement("span", { style: s.setInputSuffix }, suffix));
+  }
   function SetsCard({ exercise, onChange }) {
     const targetSets = exercise.sets || 1;
     const restSec = exercise.restSec || 0;
@@ -21016,9 +21283,10 @@ Now generate the exercises and/or routines described by the user's request that 
       }
     };
     const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-    const removeRow = (i) => {
-      setRows(rows.filter((_, idx) => idx !== i));
-      if (restRowIndex === i) skipRest();
+    const removeLastRow = () => {
+      const last = rows.length - 1;
+      setRows(rows.slice(0, last));
+      if (restRowIndex === last) skipRest();
     };
     const addRow = () => setRows([...rows, { ...rows[rows.length - 1] || makeRow(), done: false }]);
     const toggleDone = (i) => {
@@ -21028,27 +21296,45 @@ Now generate the exercises and/or routines described by the user's request that 
       if (nowDone && restSec > 0 && otherSetsRemain) startRest(i);
       else if (!nowDone && restRowIndex === i) skipRest();
     };
-    const doneCount = rows.filter((r) => r.done).length;
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.setsTarget }, doneCount, " / ", rows.length, " sets done \xB7 target ", formatTargetSummary(exercise)), /* @__PURE__ */ React.createElement("div", { style: s.setsTable }, /* @__PURE__ */ React.createElement("div", { style: s.setsHeaderRow }, /* @__PURE__ */ React.createElement("span", { style: { ...s.setsHeaderCell, width: 22 } }), /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Set"), /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Reps"), isWeighted && /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Weight (kg)"), /* @__PURE__ */ React.createElement("span", { style: { ...s.setsHeaderCell, width: 28 } })), rows.map((row, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { ...s.setsRow, ...row.done ? s.setsRowDone : {} } }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", style: s.setsCheckbox, checked: row.done, onChange: () => toggleDone(i) }), /* @__PURE__ */ React.createElement("span", { style: s.setsIndex }, i + 1), /* @__PURE__ */ React.createElement(
-      "input",
+    return /* @__PURE__ */ React.createElement("div", null, rows.map((row, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, /* @__PURE__ */ React.createElement("div", { style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, i + 1), /* @__PURE__ */ React.createElement(
+      SetValueInput,
       {
-        style: s.setsInput,
-        type: "number",
-        min: 0,
         value: row.reps,
-        onChange: (e) => updateRow(i, { reps: e.target.value })
+        onChange: (v) => updateRow(i, { reps: v }),
+        suffix: "reps",
+        dim: row.done,
+        label: `Set ${i + 1} reps`
       }
     ), isWeighted && /* @__PURE__ */ React.createElement(
-      "input",
+      SetValueInput,
       {
-        style: s.setsInput,
-        type: "number",
-        min: 0,
-        step: 0.5,
         value: row.weight,
-        onChange: (e) => updateRow(i, { weight: e.target.value })
+        onChange: (v) => updateRow(i, { weight: v }),
+        suffix: "kg",
+        decimal: true,
+        dim: row.done,
+        label: `Set ${i + 1} weight`
       }
-    ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: rows.length <= 1 }, "\xD7")), restRowIndex === i && /* @__PURE__ */ React.createElement("div", { style: s.restInline }, /* @__PURE__ */ React.createElement("span", { style: s.restInlineLabel }, "Rest ", formatTime(restTimeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: toggleRestPause }, restPaused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: skipRest }, "Skip"))))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"));
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        style: { ...s.checkBtn, ...row.done ? s.checkBtnDone : {} },
+        onClick: () => toggleDone(i),
+        "aria-pressed": row.done,
+        "aria-label": `Set ${i + 1} ${row.done ? "done" : "not done"}`
+      },
+      /* @__PURE__ */ React.createElement(Icon.check, { size: 24 })
+    )), restRowIndex === i && /* @__PURE__ */ React.createElement(
+      RestBar,
+      {
+        label: "Rest",
+        timeLeft: restTimeLeft,
+        total: restSec,
+        paused: restPaused,
+        onTogglePause: toggleRestPause,
+        onSkip: skipRest
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { style: s.setFooter }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, flex: 1 }, onClick: addRow }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall }, onClick: removeLastRow, disabled: rows.length <= 1, "aria-label": "Remove last set" }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 }))));
   }
 
   // climbing-tracker/components/IntervalCard.jsx
@@ -21177,27 +21463,151 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     useEffect3(() => () => clearTick(), []);
     const running = phase === "work" || phase === "rest";
-    const phaseColor = phase === "work" ? "#D9A441" : phase === "rest" ? "#3A9E6E" : "#888";
-    const phaseBg = phase === "work" ? "rgba(217,164,65,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
+    const phaseColor = phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
+    const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
     const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
-    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: phaseBg } }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " sets \xB7 ", formatTime(workSec), " on \xB7 ", formatTime(restSec), " off")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: phaseColor } }, phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " / ", totalSets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets completed"))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: start }, "Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skip }, "Skip"), /* @__PURE__ */ React.createElement("button", { style: s.stopBtn, onClick: finishNow }, "Finish now")), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: restart }, "Restart")));
+    const phaseTotal = phase === "rest" ? restSec : workSec;
+    const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
+    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
+      Ring,
+      {
+        key: `${phase}-${currentSet}`,
+        fraction,
+        color: phaseColor,
+        animate: running && !paused
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s / ", restSec, "s")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
+  }
+  function Ring({ fraction, color, animate }) {
+    const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+    return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: `0 0 ${size} ${size}`, style: { transform: "rotate(-90deg)" }, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("circle", { cx: size / 2, cy: size / 2, r, fill: "none", stroke: C.surface2, strokeWidth: stroke }), /* @__PURE__ */ React.createElement(
+      "circle",
+      {
+        cx: size / 2,
+        cy: size / 2,
+        r,
+        fill: "none",
+        stroke: color,
+        strokeWidth: stroke,
+        strokeLinecap: "round",
+        strokeDasharray: circ,
+        strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, fraction))),
+        style: { transition: animate ? "stroke-dashoffset 1s linear" : "none" }
+      }
+    ));
   }
 
   // climbing-tracker/components/ExerciseCard.jsx
   var { useState: useState4 } = React;
+  function progressOf(exercise, log) {
+    var _a, _b;
+    if (exercise.type === "interval") {
+      return { done: (log == null ? void 0 : log.completedSets) || 0, total: (_b = (_a = log == null ? void 0 : log.targetSets) != null ? _a : exercise.sets) != null ? _b : 1 };
+    }
+    const rows = (log == null ? void 0 : log.rows) || [];
+    return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
+  }
   function ExerciseCard({ exercise, position, total, onChange, onMove }) {
     const [collapsed, setCollapsed] = useState4(false);
-    return /* @__PURE__ */ React.createElement("div", { style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed) }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, exercise.name), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, total > 1 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMove(-1), disabled: position === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMove(1), disabled: position === total - 1 }, "\u2193")), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => setCollapsed(!collapsed) }, collapsed ? "+" : "\u2212"))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : void 0 }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, onChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange })));
+    const [progress, setProgress] = useState4(() => progressOf(exercise, null));
+    const complete = progress.total > 0 && progress.done >= progress.total;
+    const handleChange = (log) => {
+      setProgress(progressOf(exercise, log));
+      onChange(log);
+    };
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, total > 1 && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+  }
+
+  // climbing-tracker/components/Layout.jsx
+  var { useEffect: useEffect4 } = React;
+  function Header({ title, subtitle, left, right }) {
+    const compact = left !== void 0;
+    return /* @__PURE__ */ React.createElement("div", { style: s.header }, compact && /* @__PURE__ */ React.createElement("div", { style: s.headerSide }, left), /* @__PURE__ */ React.createElement("div", { style: compact ? s.headerTitleSmall : s.headerTitle }, title, subtitle && /* @__PURE__ */ React.createElement("div", { style: s.headerSub }, subtitle)), compact ? /* @__PURE__ */ React.createElement("div", { style: { ...s.headerSide, justifyContent: "flex-end" } }, right) : right);
+  }
+  function TabBar({ tabs, active, onChange }) {
+    return /* @__PURE__ */ React.createElement("nav", { style: s.tabBar }, tabs.map((t) => {
+      const TabIcon = Icon[t.icon];
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.id,
+          style: { ...s.tab, ...active === t.id ? s.tabActive : {} },
+          onClick: () => onChange(t.id),
+          "aria-current": active === t.id ? "page" : void 0
+        },
+        /* @__PURE__ */ React.createElement(TabIcon, { size: 24 }),
+        t.label
+      );
+    }));
+  }
+  function Sheet({ title, onClose, children }) {
+    useEffect4(() => {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }, []);
+    useEffect4(() => {
+      const onKey = (e) => {
+        if (e.key === "Escape") onClose();
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, [onClose]);
+    return /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { style: s.sheet, onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", "aria-label": title }, /* @__PURE__ */ React.createElement("div", { style: s.sheetHandle }), /* @__PURE__ */ React.createElement("div", { style: s.sheetHeader }, /* @__PURE__ */ React.createElement("span", { style: s.sheetTitle }, title), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: onClose, "aria-label": "Close" }, /* @__PURE__ */ React.createElement(Icon.x, null))), /* @__PURE__ */ React.createElement("div", { style: s.sheetBody }, children)));
+  }
+  function EmptyState({ icon, title, text, action }) {
+    const EmptyIcon = Icon[icon];
+    return /* @__PURE__ */ React.createElement("div", { style: s.empty }, /* @__PURE__ */ React.createElement("div", { style: s.emptyIcon }, /* @__PURE__ */ React.createElement(EmptyIcon, { size: 28 })), /* @__PURE__ */ React.createElement("div", { style: s.emptyTitle }, title), /* @__PURE__ */ React.createElement("div", { style: s.emptyText }, text), action);
   }
 
   // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState5, useEffect: useEffect4, useRef: useRef4 } = React;
+  var { useState: useState5, useEffect: useEffect5, useRef: useRef4 } = React;
+  function ElapsedTime({ since }) {
+    const [now, setNow] = useState5(Date.now());
+    useEffect5(() => {
+      const id = setInterval(() => setNow(Date.now()), 1e3);
+      return () => clearInterval(id);
+    }, []);
+    return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
+  }
+  function useWakeLock() {
+    useEffect5(() => {
+      if (!("wakeLock" in navigator)) return;
+      let lock = null;
+      let active = true;
+      const acquire = async () => {
+        if (document.visibilityState !== "visible") return;
+        try {
+          const l = await navigator.wakeLock.request("screen");
+          if (active) lock = l;
+          else l.release().catch(() => {
+          });
+        } catch {
+        }
+      };
+      const onVisible = () => {
+        if (document.visibilityState === "visible") acquire();
+      };
+      acquire();
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        active = false;
+        document.removeEventListener("visibilitychange", onVisible);
+        if (lock) lock.release().catch(() => {
+        });
+      };
+    }, []);
+  }
   function SessionPage({ session, onCancel, onLogChange, onFinish }) {
+    var _a;
     const [order, setOrder] = useState5(() => session.exercises.map((_, i) => i));
     const completedRef = useRef4(session.exercises.map(() => false));
     const [interRest, setInterRest] = useState5(null);
     const intervalRef = useRef4(null);
     const timeLeftRef = useRef4(0);
+    useWakeLock();
     const clearTick = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -21218,7 +21628,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const startInterRest = (afterPos, restAfterSec) => {
       clearTick();
       timeLeftRef.current = restAfterSec;
-      setInterRest({ afterPos, timeLeft: restAfterSec, paused: false });
+      setInterRest({ afterPos, timeLeft: restAfterSec, total: restAfterSec, paused: false });
       sounds.restStart();
       intervalRef.current = setInterval(tick, 1e3);
     };
@@ -21237,7 +21647,7 @@ Now generate the exercises and/or routines described by the user's request that 
         return { ...r, paused: true };
       });
     };
-    useEffect4(() => () => clearTick(), []);
+    useEffect5(() => () => clearTick(), []);
     const moveCard = (position, dir) => {
       skipInterRest();
       setOrder((o) => {
@@ -21259,7 +21669,15 @@ Now generate the exercises and/or routines described by the user's request that 
         if (pos !== -1 && pos < order.length - 1) startInterRest(pos, exercise.restAfterSec);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, session.kind === "routine" ? session.refName : "Exercise")), order.map((exIdx, position) => /* @__PURE__ */ React.createElement(React.Fragment, { key: exIdx }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      Header,
+      {
+        title: session.kind === "routine" ? session.refName : (_a = session.exercises[0]) == null ? void 0 : _a.name,
+        subtitle: /* @__PURE__ */ React.createElement(ElapsedTime, { since: session.startedAt }),
+        left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
+        right: null
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: s.pageWithBottomBar }, order.map((exIdx, position) => /* @__PURE__ */ React.createElement(React.Fragment, { key: exIdx }, /* @__PURE__ */ React.createElement(
       ExerciseCard,
       {
         exercise: session.exercises[exIdx],
@@ -21268,7 +21686,18 @@ Now generate the exercises and/or routines described by the user's request that 
         onChange: (log) => handleCardChange(exIdx, log),
         onMove: (dir) => moveCard(position, dir)
       }
-    ), interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: s.interRestBanner }, /* @__PURE__ */ React.createElement("span", { style: s.interRestLabel }, "Rest before next exercise: ", formatTime(interRest.timeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: toggleInterRestPause }, interRest.paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.restBtn, onClick: skipInterRest }, "Skip")))), /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: onFinish }, "Finish workout"));
+    ), interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement(
+      RestBar,
+      {
+        label: "Next exercise in",
+        tone: "accent",
+        timeLeft: interRest.timeLeft,
+        total: interRest.total,
+        paused: interRest.paused,
+        onTogglePause: toggleInterRestPause,
+        onSkip: skipInterRest
+      }
+    )))), /* @__PURE__ */ React.createElement("div", { style: s.bottomBar }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
   }
 
   // climbing-tracker/components/SetTargetsEditor.jsx
@@ -21276,114 +21705,91 @@ Now generate the exercises and/or routines described by the user's request that 
     const updateRow = (i, patch) => onChange(sets.map((row, idx) => idx === i ? { ...row, ...patch } : row));
     const removeRow = (i) => onChange(sets.filter((_, idx) => idx !== i));
     const addRow = () => onChange([...sets, { ...sets[sets.length - 1] || { reps: 10, weight: 0 } }]);
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.setsTable }, /* @__PURE__ */ React.createElement("div", { style: s.setsHeaderRow }, /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Set"), /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Reps"), isWeighted && /* @__PURE__ */ React.createElement("span", { style: s.setsHeaderCell }, "Weight (kg)"), /* @__PURE__ */ React.createElement("span", { style: { ...s.setsHeaderCell, width: 28 } })), sets.map((row, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.setsRow }, /* @__PURE__ */ React.createElement("span", { style: s.setsIndex }, i + 1), /* @__PURE__ */ React.createElement(
-      "input",
+    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18 } }, sets.map((row, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, i + 1), /* @__PURE__ */ React.createElement(
+      SetValueInput,
       {
-        style: s.setsInput,
-        type: "number",
-        min: 0,
         value: row.reps,
-        onChange: (e) => updateRow(i, { reps: e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0 })
+        onChange: (v) => updateRow(i, { reps: v === "" ? "" : parseInt(v, 10) || 0 }),
+        suffix: "reps",
+        label: `Set ${i + 1} reps`
       }
     ), isWeighted && /* @__PURE__ */ React.createElement(
-      "input",
+      SetValueInput,
       {
-        style: s.setsInput,
-        type: "number",
-        min: 0,
-        step: 0.5,
         value: row.weight,
-        onChange: (e) => updateRow(i, { weight: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })
+        onChange: (v) => updateRow(i, { weight: v === "" ? "" : parseFloat(v) || 0 }),
+        suffix: "kg",
+        decimal: true,
+        label: `Set ${i + 1} weight`
       }
-    ), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => removeRow(i), disabled: sets.length <= 1 }, "\xD7")))), /* @__PURE__ */ React.createElement("button", { style: s.addSetBtn, onClick: addRow }, "+ Add set"));
+    ), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeRow(i), disabled: sets.length <= 1, "aria-label": `Remove set ${i + 1}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock, marginTop: 4 }, onClick: addRow }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set"));
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
   var { useState: useState6 } = React;
-  function RoutineEditPage({ routine, exercises, onBack, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
-    const [addSelect, setAddSelect] = useState6("");
+  var toStepValue = (v) => v === "" ? null : Math.round(v);
+  function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+    const [pickerOpen, setPickerOpen] = useState6(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
-    return /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTopBar }, /* @__PURE__ */ React.createElement("button", { style: s.cancelBtn, onClick: onBack }, "Back"), /* @__PURE__ */ React.createElement("div", { style: s.sessionTitle }, "Edit routine")), /* @__PURE__ */ React.createElement("input", { style: s.input, value: routine.name, onChange: (e) => onRename(e.target.value), placeholder: "Routine name" }), resolved.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises in this routine yet."), resolved.map(({ step, exercise: ex }, i) => {
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      Header,
+      {
+        title: "Edit routine",
+        left: /* @__PURE__ */ React.createElement("button", { style: s.textBtn, onClick: onBack }, /* @__PURE__ */ React.createElement(Icon.back, { size: 20 }), " Routines"),
+        right: null
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: s.pageWithBottomBar }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.titleInput,
+        value: routine.name,
+        onChange: (e) => onRename(e.target.value),
+        onKeyDown: (e) => e.key === "Enter" && e.target.blur(),
+        placeholder: "Routine name",
+        autoFocus: !routine.name
+      }
+    ), resolved.map(({ step, exercise: ex }, i) => {
       var _a, _b, _c, _d, _e, _f, _g;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeaderMain }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, i + 1, ". ", ex.name)), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0 }, "\u2191"), /* @__PURE__ */ React.createElement("button", { style: s.tinyBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1 }, "\u2193"), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => onRemoveStep(i) }, "\xD7"))), ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Sets", /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          style: s.routineStepInput,
-          type: "number",
-          min: 1,
-          value: (_a = step.sets) != null ? _a : ex.sets,
-          onChange: (e) => onUpdateStep(step.id, { sets: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-        }
-      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest (s)", /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          style: s.routineStepInput,
-          type: "number",
-          min: 0,
-          value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0,
-          onChange: (e) => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-        }
-      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after (s)", /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          style: s.routineStepInput,
-          type: "number",
-          min: 0,
-          value: (_d = step.restAfterSec) != null ? _d : 0,
-          onChange: (e) => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-        }
-      ))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default" } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, i + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         SetTargetsEditor,
         {
           sets: resolveStepTargetSets(step, ex),
           isWeighted: ex.type === "weighted",
           onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
         }
-      ), /* @__PURE__ */ React.createElement("div", { style: s.fieldRow }, /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest between sets (s)", /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          style: s.routineStepInput,
-          type: "number",
-          min: 0,
-          value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0,
-          onChange: (e) => onUpdateStep(step.id, { restSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-        }
-      )), /* @__PURE__ */ React.createElement("label", { style: s.routineStepFieldLabel }, "Rest after exercise (s)", /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          style: s.routineStepInput,
-          type: "number",
-          min: 0,
-          value: (_g = step.restAfterSec) != null ? _g : 0,
-          onChange: (e) => onUpdateStep(step.id, { restAfterSec: e.target.value === "" ? null : parseInt(e.target.value, 10) })
-        }
-      )))));
-    }), exercises.length === 0 ? /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises defined yet.") : /* @__PURE__ */ React.createElement("div", { style: s.routineAddRow }, /* @__PURE__ */ React.createElement("select", { style: s.select, value: addSelect, onChange: (e) => setAddSelect(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Add exercise\u2026"), exercises.map((ex) => /* @__PURE__ */ React.createElement("option", { key: ex.id, value: ex.id }, ex.name))), /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Rest / set", value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_g = step.restAfterSec) != null ? _g : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })))));
+    }), /* @__PURE__ */ React.createElement("button", { style: s.btnDashed, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: s.bottomBar }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), exercises.map((ex) => /* @__PURE__ */ React.createElement(
       "button",
       {
-        style: s.saveBtn,
+        key: ex.id,
+        style: s.pickerItem,
         onClick: () => {
-          onAddStep(addSelect);
-          setAddSelect("");
-        },
-        disabled: !addSelect
+          onAddStep(ex.id);
+          setPickerOpen(false);
+        }
       },
-      "Add"
-    )));
+      /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 16, fontWeight: 600 } }, ex.name), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, formatTargetSummary(ex))),
+      /* @__PURE__ */ React.createElement("span", { style: { color: C.accent } }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 22 }))
+    ))));
   }
 
   // climbing-tracker/components/ConfirmModal.jsx
   function ConfirmModal({ confirm, onCancel }) {
     if (!confirm) return null;
-    return /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: onCancel }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, confirm.title), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: onCancel }, "\xD7")), /* @__PURE__ */ React.createElement("p", { style: s.confirmMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.dangerBtn, flex: 1 }, onClick: () => {
+    return /* @__PURE__ */ React.createElement(Sheet, { title: confirm.title, onClose: onCancel }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDanger, flex: 1 }, onClick: () => {
       confirm.onConfirm();
       onCancel();
-    } }, confirm.confirmLabel || "Delete"))));
+    } }, confirm.confirmLabel || "Delete")));
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState7, useEffect: useEffect5, useRef: useRef5 } = React;
-  var TABS = ["Exercises", "Routines", "History", "Settings"];
+  var { useState: useState7, useEffect: useEffect6, useRef: useRef5 } = React;
+  var TABS = [
+    { id: "Exercises", label: "Exercises", icon: "exercises" },
+    { id: "Routines", label: "Routines", icon: "routines" },
+    { id: "History", label: "History", icon: "history" },
+    { id: "Settings", label: "Settings", icon: "settings" }
+  ];
   function ClimbingTrackerApp() {
     const [tab, setTab] = useState7("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
@@ -21420,9 +21826,8 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [newRoutineName, setNewRoutineName] = useState7("");
     const [editingRoutineId, setEditingRoutineId] = useState7(null);
-    useEffect5(() => {
+    useEffect6(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
@@ -21431,17 +21836,20 @@ Now generate the exercises and/or routines described by the user's request that 
         }));
       }
     }, []);
-    useEffect5(() => {
+    useEffect6(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         runDailyBackupIfNeeded(supabase, session);
       });
     }, []);
-    const addRoutine = () => {
-      if (!newRoutineName.trim()) return;
-      const r = { id: uid(), name: newRoutineName.trim(), steps: [] };
+    const createRoutine = () => {
+      const r = { id: uid(), name: "", steps: [] };
       setRoutines([...routines, r]);
-      setNewRoutineName("");
       setEditingRoutineId(r.id);
+    };
+    const closeRoutineEditor = () => {
+      const r = routines.find((x) => x.id === editingRoutineId);
+      if (r && !r.name.trim() && r.steps.length === 0) deleteRoutine(r.id);
+      setEditingRoutineId(null);
     };
     const deleteRoutine = (id) => setRoutines(routines.filter((r) => r.id !== id));
     const renameRoutine = (id, name) => setRoutines(routines.map((r) => r.id === id ? { ...r, name } : r));
@@ -21487,7 +21895,7 @@ Now generate the exercises and/or routines described by the user's request that 
       }).filter(Boolean);
       if (exs.length === 0) return;
       sessionLogsRef.current = exs.map(() => null);
-      setActiveSession({ kind: "routine", refId: r.id, refName: r.name, exercises: exs, startedAt: Date.now() });
+      setActiveSession({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
     };
     const cancelSession = () => setActiveSession(null);
     const requestCancelSession = () => {
@@ -21543,7 +21951,11 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const applyDrift = (drift) => {
       if (drift.targetSetsPatch) {
-        updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+        if (drift.routineStep) {
+          updateRoutineStepById(drift.routine.id, drift.routineStep.id, { targetSets: drift.targetSetsPatch });
+        } else {
+          updateExerciseTemplate(drift.exercise.id, { targetSets: drift.targetSetsPatch });
+        }
         return;
       }
       if (Object.keys(drift.routinePatch).length > 0 && drift.routine && drift.routineStep) {
@@ -21672,7 +22084,19 @@ Now generate the exercises and/or routines described by the user's request that 
         {
           routine: editingRoutine,
           exercises,
-          onBack: () => setEditingRoutineId(null),
+          onBack: closeRoutineEditor,
+          onStart: () => {
+            closeRoutineEditor();
+            startRoutine(editingRoutine);
+          },
+          onDelete: () => requestConfirm(
+            "Delete routine?",
+            `Delete "${editingRoutine.name || "Untitled routine"}"? This cannot be undone.`,
+            () => {
+              deleteRoutine(editingRoutine.id);
+              setEditingRoutineId(null);
+            }
+          ),
           onRename: (name) => renameRoutine(editingRoutine.id, name),
           onAddStep: (exerciseId) => addStepToRoutine(editingRoutine.id, exerciseId),
           onUpdateStep: (stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch),
@@ -21681,72 +22105,100 @@ Now generate the exercises and/or routines described by the user's request that 
         }
       ), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
     }
-    return /* @__PURE__ */ React.createElement("div", { style: s.root }, /* @__PURE__ */ React.createElement("div", { style: s.tabs }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t, onClick: () => setTab(t), style: { ...s.tab, ...tab === t ? s.tabActive : {} } }, t, t === "History" && history.length > 0 ? ` (${history.length})` : ""))), tab === "Exercises" && /* @__PURE__ */ React.createElement("div", { style: s.page }, !formOpen && /* @__PURE__ */ React.createElement("button", { style: s.addBtn, onClick: openNewExercise }, "+ New exercise"), formOpen && /* @__PURE__ */ React.createElement(ExerciseForm, { draft, onChange: setDraft, onSave: saveExercise, onCancel: () => setFormOpen(false) }), exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No exercises yet. Add one to get started."), exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startExercise(ex) }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => openEditExercise(ex) }, "Edit"), /* @__PURE__ */ React.createElement(
-      "button",
+    const weekAgo = Date.now() - 7 * 24 * 3600 * 1e3;
+    const sessionsThisWeek = history.filter((h) => new Date(h.date).getTime() >= weekAgo).length;
+    const addButton = (onClick, label) => /* @__PURE__ */ React.createElement("button", { style: s.iconBtnFilled, onClick, "aria-label": label }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 22 }));
+    return /* @__PURE__ */ React.createElement("div", { style: s.root }, tab === "Exercises" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Exercises", right: exercises.length > 0 && addButton(openNewExercise, "New exercise") }), /* @__PURE__ */ React.createElement("div", { style: s.page }, exercises.length === 0 ? /* @__PURE__ */ React.createElement(
+      EmptyState,
       {
-        style: s.deleteBtn,
-        onClick: () => requestConfirm(
-          "Delete exercise?",
-          `Delete "${ex.name}"? This also removes it from any routines that use it.`,
-          () => deleteExercise(ex.id)
-        )
-      },
-      "\xD7"
-    ))))), tab === "Routines" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.presetForm }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        style: s.input,
-        placeholder: "Routine name",
-        value: newRoutineName,
-        onChange: (e) => setNewRoutineName(e.target.value),
-        onKeyDown: (e) => e.key === "Enter" && addRoutine()
+        icon: "exercises",
+        title: "No exercises yet",
+        text: "Add hangs, pull-ups, core work \u2014 anything you want to track.",
+        action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: openNewExercise }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New exercise")
       }
-    ), /* @__PURE__ */ React.createElement("button", { style: s.saveBtn, onClick: addRoutine, disabled: !newRoutineName.trim() }, "Add")), routines.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No routines yet. Create one and add exercises to it."), routines.map((r) => {
-      const stepCount = r.steps.filter((step) => exercises.some((e) => e.id === step.exerciseId)).length;
-      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, r.name), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, stepCount, " exercise", stepCount === 1 ? "" : "s")), /* @__PURE__ */ React.createElement("div", { style: s.listActions }, /* @__PURE__ */ React.createElement("button", { style: s.smallBtn, onClick: () => startRoutine(r), disabled: stepCount === 0 }, "Start"), /* @__PURE__ */ React.createElement("button", { style: s.smallBtnGhost, onClick: () => setEditingRoutineId(r.id) }, "Edit"), /* @__PURE__ */ React.createElement(
+    ) : /* @__PURE__ */ React.createElement("div", { style: s.list }, exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => openEditExercise(ex) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("button", { style: s.playBtn, onClick: () => startExercise(ex), "aria-label": `Start ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }))))))), tab === "Routines" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Routines", right: routines.length > 0 && addButton(createRoutine, "New routine") }), /* @__PURE__ */ React.createElement("div", { style: s.page }, routines.length === 0 ? /* @__PURE__ */ React.createElement(
+      EmptyState,
+      {
+        icon: "routines",
+        title: "No routines yet",
+        text: "Chain exercises into a session with per-set targets and rests.",
+        action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: createRoutine }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New routine")
+      }
+    ) : /* @__PURE__ */ React.createElement("div", { style: s.list }, routines.map((r) => {
+      const names = r.steps.map((step) => {
+        var _a;
+        return (_a = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a.name;
+      }).filter(Boolean);
+      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => setEditingRoutineId(r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, r.name || "Untitled routine"), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, names.length === 0 ? "No exercises" : `${names.length} \xB7 ${names.join(", ")}`)), /* @__PURE__ */ React.createElement(
         "button",
         {
-          style: s.deleteBtn,
-          onClick: () => requestConfirm(
-            "Delete routine?",
-            `Delete "${r.name}"? This cannot be undone.`,
-            () => deleteRoutine(r.id)
-          )
+          style: s.playBtn,
+          onClick: () => startRoutine(r),
+          disabled: names.length === 0,
+          "aria-label": `Start ${r.name || "routine"}`
         },
-        "\xD7"
-      )));
-    })), tab === "History" && /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length > 0 && /* @__PURE__ */ React.createElement("button", { style: s.clearBtn, onClick: requestClearHistory }, "Clear all"), history.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.empty }, "No logged sessions yet."), history.map((h) => {
+        /* @__PURE__ */ React.createElement(Icon.play, { size: 20 })
+      ));
+    })))), tab === "History" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "History" }), /* @__PURE__ */ React.createElement("div", { style: s.page }, history.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "history", title: "Nothing logged yet", text: "Finished workouts show up here." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.stats }, /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, sessionsThisWeek), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Last 7 days")), /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, history.length), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Total sessions"))), history.map((h) => {
       const expanded = expandedHistoryId === h.id;
-      return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.listItem }, /* @__PURE__ */ React.createElement("div", { style: s.listMain, onClick: () => setExpandedHistoryId(expanded ? null : h.id) }, /* @__PURE__ */ React.createElement("div", { style: s.listTitle }, h.refName, " ", /* @__PURE__ */ React.createElement("span", { style: s.kindBadge }, h.kind === "routine" ? "Routine" : "Exercise")), /* @__PURE__ */ React.createElement("div", { style: s.listMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : ""), h.steps.map((step, i) => {
-        const drift = computeTemplateDrift(h, step, exercises, routines);
-        if (!drift) return null;
-        return /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "Differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            style: s.driftBtn,
-            onClick: (e) => {
-              e.stopPropagation();
-              applyDrift(drift);
-            }
-          },
-          "Update template"
-        ));
-      }), expanded && h.steps.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" ? `${step.exerciseName}: ` : "", formatPerformedSummary(step)))), /* @__PURE__ */ React.createElement("button", { style: s.deleteBtn, onClick: () => requestDeleteHistoryEntry(h.id) }, "\xD7"));
-    })), tab === "Settings" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, 'Copy this prompt into an LLM (ChatGPT, Claude, etc.) along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into "Import exercises & routines" below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, marginTop: 10 }, onClick: copyLlmGuidance }, llmCopied ? "Copied!" : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("partial") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Share or AI-generate exercises and routines. Imported items are added to (or update) your existing ones \u2014 nothing is deleted.")), /* @__PURE__ */ React.createElement("div", { style: s.settingsSection }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 10 } }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.exportRow }, /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: s.exportBtn, onClick: () => openImport("all") }, "Import")), /* @__PURE__ */ React.createElement("div", { style: s.exportHint }, "Full backup, including history. Importing replaces everything currently stored."))), transferMode && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setTransferMode(null) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, transferMode === "export" ? "Export" : "Import", " ", transferScope === "all" ? "all data" : "exercises & routines"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setTransferMode(null) }, "\xD7")), transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: downloadExport }, "Download"))), transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-      "textarea",
-      {
-        style: s.transferArea,
-        value: transferText,
-        onChange: (e) => {
-          setTransferText(e.target.value);
-          setImportError("");
+      const drifts = h.steps.map((step) => ({ step, drift: computeTemplateDrift(h, step, exercises, routines) })).filter((x) => x.drift);
+      return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.historyCard }, /* @__PURE__ */ React.createElement("button", { style: s.historyHead, onClick: () => setExpandedHistoryId(expanded ? null : h.id), "aria-expanded": expanded }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, h.refName), h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.badge }, "Routine")), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), (drifts.length > 0 || expanded) && /* @__PURE__ */ React.createElement("div", { style: s.historyBody }, drifts.map(({ step, drift }, i) => /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: { ...s.drift, marginTop: i === 0 ? 0 : 8 } }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyDrift(drift) }, "Update"))), expanded && /* @__PURE__ */ React.createElement("div", { style: { ...s.historySteps, ...drifts.length > 0 ? { marginTop: 12 } : {} } }, h.steps.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.historyStepName }, step.exerciseName), /* @__PURE__ */ React.createElement("span", { style: s.historyStepValue }, formatPerformedSummary(step)))), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          style: { ...s.btnDangerText, ...s.btnSmall, marginTop: 6, marginLeft: -14 },
+          onClick: () => requestDeleteHistoryEntry(h.id)
         },
-        placeholder: "Paste exported JSON here..."
+        /* @__PURE__ */ React.createElement(Icon.trash, { size: 16 }),
+        " Delete entry"
+      ))));
+    })))), tab === "Settings" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Settings" }), /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, 'Copy this prompt into an LLM along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into Import below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: copyLlmGuidance }, llmCopied ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.check, { size: 18 }), " Copied") : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Imported items are added to (or update) your existing ones \u2014 nothing is deleted."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("partial") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Full backup including history. Importing replaces everything."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("all") }, "Import"))), history.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.card }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Danger zone"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Permanently delete all ", history.length, " logged workouts."), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, color: C.danger }, onClick: requestClearHistory }, "Clear history")))), /* @__PURE__ */ React.createElement(
+      TabBar,
+      {
+        tabs: TABS,
+        active: tab,
+        onChange: (t) => {
+          setTab(t);
+          window.scrollTo(0, 0);
+        }
       }
-    ), importError && /* @__PURE__ */ React.createElement("div", { style: s.importError }, importError), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => applyImport(), disabled: !transferText.trim() }, "Apply"), /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => {
-      var _a;
-      return (_a = fileInputRef.current) == null ? void 0 : _a.click();
-    } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json", onChange: importFromFile, style: { display: "none" } }))))), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("div", { style: s.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: s.modalHeader }, /* @__PURE__ */ React.createElement("span", { style: s.modalTitle }, "Update exercise templates?"), /* @__PURE__ */ React.createElement("button", { style: s.modalClose, onClick: () => setPostSessionDrifts([]) }, "\xD7")), /* @__PURE__ */ React.createElement("p", { style: s.confirmMessage }, "What you just logged differs from the saved settings."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.driftRow }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("div", { style: s.modalActions }, /* @__PURE__ */ React.createElement("button", { style: { ...s.exportBtn, flex: 1 }, onClick: () => setPostSessionDrifts([]) }, "Done")))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    ), formOpen && /* @__PURE__ */ React.createElement(Sheet, { title: editingId ? "Edit exercise" : "New exercise", onClose: () => setFormOpen(false) }, /* @__PURE__ */ React.createElement(
+      ExerciseForm,
+      {
+        draft,
+        onChange: setDraft,
+        onSave: saveExercise,
+        onDelete: editingId ? () => requestConfirm(
+          "Delete exercise?",
+          `Delete "${draft.name}"? This also removes it from any routines that use it.`,
+          () => {
+            deleteExercise(editingId);
+            setFormOpen(false);
+          }
+        ) : null
+      }
+    )), transferMode && /* @__PURE__ */ React.createElement(
+      Sheet,
+      {
+        title: `${transferMode === "export" ? "Export" : "Import"} ${transferScope === "all" ? "all data" : "exercises & routines"}`,
+        onClose: () => setTransferMode(null)
+      },
+      transferMode === "export" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("textarea", { "data-transfer-text": true, style: s.transferArea, value: transferText, readOnly: true, onFocus: (e) => e.target.select() }), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: copyExport }, copied ? "Copied!" : "Copy"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: downloadExport }, "Download"))),
+      transferMode === "import" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          style: s.transferArea,
+          value: transferText,
+          onChange: (e) => {
+            setTransferText(e.target.value);
+            setImportError("");
+          },
+          placeholder: "Paste exported JSON here..."
+        }
+      ), importError && /* @__PURE__ */ React.createElement("div", { style: s.error }, importError), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: () => applyImport(), disabled: !transferText.trim() }, "Apply"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => {
+        var _a;
+        return (_a = fileInputRef.current) == null ? void 0 : _a.click();
+      } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json,application/json", onChange: importFromFile, style: { display: "none" } })))
+    ), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx
