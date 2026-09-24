@@ -1,8 +1,8 @@
-import { s, C } from "../styles.js";
+import { s, d, C } from "../styles.js";
 import { resolveStepTargetSets, formatTargetSummary } from "../format.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
 import { NumberField } from "./NumberField.jsx";
-import { Header, Sheet } from "./Layout.jsx";
+import { Header, Sheet, useIsDesktop } from "./Layout.jsx";
 import { Icon } from "./Icons.jsx";
 
 const { useState } = React;
@@ -15,6 +15,7 @@ const toStepValue = (v) => v === "" ? null : Math.round(v);
 // (minus the done buttons), so a routine can target a heterogeneous
 // pattern like 2 sets of 12 followed by 1 set of 24.
 export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+  const desktop = useIsDesktop();
   const [pickerOpen, setPickerOpen] = useState(false);
   const resolved = routine.steps
     .map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) }))
@@ -27,7 +28,7 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
         left={<button style={s.textBtn} onClick={onBack}><Icon.back size={20} /> Routines</button>}
         right={null}
       />
-      <div style={s.pageWithBottomBar}>
+      <div style={{ ...s.pageWithBottomBar, ...(desktop && d.pageWithBottomBar) }}>
         <input
           style={s.titleInput}
           value={routine.name}
@@ -37,8 +38,9 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
           autoFocus={!routine.name}
         />
 
+        <div style={desktop ? d.cardGrid : undefined}>
         {resolved.map(({ step, exercise: ex }, i) => (
-          <div key={step.id} style={s.exerciseCard}>
+          <div key={step.id} style={{ ...s.exerciseCard, ...(desktop && { marginBottom: 0 }) }}>
             <div style={s.exerciseCardHeader}>
               <div style={{ ...s.exerciseCardHeaderMain, cursor: "default" }}>
                 <div style={s.exerciseCardName}>
@@ -75,17 +77,18 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
           </div>
         ))}
 
-        <button style={s.btnDashed} onClick={() => setPickerOpen(true)}>
+        <button style={{ ...s.btnDashed, ...(desktop && { ...d.fullRow, marginTop: resolved.length ? 0 : undefined }) }} onClick={() => setPickerOpen(true)}>
           <Icon.plus size={20} /> Add exercise
         </button>
+        </div>
 
-        <button style={{ ...s.btnDangerText, ...s.btnBlock, marginTop: 28 }} onClick={onDelete}>
+        <button style={{ ...s.btnDangerText, ...(desktop ? {} : s.btnBlock), marginTop: 28 }} onClick={onDelete}>
           <Icon.trash size={18} /> Delete routine
         </button>
       </div>
 
-      <div style={s.bottomBar}>
-        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }} onClick={onStart} disabled={resolved.length === 0}>
+      <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
+        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onStart} disabled={resolved.length === 0}>
           <Icon.play size={18} /> Start routine
         </button>
       </div>

@@ -14,12 +14,12 @@ import {
   formatDriftSummary,
 } from "./format.js";
 import { LLM_GUIDANCE } from "./llmGuidance.js";
-import { s, C } from "./styles.js";
+import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
-import { Header, TabBar, Sheet, EmptyState } from "./components/Layout.jsx";
+import { Header, TabBar, Sidebar, Sheet, EmptyState, useIsDesktop } from "./components/Layout.jsx";
 import { Icon } from "./components/Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
@@ -32,6 +32,7 @@ const TABS = [
 ];
 
 export function ClimbingTrackerApp() {
+  const desktop = useIsDesktop();
   const [tab, setTab] = useState("Exercises");
   const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
   const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
@@ -336,19 +337,58 @@ export function ClimbingTrackerApp() {
     }
   };
 
+  const rootStyle = { ...s.root, ...(desktop && d.root) };
+
+  // The workout takes over the whole screen on desktop too (no sidebar), so
+  // it can't be left half-finished by switching tabs.
   if (activeSession) {
     return (
-      <div style={s.root}>
-        <SessionPage session={activeSession} onCancel={requestCancelSession} onLogChange={handleLogChange} onFinish={finishSession} />
+      <div style={rootStyle}>
+        <div style={desktop ? d.focus : undefined}>
+          <SessionPage session={activeSession} onCancel={requestCancelSession} onLogChange={handleLogChange} onFinish={finishSession} />
+        </div>
         <ConfirmModal confirm={confirm} onCancel={() => setConfirm(null)} />
       </div>
     );
   }
 
   const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
-  if (editingRoutine) {
-    return (
-      <div style={s.root}>
+  const changeTab = (t) => {
+    if (editingRoutine) closeRoutineEditor();
+    setTab(t);
+    window.scrollTo(0, 0);
+  };
+
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const monthAgo = Date.now() - 30 * 24 * 3600 * 1000;
+  const sessionsThisWeek = history.filter(h => new Date(h.date).getTime() >= weekAgo).length;
+  const sessionsThisMonth = history.filter(h => new Date(h.date).getTime() >= monthAgo).length;
+  const totalTrainingSec = history.reduce((sum, h) => sum + (h.durationSec || 0), 0);
+  const addButton = (onClick, label) => (
+    <button style={s.iconBtnFilled} onClick={onClick} aria-label={label}><Icon.plus size={22} /></button>
+  );
+  const pageStyle = { ...s.page, ...(desktop && d.page) };
+  const listStyle = desktop ? d.grid : s.list;
+  const cardStyle = desktop ? { ...s.card, marginBottom: 0 } : s.card;
+
+  return (
+    <div style={rootStyle}>
+      {desktop && (
+        <Sidebar
+          tabs={TABS}
+          active={tab}
+          onChange={changeTab}
+          footer={history.length > 0 && (
+            <div style={d.sidebarStat}>
+              <div style={{ ...s.statValue, fontSize: 22 }}>{sessionsThisWeek}</div>
+              <div style={s.statLabel}>Sessions, last 7 days</div>
+            </div>
+          )}
+        />
+      )}
+
+      <main style={desktop ? d.main : undefined}>
+      {editingRoutine ? (
         <RoutineEditPage
           routine={editingRoutine}
           exercises={exercises}
@@ -365,23 +405,12 @@ export function ClimbingTrackerApp() {
           onRemoveStep={idx => removeFromRoutine(editingRoutine.id, idx)}
           onMoveStep={(idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)}
         />
-        <ConfirmModal confirm={confirm} onCancel={() => setConfirm(null)} />
-      </div>
-    );
-  }
-
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  const sessionsThisWeek = history.filter(h => new Date(h.date).getTime() >= weekAgo).length;
-  const addButton = (onClick, label) => (
-    <button style={s.iconBtnFilled} onClick={onClick} aria-label={label}><Icon.plus size={22} /></button>
-  );
-
-  return (
-    <div style={s.root}>
+      ) : (
+      <>
       {tab === "Exercises" && (
         <>
           <Header title="Exercises" right={exercises.length > 0 && addButton(openNewExercise, "New exercise")} />
-          <div style={s.page}>
+          <div style={pageStyle}>
             {exercises.length === 0 ? (
               <EmptyState
                 icon="exercises"
@@ -390,7 +419,7 @@ export function ClimbingTrackerApp() {
                 action={<button style={s.btnPrimary} onClick={openNewExercise}><Icon.plus size={20} /> New exercise</button>}
               />
             ) : (
-              <div style={s.list}>
+              <div style={listStyle}>
                 {exercises.map(ex => (
                   <div key={ex.id} style={s.row}>
                     <button style={s.rowMain} onClick={() => openEditExercise(ex)}>
@@ -411,7 +440,7 @@ export function ClimbingTrackerApp() {
       {tab === "Routines" && (
         <>
           <Header title="Routines" right={routines.length > 0 && addButton(createRoutine, "New routine")} />
-          <div style={s.page}>
+          <div style={pageStyle}>
             {routines.length === 0 ? (
               <EmptyState
                 icon="routines"
@@ -420,7 +449,7 @@ export function ClimbingTrackerApp() {
                 action={<button style={s.btnPrimary} onClick={createRoutine}><Icon.plus size={20} /> New routine</button>}
               />
             ) : (
-              <div style={s.list}>
+              <div style={listStyle}>
                 {routines.map(r => {
                   const names = r.steps.map(step => exercises.find(e => e.id === step.exerciseId)?.name).filter(Boolean);
                   return (
@@ -451,20 +480,32 @@ export function ClimbingTrackerApp() {
       {tab === "History" && (
         <>
           <Header title="History" />
-          <div style={s.page}>
+          <div style={{ ...pageStyle, ...(desktop && d.pageNarrow) }}>
             {history.length === 0 ? (
               <EmptyState icon="history" title="Nothing logged yet" text="Finished workouts show up here." />
             ) : (
               <>
-                <div style={s.stats}>
+                <div style={{ ...s.stats, ...(desktop && d.stats) }}>
                   <div style={s.stat}>
                     <div style={s.statValue}>{sessionsThisWeek}</div>
                     <div style={s.statLabel}>Last 7 days</div>
                   </div>
+                  {desktop && (
+                    <div style={s.stat}>
+                      <div style={s.statValue}>{sessionsThisMonth}</div>
+                      <div style={s.statLabel}>Last 30 days</div>
+                    </div>
+                  )}
                   <div style={s.stat}>
                     <div style={s.statValue}>{history.length}</div>
                     <div style={s.statLabel}>Total sessions</div>
                   </div>
+                  {desktop && (
+                    <div style={s.stat}>
+                      <div style={s.statValue}>{formatDuration(totalTrainingSec)}</div>
+                      <div style={s.statLabel}>Total time</div>
+                    </div>
+                  )}
                 </div>
 
                 {history.map(h => {
@@ -530,8 +571,9 @@ export function ClimbingTrackerApp() {
       {tab === "Settings" && (
         <>
           <Header title="Settings" />
-          <div style={s.page}>
-            <div style={s.card}>
+          <div style={pageStyle}>
+            <div style={desktop ? d.settingsGrid : undefined}>
+            <div style={cardStyle}>
               <div style={s.sectionTitle}>Generate with AI</div>
               <div style={s.hint}>
                 Copy this prompt into an LLM along with what you want (e.g. "a finger-strength
@@ -543,7 +585,7 @@ export function ClimbingTrackerApp() {
               </button>
             </div>
 
-            <div style={s.card}>
+            <div style={cardStyle}>
               <div style={s.sectionTitle}>Exercises &amp; routines</div>
               <div style={s.hint}>Imported items are added to (or update) your existing ones — nothing is deleted.</div>
               <div style={s.btnRow}>
@@ -552,7 +594,7 @@ export function ClimbingTrackerApp() {
               </div>
             </div>
 
-            <div style={s.card}>
+            <div style={cardStyle}>
               <div style={s.sectionTitle}>All data</div>
               <div style={s.hint}>Full backup including history. Importing replaces everything.</div>
               <div style={s.btnRow}>
@@ -562,7 +604,7 @@ export function ClimbingTrackerApp() {
             </div>
 
             {history.length > 0 && (
-              <div style={s.card}>
+              <div style={cardStyle}>
                 <div style={s.sectionTitle}>Danger zone</div>
                 <div style={s.hint}>Permanently delete all {history.length} logged workouts.</div>
                 <button style={{ ...s.btnSecondary, ...s.btnBlock, color: C.danger }} onClick={requestClearHistory}>
@@ -570,15 +612,15 @@ export function ClimbingTrackerApp() {
                 </button>
               </div>
             )}
+            </div>
           </div>
         </>
       )}
+      </>
+      )}
+      </main>
 
-      <TabBar
-        tabs={TABS}
-        active={tab}
-        onChange={t => { setTab(t); window.scrollTo(0, 0); }}
-      />
+      {!desktop && !editingRoutine && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
 
       {formOpen && (
         <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>

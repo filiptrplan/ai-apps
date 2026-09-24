@@ -321,3 +321,62 @@ export const s = {
   timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
   controls: { display: "flex", gap: 10 },
 };
+
+// Desktop overrides, merged over `s` when useIsDesktop() is true. The phone
+// layout above stays the source of truth; these only widen and re-flow it.
+export const DESKTOP_QUERY = "(min-width: 900px)";
+const SIDEBAR_WIDTH = 232;
+const CONTENT_MAX = 1120;
+
+export const d = {
+  root: { maxWidth: "none", margin: 0 },
+  main: { flex: 1, minWidth: 0, marginLeft: SIDEBAR_WIDTH },
+  // Full-screen pages without the sidebar (active workout).
+  focus: { maxWidth: CONTENT_MAX, margin: "0 auto" },
+
+  sidebar: {
+    position: "fixed", top: 0, bottom: 0, left: 0, width: SIDEBAR_WIDTH, zIndex: 30,
+    display: "flex", flexDirection: "column", gap: 2, padding: "20px 12px",
+    background: C.surface, borderRight: `1px solid ${C.border}`,
+  },
+  brand: {
+    display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 22px",
+    fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em",
+  },
+  navItem: {
+    display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 42, padding: "0 12px",
+    borderRadius: 10, border: "none", background: "transparent", color: C.muted,
+    fontSize: 15, fontWeight: 600, textAlign: "left", cursor: "pointer",
+  },
+  navItemActive: { background: C.accentSoft, color: C.accent },
+  sidebarStat: {
+    margin: "0 4px", padding: "12px 14px", borderRadius: 12,
+    background: C.surface2, border: `1px solid ${C.border}`,
+  },
+
+  // Right padding keeps header actions aligned with the capped content width.
+  header: { padding: "18px 40px 14px", paddingRight: `max(40px, calc(100% - ${CONTENT_MAX - 40}px))`, minHeight: 72 },
+  headerTitle: { fontSize: 28 },
+  page: { padding: "28px 40px 56px", maxWidth: CONTENT_MAX },
+  pageNarrow: { padding: "28px 40px 56px", maxWidth: 820 },
+  pageWithBottomBar: { padding: "28px 40px 24px", maxWidth: CONTENT_MAX },
+  // Sticky within the content column instead of pinned to a 480px phone frame.
+  bottomBar: {
+    position: "sticky", left: "auto", transform: "none", maxWidth: CONTENT_MAX,
+    padding: "16px 40px 24px", display: "flex", justifyContent: "flex-end",
+  },
+  bottomBarBtn: { width: "auto", minWidth: 260 },
+
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 },
+  cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 16, alignItems: "start" },
+  fullRow: { gridColumn: "1 / -1" },
+  stats: { gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 },
+  settingsGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, maxWidth: 900 },
+
+  overlay: { alignItems: "center", padding: 24 },
+  sheet: {
+    maxWidth: 520, maxHeight: "84dvh", borderRadius: 20, border: `1px solid ${C.border}`,
+    boxShadow: "0 24px 64px rgba(0,0,0,0.5)", animation: "ct-pop .18s ease-out",
+  },
+  sheetBody: { padding: "8px 20px 20px" },
+};

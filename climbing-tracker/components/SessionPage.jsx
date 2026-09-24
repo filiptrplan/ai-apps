@@ -1,8 +1,8 @@
-import { s, C } from "../styles.js";
+import { s, d, C } from "../styles.js";
 import { formatTime, isStepComplete } from "../format.js";
 import { sounds } from "../sounds.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
-import { Header } from "./Layout.jsx";
+import { Header, useIsDesktop } from "./Layout.jsx";
 import { RestBar } from "./RestBar.jsx";
 import { Icon } from "./Icons.jsx";
 
@@ -59,6 +59,7 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const intervalRef = useRef(null);
   const timeLeftRef = useRef(0);
 
+  const desktop = useIsDesktop();
   useWakeLock();
 
   const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
@@ -126,7 +127,7 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
         left={<button style={{ ...s.textBtn, color: C.muted }} onClick={onCancel}>Cancel</button>}
         right={null}
       />
-      <div style={s.pageWithBottomBar}>
+      <div style={{ ...s.pageWithBottomBar, ...(desktop && { ...d.pageWithBottomBar, ...d.cardGrid }) }}>
         {order.map((exIdx, position) => (
           <React.Fragment key={exIdx}>
             <ExerciseCard
@@ -137,7 +138,7 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
               onMove={dir => moveCard(position, dir)}
             />
             {interRest && interRest.afterPos === position && (
-              <RestBar
+              <div style={desktop ? d.fullRow : undefined}><RestBar
                 label="Next exercise in"
                 tone="accent"
                 timeLeft={interRest.timeLeft}
@@ -145,13 +146,13 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
                 paused={interRest.paused}
                 onTogglePause={toggleInterRestPause}
                 onSkip={skipInterRest}
-              />
+              /></div>
             )}
           </React.Fragment>
         ))}
       </div>
-      <div style={s.bottomBar}>
-        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54 }} onClick={onFinish}>
+      <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
+        <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onFinish}>
           <Icon.flag size={20} /> Finish workout
         </button>
       </div>
