@@ -12,6 +12,8 @@ import {
   buildPerformedFromLog,
   computeTemplateDrift,
   formatDriftSummary,
+  groupSteps,
+  normalizeSupersets,
 } from "./format.js";
 import { LLM_GUIDANCE } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
@@ -120,7 +122,31 @@ export function ClimbingTrackerApp() {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
   };
   const removeFromRoutine = (routineId, idx) => {
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_, i) => i !== idx), exercises) } : r));
+  };
+  // Links step idx with step idx+1 into one superset (merging whatever
+  // groups either already belongs to), or splits the superset between them.
+  const toggleSupersetLink = (routineId, idx) => {
+    setRoutines(routines.map(r => {
+      if (r.id !== routineId) return r;
+      const steps = [...r.steps];
+      const a = steps[idx], b = steps[idx + 1];
+      if (!a || !b) return r;
+      if (a.supersetGroup && a.supersetGroup === b.supersetGroup) {
+        const fresh = uid();
+        for (let i = idx + 1; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
+          steps[i] = { ...steps[i], supersetGroup: fresh };
+        }
+      } else {
+        const group = a.supersetGroup || uid();
+        steps[idx] = { ...a, supersetGroup: group };
+        const old = b.supersetGroup;
+        for (let i = idx + 1; i < steps.length && (i === idx + 1 || (old && steps[i].supersetGroup === old)); i++) {
+          steps[i] = { ...steps[i], supersetGroup: group };
+        }
+      }
+      return { ...r, steps: normalizeSupersets(steps, exercises) };
+    }));
   };
   const moveInRoutine = (routineId, idx, dir) => {
     setRoutines(routines.map(r => {
@@ -129,7 +155,7 @@ export function ClimbingTrackerApp() {
       const j = idx + dir;
       if (j < 0 || j >= steps.length) return r;
       [steps[idx], steps[j]] = [steps[j], steps[idx]];
-      return { ...r, steps };
+      return { ...r, steps: normalizeSupersets(steps, exercises) };
     }));
   };
 
@@ -143,7 +169,7 @@ export function ClimbingTrackerApp() {
     setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
   };
   const startRoutine = (r) => {
-    const exs = r.steps.map(step => {
+    const exs = normalizeSupersets(r.steps, exercises).map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
       if (!ex) return null;
       return {
@@ -153,6 +179,7 @@ export function ClimbingTrackerApp() {
         restSec: step.restSec ?? (ex.restSec ?? 0),
         restAfterSec: step.restAfterSec ?? 0,
         routineStepId: step.id,
+        supersetGroup: step.supersetGroup || null,
       };
     }).filter(Boolean);
     if (exs.length === 0) return;
@@ -404,6 +431,7 @@ export function ClimbingTrackerApp() {
           onUpdateStep={(stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch)}
           onRemoveStep={idx => removeFromRoutine(editingRoutine.id, idx)}
           onMoveStep={(idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)}
+          onToggleLink={idx => toggleSupersetLink(editingRoutine.id, idx)}
         />
       ) : (
       <>
@@ -451,13 +479,16 @@ export function ClimbingTrackerApp() {
             ) : (
               <div style={listStyle}>
                 {routines.map(r => {
-                  const names = r.steps.map(step => exercises.find(e => e.id === step.exerciseId)?.name).filter(Boolean);
+                  const nameOf = step => exercises.find(e => e.id === step.exerciseId)?.name;
+                  const names = r.steps.map(nameOf).filter(Boolean);
+                  const blocks = groupSteps(r.steps.filter(nameOf), step => step.supersetGroup || null)
+                    .map(block => block.map(nameOf).join(" + "));
                   return (
                     <div key={r.id} style={s.row}>
                       <button style={s.rowMain} onClick={() => setEditingRoutineId(r.id)}>
                         <div style={s.rowTitle}>{r.name || "Untitled routine"}</div>
                         <div style={s.rowMeta}>
-                          {names.length === 0 ? "No exercises" : `${names.length} · ${names.join(", ")}`}
+                          {names.length === 0 ? "No exercises" : `${names.length} · ${blocks.join(", ")}`}
                         </div>
                       </button>
                       <button

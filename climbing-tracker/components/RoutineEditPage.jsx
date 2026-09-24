@@ -1,5 +1,5 @@
 import { s, d, C } from "../styles.js";
-import { resolveStepTargetSets, formatTargetSummary } from "../format.js";
+import { resolveStepTargetSets, formatTargetSummary, groupSteps } from "../format.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
 import { NumberField } from "./NumberField.jsx";
 import { Header, Sheet, useIsDesktop } from "./Layout.jsx";
@@ -14,12 +14,19 @@ const toStepValue = (v) => v === "" ? null : Math.round(v);
 // get the same per-set row editor used while actually logging a workout
 // (minus the done buttons), so a routine can target a heterogeneous
 // pattern like 2 sets of 12 followed by 1 set of 24.
-export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+//
+// Adjacent reps/weighted steps can be linked into a superset (shared
+// step.supersetGroup): they're bracketed together, numbered 1A/1B, and only
+// the last member's rests apply - between rounds and after the superset.
+export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
   const desktop = useIsDesktop();
   const [pickerOpen, setPickerOpen] = useState(false);
   const resolved = routine.steps
     .map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) }))
-    .filter(x => x.exercise);
+    .filter(x => x.exercise)
+    .map((x, i) => ({ ...x, i }));
+  const blocks = groupSteps(resolved, x => x.step.supersetGroup || null);
+  const linkable = x => x && x.exercise.type !== "interval";
 
   return (
     <>
@@ -39,12 +46,18 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
         />
 
         <div style={desktop ? d.cardGrid : undefined}>
-        {resolved.map(({ step, exercise: ex }, i) => (
+        {blocks.map((block, b) => {
+          const isSuperset = block.length > 1;
+          const cards = block.map(({ step, exercise: ex, i }, k) => {
+            const next = resolved[i + 1];
+            const linkedToNext = isSuperset && k < block.length - 1;
+            const lastInSuperset = isSuperset && k === block.length - 1;
+            return (
           <div key={step.id} style={{ ...s.exerciseCard, ...(desktop && { marginBottom: 0 }) }}>
             <div style={s.exerciseCardHeader}>
               <div style={{ ...s.exerciseCardHeaderMain, cursor: "default" }}>
                 <div style={s.exerciseCardName}>
-                  <span style={s.stepNumber}>{i + 1}</span>
+                  <span style={s.stepNumber}>{b + 1}{isSuperset ? String.fromCharCode(65 + k) : ""}</span>
                   <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{ex.name}</span>
                 </div>
               </div>
@@ -67,15 +80,37 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
                     isWeighted={ex.type === "weighted"}
                     onChange={targetSets => onUpdateStep(step.id, { targetSets })}
                   />
-                  <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
-                    <NumberField label="Rest / set" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
-                    <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
-                  </div>
+                  {linkedToNext ? (
+                    <div style={s.supersetHint}>No rest — straight into {next.exercise.name}.</div>
+                  ) : (
+                    <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+                      <NumberField label={lastInSuperset ? "Rest / round" : "Rest / set"} value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+                      <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+                    </div>
+                  )}
+                  {linkable(next) && (
+                    <button
+                      style={{ ...s.linkChip, ...(linkedToNext ? s.linkChipActive : {}), margin: "14px 0 0" }}
+                      onClick={() => onToggleLink(i)}
+                      aria-pressed={linkedToNext}
+                    >
+                      <Icon.link size={16} /> {linkedToNext ? `Superset with ${next.exercise.name} · Unlink` : `Superset with ${next.exercise.name}`}
+                    </button>
+                  )}
                 </>
               )}
             </div>
           </div>
-        ))}
+            );
+          });
+          if (!isSuperset) return cards;
+          return (
+            <div key={`ss-${block[0].step.id}`} style={{ ...s.supersetBlock, ...(desktop && { ...d.fullRow, marginBottom: 0 }) }}>
+              <div style={s.supersetLabel}><Icon.link size={14} /> Superset · {block.length} exercises</div>
+              <div style={desktop ? d.cardGrid : undefined}>{cards}</div>
+            </div>
+          );
+        })}
 
         <button style={{ ...s.btnDashed, ...(desktop && { ...d.fullRow, marginTop: resolved.length ? 0 : undefined }) }} onClick={() => setPickerOpen(true)}>
           <Icon.plus size={20} /> Add exercise

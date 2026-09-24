@@ -261,7 +261,7 @@ export const s = {
   exerciseCardTarget: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35 },
   exerciseCardBody: { padding: "4px 16px 16px" },
   stepNumber: {
-    width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: C.surface2,
+    minWidth: 26, height: 26, padding: "0 6px", borderRadius: 13, flexShrink: 0, background: C.surface2,
     color: C.muted, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
   },
   progressPill: {
@@ -271,6 +271,21 @@ export const s = {
   },
   progressPillDone: { background: C.greenSoft, color: C.green },
   hidden: { display: "none" },
+
+  // Superset: consecutive steps performed in alternating rounds, bracketed
+  // by an accent rule down the left edge.
+  supersetBlock: { borderLeft: `3px solid ${C.accent}`, paddingLeft: 10, marginBottom: 12 },
+  supersetLabel: {
+    display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700,
+    letterSpacing: "0.08em", textTransform: "uppercase", color: C.accent, margin: "2px 0 8px",
+  },
+  supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4 },
+  linkChip: {
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 6, margin: "-4px auto 8px",
+    minHeight: 32, padding: "0 12px", borderRadius: 16, fontSize: 13, fontWeight: 600, cursor: "pointer",
+    background: "none", border: `1px dashed ${C.border}`, color: C.muted,
+  },
+  linkChipActive: { borderStyle: "solid", borderColor: "rgba(232,176,75,0.45)", background: C.accentSoft, color: C.accent },
 
   setRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
   setIndex: { width: 22, flexShrink: 0, fontSize: 14, fontWeight: 700, color: C.dim, textAlign: "center" },

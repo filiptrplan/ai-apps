@@ -263,3 +263,31 @@ export function formatDriftSummary(drift) {
   if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s→${patch.restSec}s`);
   return parts.join(" · ");
 }
+
+// Splits an ordered list into blocks: consecutive items sharing the same
+// non-null group id (a routine step's supersetGroup) become one block, every
+// other item is a block of its own. Used by the routine editor and the
+// session page so a superset is always handled as one unit.
+export function groupSteps(items, getGroup) {
+  const blocks = [];
+  items.forEach(item => {
+    const g = getGroup(item);
+    const last = blocks[blocks.length - 1];
+    if (g && last && getGroup(last[last.length - 1]) === g) last.push(item);
+    else blocks.push([item]);
+  });
+  return blocks;
+}
+
+// Supersets only make sense for reps/weighted steps that sit next to at least
+// one other member of the same group. Strips supersetGroup from anything else
+// (interval steps, or a lone step left behind after a move/remove/unlink).
+export function normalizeSupersets(steps, exercises) {
+  const typeOf = step => exercises.find(e => e.id === step.exerciseId)?.type;
+  const cleaned = steps.map(step =>
+    step.supersetGroup && typeOf(step) === "interval" ? { ...step, supersetGroup: null } : step
+  );
+  return groupSteps(cleaned, step => step.supersetGroup || null).flatMap(block =>
+    block.length === 1 && block[0].supersetGroup ? [{ ...block[0], supersetGroup: null }] : block
+  );
+}

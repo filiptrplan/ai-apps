@@ -20357,6 +20357,28 @@ ${suffix}`;
     if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s\u2192${patch.restSec}s`);
     return parts.join(" \xB7 ");
   }
+  function groupSteps(items, getGroup) {
+    const blocks = [];
+    items.forEach((item) => {
+      const g = getGroup(item);
+      const last = blocks[blocks.length - 1];
+      if (g && last && getGroup(last[last.length - 1]) === g) last.push(item);
+      else blocks.push([item]);
+    });
+    return blocks;
+  }
+  function normalizeSupersets(steps, exercises) {
+    const typeOf = (step) => {
+      var _a;
+      return (_a = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a.type;
+    };
+    const cleaned = steps.map(
+      (step) => step.supersetGroup && typeOf(step) === "interval" ? { ...step, supersetGroup: null } : step
+    );
+    return groupSteps(cleaned, (step) => step.supersetGroup || null).flatMap(
+      (block) => block.length === 1 && block[0].supersetGroup ? [{ ...block[0], supersetGroup: null }] : block
+    );
+  }
 
   // climbing-tracker/llmGuidance.js
   var LLM_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
@@ -20408,7 +20430,7 @@ Routine objects group exercises into an ordered sequence of steps to perform tog
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
     ...
   ]
 }
@@ -20420,13 +20442,23 @@ Do not use "targetSets" for "interval" exercises - they only support the uniform
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
-- "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise in the routine. This is what to use for circuits/supersets, e.g. "3 rounds of 5 exercises with 20s between each exercise" - give every step in the round "restAfterSec": 20 (except it is harmless to leave it on the very last step too, since it is simply never shown after the last card). Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
+- "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise (or superset) in the routine. Use it for pauses between separate exercises, e.g. "5 exercises with 20s between each exercise" - give every step "restAfterSec": 20 (it is harmless to leave it on the very last step too, since it is simply never shown after the last card). For alternating sets of two or more exercises, use "supersetGroup" (below) instead. Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
+
+SUPERSETS - "supersetGroup" (optional, per routine step, default null) links consecutive steps into a superset that is performed in alternating rounds: one set of the first exercise, one set of the next, and so on, then a rest, then the next round (A1, B1, rest, A2, B2, rest, ...). Give every member step the same short string (e.g. "ss-1"); use a different string for each separate superset, and null for steps that aren't in one. Rules for supersets:
+- Only "reps" and "weighted" exercise steps can be in a superset - never "interval" steps.
+- Members must be directly next to each other in "steps", and a superset needs at least 2 members.
+- Give every member the same number of sets (same "sets", or "targetSets" arrays of the same length).
+- The rest between rounds is the LAST member's "restSec". Set "restSec" to 0 on all other members - there is no rest between exercises inside a round.
+- The rest after the whole superset (before the next exercise) is the LAST member's "restAfterSec". "restAfterSec" on the other members is ignored.
+Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds, then 2 min before the next exercise:
+  { "id": "st-1", "exerciseId": "ex-weighted-pullups", "sets": 3, "restSec": 0, "restAfterSec": null, "targetSets": null, "supersetGroup": "ss-1" },
+  { "id": "st-2", "exerciseId": "ex-pushups", "sets": 3, "restSec": 90, "restAfterSec": 120, "targetSets": null, "supersetGroup": "ss-1" }
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
 - Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
-- Do not invent extra fields. Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
+- Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
 - Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
@@ -20926,8 +20958,9 @@ Now generate the exercises and/or routines described by the user's request that 
     exerciseCardTarget: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35 },
     exerciseCardBody: { padding: "4px 16px 16px" },
     stepNumber: {
-      width: 26,
+      minWidth: 26,
       height: 26,
+      padding: "0 6px",
       borderRadius: 13,
       flexShrink: 0,
       background: C.surface2,
@@ -20956,6 +20989,38 @@ Now generate the exercises and/or routines described by the user's request that 
     },
     progressPillDone: { background: C.greenSoft, color: C.green },
     hidden: { display: "none" },
+    // Superset: consecutive steps performed in alternating rounds, bracketed
+    // by an accent rule down the left edge.
+    supersetBlock: { borderLeft: `3px solid ${C.accent}`, paddingLeft: 10, marginBottom: 12 },
+    supersetLabel: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12,
+      fontWeight: 700,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: C.accent,
+      margin: "2px 0 8px"
+    },
+    supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4 },
+    linkChip: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      margin: "-4px auto 8px",
+      minHeight: 32,
+      padding: "0 12px",
+      borderRadius: 16,
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer",
+      background: "none",
+      border: `1px dashed ${C.border}`,
+      color: C.muted
+    },
+    linkChipActive: { borderStyle: "solid", borderColor: "rgba(232,176,75,0.45)", background: C.accentSoft, color: C.accent },
     setRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
     setIndex: { width: 22, flexShrink: 0, fontSize: 14, fontWeight: 700, color: C.dim, textAlign: "center" },
     setInputWrap: {
@@ -21177,6 +21242,7 @@ Now generate the exercises and/or routines described by the user's request that 
     down: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M6 13l6 6 6-6" })),
     trash: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 7h16M10 11v6M14 11v6M6 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5L18 7M9 7V4.5h6V7" })),
     restart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" })),
+    link: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" })),
     flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
@@ -21595,7 +21661,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const rows = (log == null ? void 0 : log.rows) || [];
     return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
   }
-  function ExerciseCard({ exercise, position, total, onChange, onMove }) {
+  function ExerciseCard({ exercise, position, total, label, onChange, onMove }) {
     const [collapsed, setCollapsed] = useState4(false);
     const [progress, setProgress] = useState4(() => progressOf(exercise, null));
     const complete = progress.total > 0 && progress.done >= progress.total;
@@ -21603,7 +21669,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setProgress(progressOf(exercise, log));
       onChange(log);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, total > 1 && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
   }
 
   // climbing-tracker/components/Layout.jsx
@@ -21719,8 +21785,10 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     var _a;
-    const [order, setOrder] = useState6(() => session.exercises.map((_, i) => i));
+    const [order, setOrder] = useState6(() => groupSteps(session.exercises.map((_, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const completedRef = useRef4(session.exercises.map(() => false));
+    const doneCountRef = useRef4(session.exercises.map(() => 0));
+    const [cardExercises] = useState6(() => session.exercises.map((ex) => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
     const [interRest, setInterRest] = useState6(null);
     const intervalRef = useRef4(null);
     const timeLeftRef = useRef4(0);
@@ -21743,10 +21811,10 @@ Now generate the exercises and/or routines described by the user's request that 
         if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
       }
     };
-    const startInterRest = (afterPos, restAfterSec) => {
+    const startInterRest = (afterPos, restAfterSec, label = "Next exercise in") => {
       clearTick();
       timeLeftRef.current = restAfterSec;
-      setInterRest({ afterPos, timeLeft: restAfterSec, total: restAfterSec, paused: false });
+      setInterRest({ afterPos, label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
       sounds.restStart();
       intervalRef.current = setInterval(tick, 1e3);
     };
@@ -21779,12 +21847,21 @@ Now generate the exercises and/or routines described by the user's request that 
     const handleCardChange = (exIdx, log) => {
       onLogChange(exIdx, log);
       const exercise = session.exercises[exIdx];
-      const wasComplete = completedRef.current[exIdx];
-      const nowComplete = isStepComplete(exercise, log);
-      completedRef.current[exIdx] = nowComplete;
-      if (nowComplete && !wasComplete && exercise.restAfterSec > 0) {
-        const pos = order.indexOf(exIdx);
-        if (pos !== -1 && pos < order.length - 1) startInterRest(pos, exercise.restAfterSec);
+      const pos = order.findIndex((block2) => block2.includes(exIdx));
+      if (pos === -1) return;
+      const block = order[pos];
+      const last = session.exercises[block[block.length - 1]];
+      const isLastPos = pos === order.length - 1;
+      const wasBlockComplete = block.every((i) => completedRef.current[i]);
+      const prevRound = Math.min(...block.map((i) => doneCountRef.current[i]));
+      completedRef.current[exIdx] = isStepComplete(exercise, log);
+      doneCountRef.current[exIdx] = exercise.type === "interval" ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+      const blockComplete = block.every((i) => completedRef.current[i]);
+      const round = Math.min(...block.map((i) => doneCountRef.current[i]));
+      if (blockComplete && !wasBlockComplete) {
+        if (last.restAfterSec > 0 && !isLastPos) startInterRest(pos, last.restAfterSec);
+      } else if (block.length > 1 && !blockComplete && round > prevRound && last.restSec > 0) {
+        startInterRest(pos, last.restSec, "Next round in");
       }
     };
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
@@ -21795,27 +21872,33 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
         right: null
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((exIdx, position) => /* @__PURE__ */ React.createElement(React.Fragment, { key: exIdx }, /* @__PURE__ */ React.createElement(
-      ExerciseCard,
-      {
-        exercise: session.exercises[exIdx],
-        position,
-        total: order.length,
-        onChange: (log) => handleCardChange(exIdx, log),
-        onMove: (dir) => moveCard(position, dir)
-      }
-    ), interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: desktop ? d.fullRow : void 0 }, /* @__PURE__ */ React.createElement(
-      RestBar,
-      {
-        label: "Next exercise in",
-        tone: "accent",
-        timeLeft: interRest.timeLeft,
-        total: interRest.total,
-        paused: interRest.paused,
-        onTogglePause: toggleInterRestPause,
-        onSkip: skipInterRest
-      }
-    ))))), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
+    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((block, position) => {
+      const isSuperset = block.length > 1;
+      const cards = block.map((exIdx, k) => /* @__PURE__ */ React.createElement(
+        ExerciseCard,
+        {
+          key: exIdx,
+          exercise: cardExercises[exIdx],
+          position,
+          total: order.length,
+          label: isSuperset ? `${position + 1}${String.fromCharCode(65 + k)}` : null,
+          onChange: (log) => handleCardChange(exIdx, log),
+          onMove: (dir) => moveCard(position, dir)
+        }
+      ));
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: block[0] }, isSuperset ? /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetBlock, ...desktop && { ...d.fullRow, marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetLabel }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset \xB7 alternate sets"), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, cards)) : cards, interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: desktop ? d.fullRow : void 0 }, /* @__PURE__ */ React.createElement(
+        RestBar,
+        {
+          label: interRest.label,
+          tone: "accent",
+          timeLeft: interRest.timeLeft,
+          total: interRest.total,
+          paused: interRest.paused,
+          onTogglePause: toggleInterRestPause,
+          onSkip: skipInterRest
+        }
+      )));
+    })), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
   }
 
   // climbing-tracker/components/SetTargetsEditor.jsx
@@ -21846,10 +21929,12 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/RoutineEditPage.jsx
   var { useState: useState7 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
-  function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep }) {
+  function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
     const [pickerOpen, setPickerOpen] = useState7(false);
-    const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise);
+    const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
+    const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
+    const linkable = (x) => x && x.exercise.type !== "interval";
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       Header,
       {
@@ -21867,16 +21952,34 @@ Now generate the exercises and/or routines described by the user's request that 
         placeholder: "Routine name",
         autoFocus: !routine.name
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, resolved.map(({ step, exercise: ex }, i) => {
-      var _a, _b, _c, _d, _e, _f, _g;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, style: { ...s.exerciseCard, ...desktop && { marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default" } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, i + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-        SetTargetsEditor,
-        {
-          sets: resolveStepTargetSets(step, ex),
-          isWeighted: ex.type === "weighted",
-          onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
-        }
-      ), /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Rest / set", value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_g = step.restAfterSec) != null ? _g : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })))));
+    ), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, blocks.map((block, b) => {
+      const isSuperset = block.length > 1;
+      const cards = block.map(({ step, exercise: ex, i }, k) => {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const next = resolved[i + 1];
+        const linkedToNext = isSuperset && k < block.length - 1;
+        const lastInSuperset = isSuperset && k === block.length - 1;
+        return /* @__PURE__ */ React.createElement("div", { key: step.id, style: { ...s.exerciseCard, ...desktop && { marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default" } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, b + 1, isSuperset ? String.fromCharCode(65 + k) : ""), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+          SetTargetsEditor,
+          {
+            sets: resolveStepTargetSets(step, ex),
+            isWeighted: ex.type === "weighted",
+            onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
+          }
+        ), linkedToNext ? /* @__PURE__ */ React.createElement("div", { style: s.supersetHint }, "No rest \u2014 straight into ", next.exercise.name, ".") : /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: lastInSuperset ? "Rest / round" : "Rest / set", value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_g = step.restAfterSec) != null ? _g : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })), linkable(next) && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            style: { ...s.linkChip, ...linkedToNext ? s.linkChipActive : {}, margin: "14px 0 0" },
+            onClick: () => onToggleLink(i),
+            "aria-pressed": linkedToNext
+          },
+          /* @__PURE__ */ React.createElement(Icon.link, { size: 16 }),
+          " ",
+          linkedToNext ? `Superset with ${next.exercise.name} \xB7 Unlink` : `Superset with ${next.exercise.name}`
+        ))));
+      });
+      if (!isSuperset) return cards;
+      return /* @__PURE__ */ React.createElement("div", { key: `ss-${block[0].step.id}`, style: { ...s.supersetBlock, ...desktop && { ...d.fullRow, marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetLabel }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset \xB7 ", block.length, " exercises"), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, cards));
     }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, ...desktop && { ...d.fullRow, marginTop: resolved.length ? 0 : void 0 } }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), exercises.map((ex) => /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -21982,7 +22085,29 @@ Now generate the exercises and/or routines described by the user's request that 
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
     };
     const removeFromRoutine = (routineId, idx) => {
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.filter((_, i) => i !== idx) } : r));
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_, i) => i !== idx), exercises) } : r));
+    };
+    const toggleSupersetLink = (routineId, idx) => {
+      setRoutines(routines.map((r) => {
+        if (r.id !== routineId) return r;
+        const steps = [...r.steps];
+        const a = steps[idx], b = steps[idx + 1];
+        if (!a || !b) return r;
+        if (a.supersetGroup && a.supersetGroup === b.supersetGroup) {
+          const fresh = uid();
+          for (let i = idx + 1; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
+            steps[i] = { ...steps[i], supersetGroup: fresh };
+          }
+        } else {
+          const group = a.supersetGroup || uid();
+          steps[idx] = { ...a, supersetGroup: group };
+          const old = b.supersetGroup;
+          for (let i = idx + 1; i < steps.length && (i === idx + 1 || old && steps[i].supersetGroup === old); i++) {
+            steps[i] = { ...steps[i], supersetGroup: group };
+          }
+        }
+        return { ...r, steps: normalizeSupersets(steps, exercises) };
+      }));
     };
     const moveInRoutine = (routineId, idx, dir) => {
       setRoutines(routines.map((r) => {
@@ -21991,7 +22116,7 @@ Now generate the exercises and/or routines described by the user's request that 
         const j = idx + dir;
         if (j < 0 || j >= steps.length) return r;
         [steps[idx], steps[j]] = [steps[j], steps[idx]];
-        return { ...r, steps };
+        return { ...r, steps: normalizeSupersets(steps, exercises) };
       }));
     };
     const sessionLogsRef = useRef5([]);
@@ -22000,7 +22125,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
     };
     const startRoutine = (r) => {
-      const exs = r.steps.map((step) => {
+      const exs = normalizeSupersets(r.steps, exercises).map((step) => {
         var _a, _b, _c, _d, _e;
         const ex = exercises.find((e) => e.id === step.exerciseId);
         if (!ex) return null;
@@ -22010,7 +22135,8 @@ Now generate the exercises and/or routines described by the user's request that 
           targetSets: (_b = step.targetSets) != null ? _b : null,
           restSec: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0,
           restAfterSec: (_e = step.restAfterSec) != null ? _e : 0,
-          routineStepId: step.id
+          routineStepId: step.id,
+          supersetGroup: step.supersetGroup || null
         };
       }).filter(Boolean);
       if (exs.length === 0) return;
@@ -22243,7 +22369,8 @@ Now generate the exercises and/or routines described by the user's request that 
         onAddStep: (exerciseId) => addStepToRoutine(editingRoutine.id, exerciseId),
         onUpdateStep: (stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch),
         onRemoveStep: (idx) => removeFromRoutine(editingRoutine.id, idx),
-        onMoveStep: (idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)
+        onMoveStep: (idx, dir) => moveInRoutine(editingRoutine.id, idx, dir),
+        onToggleLink: (idx) => toggleSupersetLink(editingRoutine.id, idx)
       }
     ) : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "Exercises" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Exercises", right: exercises.length > 0 && addButton(openNewExercise, "New exercise") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, exercises.length === 0 ? /* @__PURE__ */ React.createElement(
       EmptyState,
@@ -22262,11 +22389,13 @@ Now generate the exercises and/or routines described by the user's request that 
         action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: createRoutine }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New routine")
       }
     ) : /* @__PURE__ */ React.createElement("div", { style: listStyle }, routines.map((r) => {
-      const names = r.steps.map((step) => {
+      const nameOf = (step) => {
         var _a;
         return (_a = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a.name;
-      }).filter(Boolean);
-      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => setEditingRoutineId(r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, r.name || "Untitled routine"), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, names.length === 0 ? "No exercises" : `${names.length} \xB7 ${names.join(", ")}`)), /* @__PURE__ */ React.createElement(
+      };
+      const names = r.steps.map(nameOf).filter(Boolean);
+      const blocks = groupSteps(r.steps.filter(nameOf), (step) => step.supersetGroup || null).map((block) => block.map(nameOf).join(" + "));
+      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => setEditingRoutineId(r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, r.name || "Untitled routine"), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, names.length === 0 ? "No exercises" : `${names.length} \xB7 ${blocks.join(", ")}`)), /* @__PURE__ */ React.createElement(
         "button",
         {
           style: s.playBtn,

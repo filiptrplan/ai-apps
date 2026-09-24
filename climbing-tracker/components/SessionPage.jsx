@@ -1,5 +1,5 @@
 import { s, d, C } from "../styles.js";
-import { formatTime, isStepComplete } from "../format.js";
+import { formatTime, isStepComplete, groupSteps } from "../format.js";
 import { sounds } from "../sounds.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
 import { Header, useIsDesktop } from "./Layout.jsx";
@@ -52,10 +52,19 @@ function useWakeLock() {
 // when a card newly becomes fully complete, and it isn't the last card in the
 // current display order, a non-blocking rest countdown appears before the
 // next card - advisory only, it never locks the other cards.
+//
+// Supersets (consecutive exercises sharing a supersetGroup) are one block:
+// they move together, their cards run with no per-set rest, and a "Next
+// round" rest (the last member's restSec) starts once every member has one
+// more set ticked. The last member's restAfterSec applies after the block.
 export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
-  const [order, setOrder] = useState(() => session.exercises.map((_, i) => i));
+  const [order, setOrder] = useState(() => groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
   const completedRef = useRef(session.exercises.map(() => false));
-  const [interRest, setInterRest] = useState(null); // { afterPos, timeLeft, total, paused }
+  const doneCountRef = useRef(session.exercises.map(() => 0));
+  // Superset members log without their own between-set rest; the block's
+  // round rest replaces it.
+  const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
+  const [interRest, setInterRest] = useState(null); // { afterPos, label, timeLeft, total, paused }
   const intervalRef = useRef(null);
   const timeLeftRef = useRef(0);
 
@@ -76,10 +85,10 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     }
   };
 
-  const startInterRest = (afterPos, restAfterSec) => {
+  const startInterRest = (afterPos, restAfterSec, label = "Next exercise in") => {
     clearTick();
     timeLeftRef.current = restAfterSec;
-    setInterRest({ afterPos, timeLeft: restAfterSec, total: restAfterSec, paused: false });
+    setInterRest({ afterPos, label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
     sounds.restStart();
     intervalRef.current = setInterval(tick, 1000);
   };
@@ -110,12 +119,25 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const handleCardChange = (exIdx, log) => {
     onLogChange(exIdx, log);
     const exercise = session.exercises[exIdx];
-    const wasComplete = completedRef.current[exIdx];
-    const nowComplete = isStepComplete(exercise, log);
-    completedRef.current[exIdx] = nowComplete;
-    if (nowComplete && !wasComplete && exercise.restAfterSec > 0) {
-      const pos = order.indexOf(exIdx);
-      if (pos !== -1 && pos < order.length - 1) startInterRest(pos, exercise.restAfterSec);
+    const pos = order.findIndex(block => block.includes(exIdx));
+    if (pos === -1) return;
+    const block = order[pos];
+    const last = session.exercises[block[block.length - 1]];
+    const isLastPos = pos === order.length - 1;
+
+    const wasBlockComplete = block.every(i => completedRef.current[i]);
+    const prevRound = Math.min(...block.map(i => doneCountRef.current[i]));
+    completedRef.current[exIdx] = isStepComplete(exercise, log);
+    doneCountRef.current[exIdx] = exercise.type === "interval"
+      ? (log?.completedSets || 0)
+      : (log?.rows || []).filter(r => r.done).length;
+    const blockComplete = block.every(i => completedRef.current[i]);
+    const round = Math.min(...block.map(i => doneCountRef.current[i]));
+
+    if (blockComplete && !wasBlockComplete) {
+      if (last.restAfterSec > 0 && !isLastPos) startInterRest(pos, last.restAfterSec);
+    } else if (block.length > 1 && !blockComplete && round > prevRound && last.restSec > 0) {
+      startInterRest(pos, last.restSec, "Next round in");
     }
   };
 
@@ -128,28 +150,41 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
         right={null}
       />
       <div style={{ ...s.pageWithBottomBar, ...(desktop && { ...d.pageWithBottomBar, ...d.cardGrid }) }}>
-        {order.map((exIdx, position) => (
-          <React.Fragment key={exIdx}>
+        {order.map((block, position) => {
+          const isSuperset = block.length > 1;
+          const cards = block.map((exIdx, k) => (
             <ExerciseCard
-              exercise={session.exercises[exIdx]}
+              key={exIdx}
+              exercise={cardExercises[exIdx]}
               position={position}
               total={order.length}
+              label={isSuperset ? `${position + 1}${String.fromCharCode(65 + k)}` : null}
               onChange={log => handleCardChange(exIdx, log)}
               onMove={dir => moveCard(position, dir)}
             />
-            {interRest && interRest.afterPos === position && (
-              <div style={desktop ? d.fullRow : undefined}><RestBar
-                label="Next exercise in"
-                tone="accent"
-                timeLeft={interRest.timeLeft}
-                total={interRest.total}
-                paused={interRest.paused}
-                onTogglePause={toggleInterRestPause}
-                onSkip={skipInterRest}
-              /></div>
-            )}
-          </React.Fragment>
-        ))}
+          ));
+          return (
+            <React.Fragment key={block[0]}>
+              {isSuperset ? (
+                <div style={{ ...s.supersetBlock, ...(desktop && { ...d.fullRow, marginBottom: 0 }) }}>
+                  <div style={s.supersetLabel}><Icon.link size={14} /> Superset · alternate sets</div>
+                  <div style={desktop ? d.cardGrid : undefined}>{cards}</div>
+                </div>
+              ) : cards}
+              {interRest && interRest.afterPos === position && (
+                <div style={desktop ? d.fullRow : undefined}><RestBar
+                  label={interRest.label}
+                  tone="accent"
+                  timeLeft={interRest.timeLeft}
+                  total={interRest.total}
+                  paused={interRest.paused}
+                  onTogglePause={toggleInterRestPause}
+                  onSkip={skipInterRest}
+                /></div>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
       <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
         <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onFinish}>

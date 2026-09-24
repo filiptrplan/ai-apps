@@ -14,7 +14,7 @@ function progressOf(exercise, log) {
   return { done: rows.filter(r => r.done).length, total: rows.length || exercise.sets || 1 };
 }
 
-export function ExerciseCard({ exercise, position, total, onChange, onMove }) {
+export function ExerciseCard({ exercise, position, total, label, onChange, onMove }) {
   const [collapsed, setCollapsed] = useState(false);
   const [progress, setProgress] = useState(() => progressOf(exercise, null));
   const complete = progress.total > 0 && progress.done >= progress.total;
@@ -29,7 +29,7 @@ export function ExerciseCard({ exercise, position, total, onChange, onMove }) {
       <div style={s.exerciseCardHeader}>
         <button style={s.exerciseCardHeaderMain} onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed}>
           <div style={s.exerciseCardName}>
-            {total > 1 && <span style={s.stepNumber}>{position + 1}</span>}
+            {(label || total > 1) && <span style={s.stepNumber}>{label || position + 1}</span>}
             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{exercise.name}</span>
           </div>
           <div style={s.exerciseCardTarget}>{formatTargetSummary(exercise)}</div>
