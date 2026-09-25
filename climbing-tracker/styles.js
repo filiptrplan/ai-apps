@@ -275,13 +275,22 @@ export const s = {
   // Superset: consecutive steps performed in alternating rounds, bracketed
   // by an accent rule down the left edge.
   supersetBlock: { borderLeft: `3px solid ${C.accent}`, paddingLeft: 10, marginBottom: 12 },
+  supersetHeader: { display: "flex", alignItems: "center", gap: 2, margin: "-6px 0 4px -6px" },
+  // Grip for drag-to-reorder; a full 40px touch target around a small icon.
+  dragHandle: {
+    width: 36, height: 40, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    border: "none", borderRadius: 10, background: "transparent", color: C.dim,
+    userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
+  },
   supersetLabel: {
     display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700,
     letterSpacing: "0.08em", textTransform: "uppercase", color: C.accent, margin: "2px 0 8px",
   },
-  supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4 },
+  supersetFooter: { padding: "4px 4px 2px" },
+  supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4, marginBottom: 10 },
+  // Link/unlink chip sitting in the gap between two routine editor cards.
   linkChip: {
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 6, margin: "-4px auto 8px",
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "fit-content", margin: "-2px auto 10px",
     minHeight: 32, padding: "0 12px", borderRadius: 16, fontSize: 13, fontWeight: 600, cursor: "pointer",
     background: "none", border: `1px dashed ${C.border}`, color: C.muted,
   },
@@ -385,6 +394,8 @@ export const d = {
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 },
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 16, alignItems: "start" },
   fullRow: { gridColumn: "1 / -1" },
+  // Routine editor stays one column: link chips sit between consecutive cards.
+  editorColumn: { maxWidth: 760 },
   stats: { gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 },
   settingsGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, maxWidth: 900 },
 

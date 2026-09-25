@@ -20992,6 +20992,23 @@ Now generate the exercises and/or routines described by the user's request that 
     // Superset: consecutive steps performed in alternating rounds, bracketed
     // by an accent rule down the left edge.
     supersetBlock: { borderLeft: `3px solid ${C.accent}`, paddingLeft: 10, marginBottom: 12 },
+    supersetHeader: { display: "flex", alignItems: "center", gap: 2, margin: "-6px 0 4px -6px" },
+    // Grip for drag-to-reorder; a full 40px touch target around a small icon.
+    dragHandle: {
+      width: 36,
+      height: 40,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "none",
+      borderRadius: 10,
+      background: "transparent",
+      color: C.dim,
+      userSelect: "none",
+      WebkitUserSelect: "none",
+      WebkitTouchCallout: "none"
+    },
     supersetLabel: {
       display: "flex",
       alignItems: "center",
@@ -21003,13 +21020,16 @@ Now generate the exercises and/or routines described by the user's request that 
       color: C.accent,
       margin: "2px 0 8px"
     },
-    supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4 },
+    supersetFooter: { padding: "4px 4px 2px" },
+    supersetHint: { fontSize: 13, color: C.muted, lineHeight: 1.4, marginBottom: 10 },
+    // Link/unlink chip sitting in the gap between two routine editor cards.
     linkChip: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      margin: "-4px auto 8px",
+      width: "fit-content",
+      margin: "-2px auto 10px",
       minHeight: 32,
       padding: "0 12px",
       borderRadius: 16,
@@ -21192,6 +21212,8 @@ Now generate the exercises and/or routines described by the user's request that 
     grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 },
     cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 16, alignItems: "start" },
     fullRow: { gridColumn: "1 / -1" },
+    // Routine editor stays one column: link chips sit between consecutive cards.
+    editorColumn: { maxWidth: 760 },
     stats: { gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 },
     settingsGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, maxWidth: 900 },
     overlay: { alignItems: "center", padding: 24 },
@@ -21243,6 +21265,7 @@ Now generate the exercises and/or routines described by the user's request that 
     trash: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 7h16M10 11v6M14 11v6M6 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5L18 7M9 7V4.5h6V7" })),
     restart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" })),
     link: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" })),
+    grip: (p) => /* @__PURE__ */ React.createElement("svg", { width: p.size || 22, height: p.size || 22, viewBox: "0 0 24 24", "aria-hidden": "true", fill: "currentColor" }, [6, 12, 18].flatMap((y) => [9, 15].map((x) => /* @__PURE__ */ React.createElement("circle", { key: `${x}-${y}`, cx: x, cy: y, r: "1.6" })))),
     flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
@@ -21926,15 +21949,138 @@ Now generate the exercises and/or routines described by the user's request that 
     ), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeRow(i), disabled: sets.length <= 1, "aria-label": `Remove set ${i + 1}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock, marginTop: 4 }, onClick: addRow }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set"));
   }
 
+  // climbing-tracker/components/useDragReorder.js
+  var { useRef: useRef5, useState: useState7 } = React;
+  var EDGE = 80;
+  function useDragReorder(onDrop) {
+    const drag = useRef5(null);
+    const [draggingList, setDraggingList] = useState7(null);
+    const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
+    const layout = (st) => {
+      const { els, rects, from, pointerY, startY } = st;
+      const dy = pointerY + window.scrollY - startY;
+      const self2 = rects[from];
+      const center = self2.top + self2.height / 2 + dy;
+      let to = 0;
+      rects.forEach((r, i) => {
+        if (i !== from && r.top + r.height / 2 < center) to++;
+      });
+      const shift = from < rects.length - 1 ? rects[from + 1].top - self2.top : self2.top - rects[from - 1].top;
+      els.forEach((el, i) => {
+        if (i === from) {
+          el.style.transform = `translateY(${dy}px)`;
+          return;
+        }
+        const offset = from < to && i > from && i <= to ? -shift : to < from && i >= to && i < from ? shift : 0;
+        el.style.transform = offset ? `translateY(${offset}px)` : "";
+      });
+      st.to = to;
+    };
+    const onPointerMove = (e) => {
+      const st = drag.current;
+      if (!st || e.pointerId !== st.pointerId) return;
+      st.pointerY = e.clientY;
+      if (e.clientY < EDGE) window.scrollBy(0, -12);
+      else if (e.clientY > window.innerHeight - EDGE) window.scrollBy(0, 12);
+      layout(st);
+    };
+    const finish = (e) => {
+      const st = drag.current;
+      if (!st || e.pointerId !== st.pointerId) return;
+      drag.current = null;
+      e.currentTarget.removeEventListener("pointermove", onPointerMove);
+      st.els.forEach((el) => {
+        el.style.transform = "";
+        el.style.transition = "";
+        el.style.zIndex = "";
+        el.style.position = "";
+        el.style.boxShadow = "";
+      });
+      setDraggingList(null);
+      if (st.to !== st.from) onDrop(st.listId, st.from, st.to);
+    };
+    const handleProps = (listId, index) => ({
+      style: { touchAction: "none", cursor: draggingList === listId ? "grabbing" : "grab" },
+      onPointerDown: (e) => {
+        if (e.button !== 0 || drag.current) return;
+        e.preventDefault();
+        const els = siblings(listId);
+        if (els.length < 2) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        e.currentTarget.addEventListener("pointermove", onPointerMove);
+        els.forEach((el, i) => {
+          el.style.transition = i === index ? "none" : "transform .15s ease";
+          if (i === index) Object.assign(el.style, { position: "relative", zIndex: 20, boxShadow: "0 12px 32px rgba(0,0,0,0.5)" });
+        });
+        drag.current = {
+          listId,
+          els,
+          from: index,
+          to: index,
+          pointerId: e.pointerId,
+          startY: e.clientY + window.scrollY,
+          pointerY: e.clientY,
+          rects: els.map((el) => {
+            const r = el.getBoundingClientRect();
+            return { top: r.top + window.scrollY, height: r.height };
+          })
+        };
+        setDraggingList(listId);
+      },
+      onPointerUp: finish,
+      onPointerCancel: finish,
+      onKeyDown: (e) => {
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          e.preventDefault();
+          const to = index + (e.key === "ArrowUp" ? -1 : 1);
+          if (to >= 0 && to < siblings(listId).length) onDrop(listId, index, to);
+        }
+      }
+    });
+    return { handleProps, draggingList };
+  }
+
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState7 } = React;
+  var { useState: useState8 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
   function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState7(false);
+    const [pickerOpen, setPickerOpen] = useState8(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const linkable = (x) => x && x.exercise.type !== "interval";
+    const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
+      if (listId === "top") onMoveStep(blocks[from][0].i, to - from, true);
+      else onMoveStep(blocks.find((block) => block[0].step.id === listId)[from].i, to - from, false);
+    });
+    const grip = (listId, index, name) => /* @__PURE__ */ React.createElement("button", { ...handleProps(listId, index), style: { ...s.dragHandle, ...handleProps(listId, index).style }, "aria-label": `Reorder ${name}` }, /* @__PURE__ */ React.createElement(Icon.grip, { size: 20 }));
+    const restFields = (step, ex, restLabel) => {
+      var _a, _b, _c;
+      return /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: restLabel, value: (_b = step.restSec) != null ? _b : (_a = ex.restSec) != null ? _a : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_c = step.restAfterSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }));
+    };
+    const linkChip = (i, linked, label) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: `link-${i}`,
+        style: { ...s.linkChip, ...linked ? s.linkChipActive : {}, ...draggingList && { visibility: "hidden" } },
+        onClick: () => onToggleLink(i),
+        "aria-pressed": linked
+      },
+      /* @__PURE__ */ React.createElement(Icon.link, { size: 16 }),
+      " ",
+      label
+    );
+    const renderCard = ({ step, exercise: ex, i }, label, listId, index, inSuperset) => {
+      var _a, _b, _c, _d;
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        SetTargetsEditor,
+        {
+          sets: resolveStepTargetSets(step, ex),
+          isWeighted: ex.type === "weighted",
+          onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
+        }
+      ), !inSuperset && restFields(step, ex, "Rest / set"))));
+    };
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       Header,
       {
@@ -21942,7 +22088,7 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: s.textBtn, onClick: onBack }, /* @__PURE__ */ React.createElement(Icon.back, { size: 20 }), " Routines"),
         right: null
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && d.pageWithBottomBar } }, /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.editorColumn } } }, /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.titleInput,
@@ -21952,35 +22098,17 @@ Now generate the exercises and/or routines described by the user's request that 
         placeholder: "Routine name",
         autoFocus: !routine.name
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, blocks.map((block, b) => {
-      const isSuperset = block.length > 1;
-      const cards = block.map(({ step, exercise: ex, i }, k) => {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const next = resolved[i + 1];
-        const linkedToNext = isSuperset && k < block.length - 1;
-        const lastInSuperset = isSuperset && k === block.length - 1;
-        return /* @__PURE__ */ React.createElement("div", { key: step.id, style: { ...s.exerciseCard, ...desktop && { marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default" } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, b + 1, isSuperset ? String.fromCharCode(65 + k) : ""), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, -1), disabled: i === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMoveStep(i, 1), disabled: i === resolved.length - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-          SetTargetsEditor,
-          {
-            sets: resolveStepTargetSets(step, ex),
-            isWeighted: ex.type === "weighted",
-            onChange: (targetSets) => onUpdateStep(step.id, { targetSets })
-          }
-        ), linkedToNext ? /* @__PURE__ */ React.createElement("div", { style: s.supersetHint }, "No rest \u2014 straight into ", next.exercise.name, ".") : /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: lastInSuperset ? "Rest / round" : "Rest / set", value: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_g = step.restAfterSec) != null ? _g : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })), linkable(next) && /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            style: { ...s.linkChip, ...linkedToNext ? s.linkChipActive : {}, margin: "14px 0 0" },
-            onClick: () => onToggleLink(i),
-            "aria-pressed": linkedToNext
-          },
-          /* @__PURE__ */ React.createElement(Icon.link, { size: 16 }),
-          " ",
-          linkedToNext ? `Superset with ${next.exercise.name} \xB7 Unlink` : `Superset with ${next.exercise.name}`
-        ))));
-      });
-      if (!isSuperset) return cards;
-      return /* @__PURE__ */ React.createElement("div", { key: `ss-${block[0].step.id}`, style: { ...s.supersetBlock, ...desktop && { ...d.fullRow, marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetLabel }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset \xB7 ", block.length, " exercises"), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, cards));
-    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, ...desktop && { ...d.fullRow, marginTop: resolved.length ? 0 : void 0 } }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), exercises.map((ex) => /* @__PURE__ */ React.createElement(
+    ), blocks.map((block, b) => {
+      var _a, _b;
+      const first = block[0], last = block[block.length - 1];
+      const nextFirst = (_a = blocks[b + 1]) == null ? void 0 : _a[0];
+      const joinsSuperset = block.length > 1 || ((_b = blocks[b + 1]) == null ? void 0 : _b.length) > 1;
+      const after = linkable(last) && linkable(nextFirst) ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset") : null;
+      if (block.length === 1) {
+        return /* @__PURE__ */ React.createElement(React.Fragment, { key: first.step.id }, renderCard(first, b + 1, "top", b, false), nextFirst && after);
+      }
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: `ss-${first.step.id}` }, /* @__PURE__ */ React.createElement("div", { "data-drag-list": "top", style: { ...s.supersetBlock, background: C.bg } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHeader }, grip("top", b, `superset ${b + 1}`), /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetLabel, margin: 0, flex: 1 } }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset ", b + 1, " \xB7 alternate sets")), block.map((x, k) => /* @__PURE__ */ React.createElement(React.Fragment, { key: x.step.id }, renderCard(x, `${b + 1}${String.fromCharCode(65 + k)}`, first.step.id, k, true), k < block.length - 1 && linkChip(x.i, true, "Unlink"))), /* @__PURE__ */ React.createElement("div", { style: s.supersetFooter }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHint }, "No rest between exercises. Rest after each full round:"), restFields(last.step, last.exercise, "Rest / round"))), nextFirst && after);
+    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), exercises.map((ex) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: ex.id,
@@ -22005,7 +22133,8 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState8, useEffect: useEffect6, useRef: useRef5 } = React;
+  var { useState: useState9, useEffect: useEffect6, useRef: useRef6 } = React;
+  var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var TABS = [
     { id: "Exercises", label: "Exercises", icon: "exercises" },
     { id: "Routines", label: "Routines", icon: "routines" },
@@ -22014,18 +22143,18 @@ Now generate the exercises and/or routines described by the user's request that 
   ];
   function ClimbingTrackerApp() {
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState8("Exercises");
+    const [tab, setTab] = useState9("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
-    const [activeSession, setActiveSession] = useState8(null);
-    const [confirm, setConfirm] = useState8(null);
+    const [activeSession, setActiveSession] = useState9(null);
+    const [confirm, setConfirm] = useState9(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
     };
-    const [formOpen, setFormOpen] = useState8(false);
-    const [editingId, setEditingId] = useState8(null);
-    const [draft, setDraft] = useState8({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState9(false);
+    const [editingId, setEditingId] = useState9(null);
+    const [draft, setDraft] = useState9({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -22049,7 +22178,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState8(null);
+    const [editingRoutineId, setEditingRoutineId] = useState9(null);
     useEffect6(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
@@ -22095,9 +22224,11 @@ Now generate the exercises and/or routines described by the user's request that 
         if (!a || !b) return r;
         if (a.supersetGroup && a.supersetGroup === b.supersetGroup) {
           const fresh = uid();
-          for (let i = idx + 1; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
+          let i = idx + 1;
+          for (; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
             steps[i] = { ...steps[i], supersetGroup: fresh };
           }
+          steps[idx] = { ...steps[idx], ...roundRests(steps[i - 1]) };
         } else {
           const group = a.supersetGroup || uid();
           steps[idx] = { ...a, supersetGroup: group };
@@ -22105,21 +22236,35 @@ Now generate the exercises and/or routines described by the user's request that 
           for (let i = idx + 1; i < steps.length && (i === idx + 1 || old && steps[i].supersetGroup === old); i++) {
             steps[i] = { ...steps[i], supersetGroup: group };
           }
+          if (a.supersetGroup && !old) steps[idx + 1] = { ...steps[idx + 1], ...roundRests(a) };
         }
         return { ...r, steps: normalizeSupersets(steps, exercises) };
       }));
     };
-    const moveInRoutine = (routineId, idx, dir) => {
+    const moveInRoutine = (routineId, idx, delta, wholeBlock) => {
       setRoutines(routines.map((r) => {
         if (r.id !== routineId) return r;
-        const steps = [...r.steps];
-        const j = idx + dir;
-        if (j < 0 || j >= steps.length) return r;
-        [steps[idx], steps[j]] = [steps[j], steps[idx]];
-        return { ...r, steps: normalizeSupersets(steps, exercises) };
+        const blocks = groupSteps(r.steps, (step) => step.supersetGroup || null);
+        let end = 0;
+        const b = blocks.findIndex((block2) => (end += block2.length) > idx);
+        if (b < 0) return r;
+        const block = blocks[b];
+        const clamp = (v, max) => Math.max(0, Math.min(max, v));
+        if (block.length > 1 && !wholeBlock) {
+          const k = idx - (end - block.length), j = clamp(k + delta, block.length - 1);
+          if (j === k) return r;
+          const rests = roundRests(block[block.length - 1]);
+          block.splice(j, 0, block.splice(k, 1)[0]);
+          block[block.length - 1] = { ...block[block.length - 1], ...rests };
+        } else {
+          const c = clamp(b + delta, blocks.length - 1);
+          if (c === b) return r;
+          blocks.splice(c, 0, blocks.splice(b, 1)[0]);
+        }
+        return { ...r, steps: normalizeSupersets(blocks.flat(), exercises) };
       }));
     };
-    const sessionLogsRef = useRef5([]);
+    const sessionLogsRef = useRef6([]);
     const startExercise = (ex) => {
       sessionLogsRef.current = [null];
       setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
@@ -22182,8 +22327,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState8([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState8(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState9([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState9(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
@@ -22216,13 +22361,13 @@ Now generate the exercises and/or routines described by the user's request that 
       applyDrift(drift);
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
-    const fileInputRef = useRef5(null);
-    const [transferMode, setTransferMode] = useState8(null);
-    const [transferScope, setTransferScope] = useState8("all");
-    const [transferText, setTransferText] = useState8("");
-    const [copied, setCopied] = useState8(false);
-    const [importError, setImportError] = useState8("");
-    const [llmCopied, setLlmCopied] = useState8(false);
+    const fileInputRef = useRef6(null);
+    const [transferMode, setTransferMode] = useState9(null);
+    const [transferScope, setTransferScope] = useState9("all");
+    const [transferText, setTransferText] = useState9("");
+    const [copied, setCopied] = useState9(false);
+    const [importError, setImportError] = useState9("");
+    const [llmCopied, setLlmCopied] = useState9(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -22369,7 +22514,7 @@ Now generate the exercises and/or routines described by the user's request that 
         onAddStep: (exerciseId) => addStepToRoutine(editingRoutine.id, exerciseId),
         onUpdateStep: (stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch),
         onRemoveStep: (idx) => removeFromRoutine(editingRoutine.id, idx),
-        onMoveStep: (idx, dir) => moveInRoutine(editingRoutine.id, idx, dir),
+        onMoveStep: (idx, delta, wholeBlock) => moveInRoutine(editingRoutine.id, idx, delta, wholeBlock),
         onToggleLink: (idx) => toggleSupersetLink(editingRoutine.id, idx)
       }
     ) : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "Exercises" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Exercises", right: exercises.length > 0 && addButton(openNewExercise, "New exercise") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, exercises.length === 0 ? /* @__PURE__ */ React.createElement(

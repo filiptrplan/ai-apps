@@ -26,6 +26,9 @@ import { Icon } from "./components/Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
 
+// A superset's round rests live on its last step (see RoutineEditPage).
+const roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
+
 const TABS = [
   { id: "Exercises", label: "Exercises", icon: "exercises" },
   { id: "Routines", label: "Routines", icon: "routines" },
@@ -126,6 +129,8 @@ export function ClimbingTrackerApp() {
   };
   // Links step idx with step idx+1 into one superset (merging whatever
   // groups either already belongs to), or splits the superset between them.
+  // The round rests live on a superset's last step, so they're carried over
+  // to whichever step becomes last instead of changing under the user.
   const toggleSupersetLink = (routineId, idx) => {
     setRoutines(routines.map(r => {
       if (r.id !== routineId) return r;
@@ -134,9 +139,11 @@ export function ClimbingTrackerApp() {
       if (!a || !b) return r;
       if (a.supersetGroup && a.supersetGroup === b.supersetGroup) {
         const fresh = uid();
-        for (let i = idx + 1; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
+        let i = idx + 1;
+        for (; i < steps.length && steps[i].supersetGroup === a.supersetGroup; i++) {
           steps[i] = { ...steps[i], supersetGroup: fresh };
         }
+        steps[idx] = { ...steps[idx], ...roundRests(steps[i - 1]) };
       } else {
         const group = a.supersetGroup || uid();
         steps[idx] = { ...a, supersetGroup: group };
@@ -144,18 +151,36 @@ export function ClimbingTrackerApp() {
         for (let i = idx + 1; i < steps.length && (i === idx + 1 || (old && steps[i].supersetGroup === old)); i++) {
           steps[i] = { ...steps[i], supersetGroup: group };
         }
+        if (a.supersetGroup && !old) steps[idx + 1] = { ...steps[idx + 1], ...roundRests(a) };
       }
       return { ...r, steps: normalizeSupersets(steps, exercises) };
     }));
   };
-  const moveInRoutine = (routineId, idx, dir) => {
+  // Moves step idx by delta blocks (a lone step or a whole superset each).
+  // With wholeBlock, idx's entire superset moves instead. A superset member
+  // otherwise only reorders within its superset, keeping the round rests on
+  // whichever step ends up last.
+  const moveInRoutine = (routineId, idx, delta, wholeBlock) => {
     setRoutines(routines.map(r => {
       if (r.id !== routineId) return r;
-      const steps = [...r.steps];
-      const j = idx + dir;
-      if (j < 0 || j >= steps.length) return r;
-      [steps[idx], steps[j]] = [steps[j], steps[idx]];
-      return { ...r, steps: normalizeSupersets(steps, exercises) };
+      const blocks = groupSteps(r.steps, step => step.supersetGroup || null);
+      let end = 0;
+      const b = blocks.findIndex(block => (end += block.length) > idx);
+      if (b < 0) return r;
+      const block = blocks[b];
+      const clamp = (v, max) => Math.max(0, Math.min(max, v));
+      if (block.length > 1 && !wholeBlock) {
+        const k = idx - (end - block.length), j = clamp(k + delta, block.length - 1);
+        if (j === k) return r;
+        const rests = roundRests(block[block.length - 1]);
+        block.splice(j, 0, block.splice(k, 1)[0]);
+        block[block.length - 1] = { ...block[block.length - 1], ...rests };
+      } else {
+        const c = clamp(b + delta, blocks.length - 1);
+        if (c === b) return r;
+        blocks.splice(c, 0, blocks.splice(b, 1)[0]);
+      }
+      return { ...r, steps: normalizeSupersets(blocks.flat(), exercises) };
     }));
   };
 
@@ -430,7 +455,7 @@ export function ClimbingTrackerApp() {
           onAddStep={exerciseId => addStepToRoutine(editingRoutine.id, exerciseId)}
           onUpdateStep={(stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch)}
           onRemoveStep={idx => removeFromRoutine(editingRoutine.id, idx)}
-          onMoveStep={(idx, dir) => moveInRoutine(editingRoutine.id, idx, dir)}
+          onMoveStep={(idx, delta, wholeBlock) => moveInRoutine(editingRoutine.id, idx, delta, wholeBlock)}
           onToggleLink={idx => toggleSupersetLink(editingRoutine.id, idx)}
         />
       ) : (
