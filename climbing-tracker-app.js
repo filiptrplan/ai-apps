@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
+  // node_modules/tslib/tslib.es6.mjs
   function __rest(s2, e) {
     var t = {};
     for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
+  // node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -21097,8 +21097,20 @@ Now generate the exercises and/or routines described by the user's request that 
       background: C.greenSoft,
       border: "1px solid rgba(76,195,138,0.35)"
     },
+    restBarDocked: { margin: "8px 0" },
+    // Sticky block holding the session header and the rest dock beneath it.
+    sessionTop: { position: "sticky", top: 0, zIndex: 20 },
+    // flow-root keeps the bars' margins inside the tinted background, and an
+    // empty dock still collapses to zero height.
+    restDock: {
+      display: "flow-root",
+      padding: "0 16px",
+      background: "rgba(14,14,16,0.86)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)"
+    },
     restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
-    restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 },
+    restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
     restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
     restBarBtn: {
       position: "relative",
@@ -21195,6 +21207,7 @@ Now generate the exercises and/or routines described by the user's request that 
     // Right padding keeps header actions aligned with the capped content width.
     header: { padding: "18px 40px 14px", paddingRight: `max(40px, calc(100% - ${CONTENT_MAX - 40}px))`, minHeight: 72 },
     headerTitle: { fontSize: 28 },
+    restDock: { padding: "0 40px", paddingRight: `max(40px, calc(100% - ${CONTENT_MAX - 40}px))` },
     page: { padding: "28px 40px 56px", maxWidth: CONTENT_MAX },
     pageNarrow: { padding: "28px 40px 56px", maxWidth: 820 },
     pageWithBottomBar: { padding: "28px 40px 24px", maxWidth: CONTENT_MAX },
@@ -21374,11 +21387,19 @@ Now generate the exercises and/or routines described by the user's request that 
   };
 
   // climbing-tracker/components/RestBar.jsx
+  var { createContext, useContext } = React;
+  var RestDockContext = createContext(null);
   function RestBar({ label, timeLeft, total, paused, onTogglePause, onSkip, tone = "green" }) {
+    const dock = useContext(RestDockContext);
     const color = tone === "green" ? C.green : C.accent;
     const soft = tone === "green" ? "rgba(76,195,138,0.18)" : "rgba(232,176,75,0.18)";
     const pct = total > 0 ? Math.max(0, Math.min(100, timeLeft / total * 100)) : 0;
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.restBar, ...tone === "green" ? {} : { background: "rgba(232,176,75,0.08)", borderColor: "rgba(232,176,75,0.35)" } } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${pct}%`, background: soft } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
+    const bar = /* @__PURE__ */ React.createElement("div", { style: {
+      ...s.restBar,
+      ...tone === "green" ? {} : { background: "rgba(232,176,75,0.08)", borderColor: "rgba(232,176,75,0.35)" },
+      ...dock && s.restBarDocked
+    } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${pct}%`, background: soft } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
+    return dock ? ReactDOM.createPortal(bar, dock) : bar;
   }
 
   // climbing-tracker/components/SetsCard.jsx
@@ -21504,7 +21525,7 @@ Now generate the exercises and/or routines described by the user's request that 
     )), restRowIndex === i && /* @__PURE__ */ React.createElement(
       RestBar,
       {
-        label: "Rest",
+        label: `Rest \xB7 ${exercise.name}`,
         timeLeft: restTimeLeft,
         total: restSec,
         paused: restPaused,
@@ -21815,6 +21836,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const [interRest, setInterRest] = useState6(null);
     const intervalRef = useRef4(null);
     const timeLeftRef = useRef4(0);
+    const [restDock, setRestDock] = useState6(null);
     const desktop = useIsDesktop();
     useWakeLock();
     const clearTick = () => {
@@ -21834,10 +21856,10 @@ Now generate the exercises and/or routines described by the user's request that 
         if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
       }
     };
-    const startInterRest = (afterPos, restAfterSec, label = "Next exercise in") => {
+    const startInterRest = (restAfterSec, label = "Next exercise in") => {
       clearTick();
       timeLeftRef.current = restAfterSec;
-      setInterRest({ afterPos, label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
+      setInterRest({ label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
       sounds.restStart();
       intervalRef.current = setInterval(tick, 1e3);
     };
@@ -21882,12 +21904,12 @@ Now generate the exercises and/or routines described by the user's request that 
       const blockComplete = block.every((i) => completedRef.current[i]);
       const round = Math.min(...block.map((i) => doneCountRef.current[i]));
       if (blockComplete && !wasBlockComplete) {
-        if (last.restAfterSec > 0 && !isLastPos) startInterRest(pos, last.restAfterSec);
+        if (last.restAfterSec > 0 && !isLastPos) startInterRest(last.restAfterSec);
       } else if (block.length > 1 && !blockComplete && round > prevRound && last.restSec > 0) {
-        startInterRest(pos, last.restSec, "Next round in");
+        startInterRest(last.restSec, "Next round in");
       }
     };
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(RestDockContext.Provider, { value: restDock }, /* @__PURE__ */ React.createElement("div", { style: s.sessionTop }, /* @__PURE__ */ React.createElement(
       Header,
       {
         title: session.kind === "routine" ? session.refName : (_a = session.exercises[0]) == null ? void 0 : _a.name,
@@ -21895,7 +21917,7 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
         right: null
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((block, position) => {
+    ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((block, position) => {
       const isSuperset = block.length > 1;
       const cards = block.map((exIdx, k) => /* @__PURE__ */ React.createElement(
         ExerciseCard,
@@ -21909,19 +21931,19 @@ Now generate the exercises and/or routines described by the user's request that 
           onMove: (dir) => moveCard(position, dir)
         }
       ));
-      return /* @__PURE__ */ React.createElement(React.Fragment, { key: block[0] }, isSuperset ? /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetBlock, ...desktop && { ...d.fullRow, marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetLabel }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset \xB7 alternate sets"), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, cards)) : cards, interRest && interRest.afterPos === position && /* @__PURE__ */ React.createElement("div", { style: desktop ? d.fullRow : void 0 }, /* @__PURE__ */ React.createElement(
-        RestBar,
-        {
-          label: interRest.label,
-          tone: "accent",
-          timeLeft: interRest.timeLeft,
-          total: interRest.total,
-          paused: interRest.paused,
-          onTogglePause: toggleInterRestPause,
-          onSkip: skipInterRest
-        }
-      )));
-    })), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: block[0] }, isSuperset ? /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetBlock, ...desktop && { ...d.fullRow, marginBottom: 0 } } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetLabel }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset \xB7 alternate sets"), /* @__PURE__ */ React.createElement("div", { style: desktop ? d.cardGrid : void 0 }, cards)) : cards);
+    })), interRest && /* @__PURE__ */ React.createElement(
+      RestBar,
+      {
+        label: interRest.label,
+        tone: "accent",
+        timeLeft: interRest.timeLeft,
+        total: interRest.total,
+        paused: interRest.paused,
+        onTogglePause: toggleInterRestPause,
+        onSkip: skipInterRest
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
   }
 
   // climbing-tracker/components/SetTargetsEditor.jsx

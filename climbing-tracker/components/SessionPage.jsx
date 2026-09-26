@@ -3,7 +3,7 @@ import { formatTime, isStepComplete, groupSteps } from "../format.js";
 import { sounds } from "../sounds.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
 import { Header, useIsDesktop } from "./Layout.jsx";
-import { RestBar } from "./RestBar.jsx";
+import { RestBar, RestDockContext } from "./RestBar.jsx";
 import { Icon } from "./Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
@@ -50,8 +50,9 @@ function useWakeLock() {
 //
 // A step can carry a "restAfterSec" (set per-routine-step, see startRoutine):
 // when a card newly becomes fully complete, and it isn't the last card in the
-// current display order, a non-blocking rest countdown appears before the
-// next card - advisory only, it never locks the other cards.
+// current display order, a non-blocking rest countdown starts - advisory
+// only, it never locks the other cards. All rest bars (these and the cards'
+// between-set rests) render in a dock pinned under the header.
 //
 // Supersets (consecutive exercises sharing a supersetGroup) are one block:
 // they move together, their cards run with no per-set rest, and a "Next
@@ -64,9 +65,11 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   // Superset members log without their own between-set rest; the block's
   // round rest replaces it.
   const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
-  const [interRest, setInterRest] = useState(null); // { afterPos, label, timeLeft, total, paused }
+  const [interRest, setInterRest] = useState(null); // { label, timeLeft, total, paused }
   const intervalRef = useRef(null);
   const timeLeftRef = useRef(0);
+
+  const [restDock, setRestDock] = useState(null);
 
   const desktop = useIsDesktop();
   useWakeLock();
@@ -85,10 +88,10 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     }
   };
 
-  const startInterRest = (afterPos, restAfterSec, label = "Next exercise in") => {
+  const startInterRest = (restAfterSec, label = "Next exercise in") => {
     clearTick();
     timeLeftRef.current = restAfterSec;
-    setInterRest({ afterPos, label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
+    setInterRest({ label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
     sounds.restStart();
     intervalRef.current = setInterval(tick, 1000);
   };
@@ -135,20 +138,23 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
     const round = Math.min(...block.map(i => doneCountRef.current[i]));
 
     if (blockComplete && !wasBlockComplete) {
-      if (last.restAfterSec > 0 && !isLastPos) startInterRest(pos, last.restAfterSec);
+      if (last.restAfterSec > 0 && !isLastPos) startInterRest(last.restAfterSec);
     } else if (block.length > 1 && !blockComplete && round > prevRound && last.restSec > 0) {
-      startInterRest(pos, last.restSec, "Next round in");
+      startInterRest(last.restSec, "Next round in");
     }
   };
 
   return (
-    <>
-      <Header
-        title={session.kind === "routine" ? session.refName : session.exercises[0]?.name}
-        subtitle={<ElapsedTime since={session.startedAt} />}
-        left={<button style={{ ...s.textBtn, color: C.muted }} onClick={onCancel}>Cancel</button>}
-        right={null}
-      />
+    <RestDockContext.Provider value={restDock}>
+      <div style={s.sessionTop}>
+        <Header
+          title={session.kind === "routine" ? session.refName : session.exercises[0]?.name}
+          subtitle={<ElapsedTime since={session.startedAt} />}
+          left={<button style={{ ...s.textBtn, color: C.muted }} onClick={onCancel}>Cancel</button>}
+          right={null}
+        />
+        <div ref={setRestDock} style={{ ...s.restDock, ...(desktop && d.restDock) }} />
+      </div>
       <div style={{ ...s.pageWithBottomBar, ...(desktop && { ...d.pageWithBottomBar, ...d.cardGrid }) }}>
         {order.map((block, position) => {
           const isSuperset = block.length > 1;
@@ -171,26 +177,26 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
                   <div style={desktop ? d.cardGrid : undefined}>{cards}</div>
                 </div>
               ) : cards}
-              {interRest && interRest.afterPos === position && (
-                <div style={desktop ? d.fullRow : undefined}><RestBar
-                  label={interRest.label}
-                  tone="accent"
-                  timeLeft={interRest.timeLeft}
-                  total={interRest.total}
-                  paused={interRest.paused}
-                  onTogglePause={toggleInterRestPause}
-                  onSkip={skipInterRest}
-                /></div>
-              )}
             </React.Fragment>
           );
         })}
       </div>
+      {interRest && (
+        <RestBar
+          label={interRest.label}
+          tone="accent"
+          timeLeft={interRest.timeLeft}
+          total={interRest.total}
+          paused={interRest.paused}
+          onTogglePause={toggleInterRestPause}
+          onSkip={skipInterRest}
+        />
+      )}
       <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
         <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onFinish}>
           <Icon.flag size={20} /> Finish workout
         </button>
       </div>
-    </>
+    </RestDockContext.Provider>
   );
 }

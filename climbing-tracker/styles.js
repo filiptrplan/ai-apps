@@ -321,8 +321,17 @@ export const s = {
     margin: "0 0 10px", padding: "6px 6px 6px 14px", borderRadius: 12,
     background: C.greenSoft, border: "1px solid rgba(76,195,138,0.35)",
   },
+  restBarDocked: { margin: "8px 0" },
+  // Sticky block holding the session header and the rest dock beneath it.
+  sessionTop: { position: "sticky", top: 0, zIndex: 20 },
+  // flow-root keeps the bars' margins inside the tinted background, and an
+  // empty dock still collapses to zero height.
+  restDock: {
+    display: "flow-root", padding: "0 16px",
+    background: "rgba(14,14,16,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+  },
   restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
-  restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 },
+  restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
   restBarBtn: {
     position: "relative", width: 40, height: 40, borderRadius: 10, border: "none", flexShrink: 0,
@@ -381,6 +390,7 @@ export const d = {
   // Right padding keeps header actions aligned with the capped content width.
   header: { padding: "18px 40px 14px", paddingRight: `max(40px, calc(100% - ${CONTENT_MAX - 40}px))`, minHeight: 72 },
   headerTitle: { fontSize: 28 },
+  restDock: { padding: "0 40px", paddingRight: `max(40px, calc(100% - ${CONTENT_MAX - 40}px))` },
   page: { padding: "28px 40px 56px", maxWidth: CONTENT_MAX },
   pageNarrow: { padding: "28px 40px 56px", maxWidth: 820 },
   pageWithBottomBar: { padding: "28px 40px 24px", maxWidth: CONTENT_MAX },
