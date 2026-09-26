@@ -25,8 +25,9 @@ export function SetValueInput({ value, onChange, suffix, decimal, dim, label }) 
 }
 
 // Checklist-style set logger: every set is visible at once and can be ticked
-// done in any order. Ticking a set starts an inline, non-blocking rest countdown
-// (when the exercise has a restSec configured) before the next tick.
+// done in any order. Ticking a set starts a non-blocking rest countdown (when
+// the exercise has a restSec configured) before the next tick; inside a
+// session it shows in the pinned rest dock rather than under the set.
 export function SetsCard({ exercise, onChange }) {
   const targetSets = exercise.sets || 1;
   const restSec = exercise.restSec || 0;
@@ -129,7 +130,7 @@ export function SetsCard({ exercise, onChange }) {
           </div>
           {restRowIndex === i && (
             <RestBar
-              label="Rest"
+              label={`Rest · ${exercise.name}`}
               timeLeft={restTimeLeft}
               total={restSec}
               paused={restPaused}
