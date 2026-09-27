@@ -6,7 +6,8 @@
     "dev": "vite"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0"
+    "@supabase/supabase-js": "^2.110.0",
+    "uplot": "^1.6.32"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

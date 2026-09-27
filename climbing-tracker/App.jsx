@@ -20,7 +20,9 @@ import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
+import { ExerciseStatsPage } from "./components/ExerciseStatsPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
+import { NumberField } from "./components/NumberField.jsx";
 import { Header, TabBar, Sidebar, Sheet, EmptyState, useIsDesktop } from "./components/Layout.jsx";
 import { Icon } from "./components/Icons.jsx";
 
@@ -42,6 +44,8 @@ export function ClimbingTrackerApp() {
   const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
   const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
   const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
+  const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
+  const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
 
   const [activeSession, setActiveSession] = useState(null);
 
@@ -82,6 +86,13 @@ export function ClimbingTrackerApp() {
 
   // Routine state
   const [editingRoutineId, setEditingRoutineId] = useState(null);
+
+  // Per-exercise stats page, opened over whichever tab it was reached from.
+  const [statsExerciseId, setStatsExerciseId] = useState(null);
+  const openStats = (id) => {
+    setStatsExerciseId(id);
+    window.scrollTo(0, 0);
+  };
 
   // One-time migration for routines saved before per-step sets/rest overrides existed.
   useEffect(() => {
@@ -229,7 +240,9 @@ export function ClimbingTrackerApp() {
     const current = activeSession;
     const results = [];
     current.exercises.forEach((ex, i) => {
-      const performed = buildPerformedFromLog(ex, sessionLogsRef.current[i]);
+      let performed = buildPerformedFromLog(ex, sessionLogsRef.current[i]);
+      // Record bodyweight with "BW +" logs so stats stay right after it changes.
+      if (performed && performed.weightMode === "added" && bodyweight) performed = { ...performed, bodyweight };
       if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed, routineStepId: ex.routineStepId });
     });
     if (results.length > 0) {
@@ -297,7 +310,7 @@ export function ClimbingTrackerApp() {
   const [llmCopied, setLlmCopied] = useState(false);
 
   const openExport = (scope) => {
-    const payload = scope === "all" ? { exercises, routines, history } : { exercises, routines };
+    const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
     setTransferText(JSON.stringify(payload, null, 2));
     setTransferScope(scope);
     setCopied(false);
@@ -333,6 +346,7 @@ export function ClimbingTrackerApp() {
       if (Array.isArray(data.exercises)) setExercises(data.exercises);
       if (Array.isArray(data.routines)) setRoutines(data.routines);
       if (Array.isArray(data.history)) setHistory(data.history);
+      if (data.settings && typeof data.settings === "object") setSettings(data.settings);
     } else {
       if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
       if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
@@ -406,8 +420,10 @@ export function ClimbingTrackerApp() {
   }
 
   const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
+  const statsExercise = statsExerciseId ? exercises.find(e => e.id === statsExerciseId) : null;
   const changeTab = (t) => {
     if (editingRoutine) closeRoutineEditor();
+    setStatsExerciseId(null);
     setTab(t);
     window.scrollTo(0, 0);
   };
@@ -459,6 +475,16 @@ export function ClimbingTrackerApp() {
           onMoveStep={(idx, delta, wholeBlock) => moveInRoutine(editingRoutine.id, idx, delta, wholeBlock)}
           onToggleLink={idx => toggleSupersetLink(editingRoutine.id, idx)}
         />
+      ) : statsExercise ? (
+        <ExerciseStatsPage
+          exercise={statsExercise}
+          history={history}
+          bodyweight={bodyweight}
+          backLabel={tab}
+          onBack={() => setStatsExerciseId(null)}
+          onEdit={() => openEditExercise(statsExercise)}
+          onStart={() => startExercise(statsExercise)}
+        />
       ) : (
       <>
       {tab === "Exercises" && (
@@ -476,7 +502,7 @@ export function ClimbingTrackerApp() {
               <div style={listStyle}>
                 {exercises.map(ex => (
                   <div key={ex.id} style={s.row}>
-                    <button style={s.rowMain} onClick={() => openEditExercise(ex)}>
+                    <button style={s.rowMain} onClick={() => openStats(ex.id)}>
                       <div style={s.rowTitle}>{ex.name}</div>
                       <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
                     </button>
@@ -600,18 +626,32 @@ export function ClimbingTrackerApp() {
 
                           {expanded && (
                             <div style={{ ...s.historySteps, ...(drifts.length > 0 ? { marginTop: 12 } : {}) }}>
-                              {h.steps.map((step, i) => (
-                                <div key={i} style={s.historyStep}>
-                                  {h.kind === "routine" && <span style={s.historyStepName}>{step.exerciseName}</span>}
-                                  <span style={s.historyStepValue}>{formatPerformedSummary(step)}</span>
-                                </div>
-                              ))}
-                              <button
-                                style={{ ...s.btnDangerText, ...s.btnSmall, marginTop: 6, marginLeft: -14 }}
-                                onClick={() => requestDeleteHistoryEntry(h.id)}
-                              >
-                                <Icon.trash size={16} /> Delete entry
-                              </button>
+                              {h.steps.map((step, i) => {
+                                const exists = exercises.some(e => e.id === step.exerciseId);
+                                return (
+                                  <div key={i} style={s.historyStep}>
+                                    {h.kind === "routine" && (exists ? (
+                                      <button style={{ ...s.historyStepName, ...s.historyStepLink }} onClick={() => openStats(step.exerciseId)}>
+                                        {step.exerciseName}
+                                      </button>
+                                    ) : <span style={s.historyStepName}>{step.exerciseName}</span>)}
+                                    <span style={s.historyStepValue}>{formatPerformedSummary(step)}</span>
+                                  </div>
+                                );
+                              })}
+                              <div style={{ display: "flex", marginTop: 6, marginLeft: -14 }}>
+                                {h.kind === "exercise" && exercises.some(e => e.id === h.refId) && (
+                                  <button style={{ ...s.textBtn, ...s.btnSmall, marginLeft: 0 }} onClick={() => openStats(h.refId)}>
+                                    <Icon.chart size={16} /> Stats
+                                  </button>
+                                )}
+                                <button
+                                  style={{ ...s.btnDangerText, ...s.btnSmall }}
+                                  onClick={() => requestDeleteHistoryEntry(h.id)}
+                                >
+                                  <Icon.trash size={16} /> Delete entry
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -630,6 +670,23 @@ export function ClimbingTrackerApp() {
           <Header title="Settings" />
           <div style={pageStyle}>
             <div style={desktop ? d.settingsGrid : undefined}>
+            <div style={cardStyle}>
+              <div style={s.sectionTitle}>Bodyweight</div>
+              <div style={s.hint}>
+                Used for "BW +" exercises: adds total load to their stats and counts bodyweight in volume.
+                Each workout records the value at the time.
+              </div>
+              <NumberField
+                label="Current bodyweight"
+                value={settings.bodyweight ?? ""}
+                onChange={v => setSettings({ ...settings, bodyweight: v === "" ? null : v })}
+                min={0}
+                step={0.1}
+                inc={0.5}
+                suffix="kg"
+              />
+            </div>
+
             <div style={cardStyle}>
               <div style={s.sectionTitle}>Generate with AI</div>
               <div style={s.hint}>
@@ -677,7 +734,7 @@ export function ClimbingTrackerApp() {
       )}
       </main>
 
-      {!desktop && !editingRoutine && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
+      {!desktop && !editingRoutine && !statsExercise && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
 
       {formOpen && (
         <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>
@@ -688,7 +745,7 @@ export function ClimbingTrackerApp() {
             onDelete={editingId ? () => requestConfirm(
               "Delete exercise?",
               `Delete "${draft.name}"? This also removes it from any routines that use it.`,
-              () => { deleteExercise(editingId); setFormOpen(false); }
+              () => { deleteExercise(editingId); setFormOpen(false); setStatsExerciseId(null); }
             ) : null}
           />
         </Sheet>

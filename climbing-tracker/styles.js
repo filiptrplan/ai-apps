@@ -147,6 +147,11 @@ export const s = {
   statValue: { fontSize: 26, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 },
   statLabel: { fontSize: 12, color: C.muted, marginTop: 4, fontWeight: 500 },
 
+  // Exercise stats chart: the hovered (or latest) session's value above the plot.
+  chartReadout: { display: "flex", alignItems: "baseline", gap: 8, margin: "0 2px 8px" },
+  chartReadoutValue: { fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" },
+  chartReadoutDate: { fontSize: 13, color: C.muted },
+
   // Form controls
   label: {
     display: "block", fontSize: 12, color: C.muted, textTransform: "uppercase",
@@ -245,6 +250,10 @@ export const s = {
   historyStep: { display: "flex", gap: 10, padding: "6px 0", fontSize: 14, lineHeight: 1.4 },
   historyStepName: { color: C.text, fontWeight: 600, flexShrink: 0, maxWidth: "45%" },
   historyStepValue: { color: C.muted, flex: 1, minWidth: 0 },
+  historyStepLink: {
+    background: "none", border: "none", padding: 0, font: "inherit", textAlign: "left", cursor: "pointer",
+    textDecoration: "underline", textDecorationColor: C.dim, textUnderlineOffset: 3,
+  },
 
   // Session / exercise cards
   exerciseCard: {

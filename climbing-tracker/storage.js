@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   exercises: "climbing-tracker-exercises",
   routines: "climbing-tracker-routines",
   history: "climbing-tracker-history",
+  settings: "climbing-tracker-settings",
 };
 
 export function uid() {

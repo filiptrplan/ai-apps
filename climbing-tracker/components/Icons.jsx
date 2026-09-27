@@ -30,5 +30,6 @@ export const Icon = {
   restart: p => <Svg {...p}><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" /></Svg>,
   link: p => <Svg {...p}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></Svg>,
   grip: p => <svg width={p.size || 22} height={p.size || 22} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">{[6, 12, 18].flatMap(y => [9, 15].map(x => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" />))}</svg>,
+  chart: p => <Svg {...p}><path d="M4 19h16M5 15l4.5-5 3.5 3 6-7" /></Svg>,
   flag: p => <Svg {...p}><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></Svg>,
 };

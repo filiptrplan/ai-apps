@@ -1,4 +1,4 @@
-const CACHE_NAME = "climbing-tracker-v1";
+const CACHE_NAME = "climbing-tracker-v2";
 const ASSETS = [
   // The site serves this page at the extensionless path in production
   // (Cloudflare's asset serving redirects the .html path away from it), so
@@ -7,6 +7,7 @@ const ASSETS = [
   "./climbing-tracker",
   "./climbing-tracker.html",
   "./climbing-tracker-app.js",
+  "./climbing-tracker-app.css",
   "./climbing-tracker/manifest.json",
   "./climbing-tracker/icon.svg",
   "./climbing-tracker/icon-maskable.svg",

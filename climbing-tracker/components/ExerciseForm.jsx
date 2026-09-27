@@ -3,7 +3,7 @@ import { EXERCISE_TYPES, defaultFieldsForType } from "../format.js";
 import { NumberField } from "./NumberField.jsx";
 import { Icon } from "./Icons.jsx";
 
-function Segmented({ options, value, onChange }) {
+export function Segmented({ options, value, onChange }) {
   return (
     <div style={s.segmented}>
       {options.map(o => (
