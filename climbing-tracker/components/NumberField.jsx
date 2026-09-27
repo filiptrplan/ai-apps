@@ -5,7 +5,7 @@ import { Icon } from "./Icons.jsx";
 // jumps; the buttons move by `inc` (defaults to `step`), clamped at `min`.
 export function NumberField({ label, value, onChange, min = 0, step = 1, inc, suffix = "" }) {
   const delta = inc ?? step;
-  const num = typeof value === "number" && !isNaN(value) ? value : min;
+  const num = typeof value === "number" && !isNaN(value) ? value : Math.max(min, 0);
   const bump = (dir) => {
     const next = Math.round((num + dir * delta) * 100) / 100;
     onChange(Math.max(min, next));

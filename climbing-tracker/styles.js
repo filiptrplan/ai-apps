@@ -322,6 +322,17 @@ export const s = {
     display: "flex", alignItems: "center", justifyContent: "center",
     background: C.surface2, border: `1.5px solid ${C.border}`, color: C.dim,
   },
+  selectRow: {
+    width: "100%", textAlign: "left", font: "inherit", color: "inherit", cursor: "pointer",
+    paddingLeft: 16, gap: 14, minHeight: 66,
+  },
+  selectRowOn: { borderColor: "rgba(232,176,75,0.45)", background: C.accentSoft },
+  selectCheck: {
+    width: 24, height: 24, flexShrink: 0, borderRadius: 12,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    border: `2px solid ${C.border}`, color: C.accentInk,
+  },
+  selectCheckOn: { background: C.accent, borderColor: C.accent },
   checkBtnDone: { background: C.green, borderColor: C.green, color: C.greenInk },
   setFooter: { display: "flex", gap: 8, marginTop: 4 },
 

@@ -291,3 +291,42 @@ export function normalizeSupersets(steps, exercises) {
     block.length === 1 && block[0].supersetGroup ? [{ ...block[0], supersetGroup: null }] : block
   );
 }
+
+// Fields a bulk edit can touch, and which exercise types each applies to.
+// Each edit is { mode: "set" | "adjust", value } (absent = leave unchanged).
+export const BULK_FIELDS = [
+  { key: "sets", label: "Sets", types: ["reps", "weighted", "interval"], min: 1 },
+  { key: "reps", label: "Reps", types: ["reps", "weighted"], min: 1 },
+  { key: "weight", label: "Weight", types: ["weighted"], min: 0, step: 0.5, inc: 2.5, suffix: "kg" },
+  { key: "workSec", label: "Work", types: ["interval"], min: 1, suffix: "s" },
+  { key: "restSec", label: "Rest", types: ["reps", "weighted", "interval"], min: 0, inc: 15, suffix: "s" },
+];
+
+export function applyBulkEdit(ex, edits) {
+  const next = { ...ex };
+  const apply = (field, current) => {
+    const edit = edits[field.key];
+    const base = typeof current === "number" ? current : field.min;
+    const v = edit.mode === "set" ? edit.value : base + edit.value;
+    return Math.max(field.min, Math.round(v * 100) / 100);
+  };
+  BULK_FIELDS.forEach(field => {
+    const edit = edits[field.key];
+    if (!edit || typeof edit.value !== "number" || isNaN(edit.value)) return;
+    if (!field.types.includes(ex.type)) return;
+    const hasPattern = Array.isArray(ex.targetSets) && ex.targetSets.length > 0;
+    next[field.key] = apply(field, field.key === "sets" && hasPattern ? ex.targetSets.length : ex[field.key]);
+    // Keep a per-set pattern in step: reps/weight change on every set,
+    // and a new set count trims it or repeats its last set.
+    if (hasPattern) {
+      if (field.key === "sets") {
+        const rows = next.targetSets.slice(0, next.sets);
+        while (rows.length < next.sets) rows.push({ ...rows[rows.length - 1] });
+        next.targetSets = rows;
+      } else if (field.key === "reps" || field.key === "weight") {
+        next.targetSets = next.targetSets.map(row => ({ ...row, [field.key]: apply(field, row[field.key]) }));
+      }
+    }
+  });
+  return next;
+}

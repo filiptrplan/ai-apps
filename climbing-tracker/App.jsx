@@ -14,10 +14,12 @@ import {
   formatDriftSummary,
   groupSteps,
   normalizeSupersets,
+  applyBulkEdit,
 } from "./format.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
+import { BulkEditForm } from "./components/BulkEditForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ExerciseStatsPage } from "./components/ExerciseStatsPage.jsx";
@@ -79,9 +81,35 @@ export function ClimbingTrackerApp() {
     }
     setFormOpen(false);
   };
-  const deleteExercise = (id) => {
-    setExercises(exercises.filter(e => e.id !== id));
-    setRoutines(routines.map(r => ({ ...r, steps: r.steps.filter(step => step.exerciseId !== id) })));
+  const deleteExercises = (ids) => {
+    const remaining = exercises.filter(e => !ids.includes(e.id));
+    setExercises(remaining);
+    setRoutines(routines.map(r => ({ ...r, steps: normalizeSupersets(r.steps.filter(step => !ids.includes(step.exerciseId)), remaining) })));
+  };
+
+  // Multi-select on the Exercises tab, for bulk edits and deletes.
+  const [selectedIds, setSelectedIds] = useState(null); // null = not selecting
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const selecting = selectedIds !== null;
+  const toggleSelected = (id) => {
+    setSelectedIds(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  };
+  const selectedExercises = selecting ? exercises.filter(e => selectedIds.includes(e.id)) : [];
+  const saveBulkEdit = (edits) => {
+    setExercises(exercises.map(e => selectedIds.includes(e.id) ? applyBulkEdit(e, edits) : e));
+    setBulkEditOpen(false);
+    setSelectedIds(null);
+  };
+  const requestBulkDelete = () => {
+    const n = selectedExercises.length;
+    const inRoutines = routines.filter(r => r.steps.some(step => selectedIds.includes(step.exerciseId))).length;
+    requestConfirm(
+      `Delete ${n} exercise${n === 1 ? "" : "s"}?`,
+      `${n === 1 ? `"${selectedExercises[0].name}"` : "These exercises"} will be permanently deleted` +
+        (inRoutines > 0 ? ` and removed from ${inRoutines} routine${inRoutines === 1 ? "" : "s"}.` : ".") +
+        " Logged history is kept.",
+      () => { deleteExercises(selectedIds); setSelectedIds(null); }
+    );
   };
 
   // Routine state
@@ -424,6 +452,7 @@ export function ClimbingTrackerApp() {
   const changeTab = (t) => {
     if (editingRoutine) closeRoutineEditor();
     setStatsExerciseId(null);
+    setSelectedIds(null);
     setTab(t);
     window.scrollTo(0, 0);
   };
@@ -487,9 +516,73 @@ export function ClimbingTrackerApp() {
         />
       ) : (
       <>
-      {tab === "Exercises" && (
+      {tab === "Exercises" && (selecting ? (
         <>
-          <Header title="Exercises" right={exercises.length > 0 && addButton(openNewExercise, "New exercise")} />
+          <Header
+            title={selectedIds.length === 0 ? "Select exercises" : `${selectedIds.length} selected`}
+            left={<button style={s.textBtn} onClick={() => setSelectedIds(null)}>Cancel</button>}
+            right={
+              <button
+                style={{ ...s.textBtn, marginLeft: 0, marginRight: -6 }}
+                onClick={() => setSelectedIds(selectedIds.length === exercises.length ? [] : exercises.map(e => e.id))}
+              >
+                {selectedIds.length === exercises.length ? "None" : "All"}
+              </button>
+            }
+          />
+          <div style={{ ...s.pageWithBottomBar, ...(desktop && d.pageWithBottomBar) }}>
+            <div style={listStyle}>
+              {exercises.map(ex => {
+                const checked = selectedIds.includes(ex.id);
+                return (
+                  <button
+                    key={ex.id}
+                    style={{ ...s.row, ...s.selectRow, ...(checked && s.selectRowOn) }}
+                    onClick={() => toggleSelected(ex.id)}
+                    aria-pressed={checked}
+                  >
+                    <span style={{ ...s.selectCheck, ...(checked && s.selectCheckOn) }}>
+                      {checked && <Icon.check size={16} />}
+                    </span>
+                    <div style={{ ...s.rowMain, cursor: "inherit", paddingLeft: 0 }}>
+                      <div style={s.rowTitle}>{ex.name}</div>
+                      <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
+            <div style={{ ...s.btnRow, ...(desktop && { width: "auto" }) }}>
+              <button
+                style={{ ...s.btnSecondary, flex: 1, minHeight: 54, color: C.danger, ...(desktop && { minWidth: 160 }) }}
+                onClick={requestBulkDelete}
+                disabled={selectedIds.length === 0}
+              >
+                <Icon.trash size={18} /> Delete
+              </button>
+              <button
+                style={{ ...s.btnPrimary, flex: 1, minHeight: 54, ...(desktop && { minWidth: 160 }) }}
+                onClick={() => setBulkEditOpen(true)}
+                disabled={selectedIds.length === 0}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <Header
+            title="Exercises"
+            right={exercises.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button style={{ ...s.textBtn, marginLeft: 0 }} onClick={() => setSelectedIds([])}>Select</button>
+                {addButton(openNewExercise, "New exercise")}
+              </div>
+            )}
+          />
           <div style={pageStyle}>
             {exercises.length === 0 ? (
               <EmptyState
@@ -515,7 +608,7 @@ export function ClimbingTrackerApp() {
             )}
           </div>
         </>
-      )}
+      ))}
 
       {tab === "Routines" && (
         <>
@@ -734,7 +827,7 @@ export function ClimbingTrackerApp() {
       )}
       </main>
 
-      {!desktop && !editingRoutine && !statsExercise && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
+      {!desktop && !editingRoutine && !statsExercise && !selecting && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
 
       {formOpen && (
         <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>
@@ -745,9 +838,15 @@ export function ClimbingTrackerApp() {
             onDelete={editingId ? () => requestConfirm(
               "Delete exercise?",
               `Delete "${draft.name}"? This also removes it from any routines that use it.`,
-              () => { deleteExercise(editingId); setFormOpen(false); setStatsExerciseId(null); }
+              () => { deleteExercises([editingId]); setFormOpen(false); setStatsExerciseId(null); }
             ) : null}
           />
+        </Sheet>
+      )}
+
+      {bulkEditOpen && selectedExercises.length > 0 && (
+        <Sheet title={`Edit ${selectedExercises.length} exercise${selectedExercises.length === 1 ? "" : "s"}`} onClose={() => setBulkEditOpen(false)}>
+          <BulkEditForm exercises={selectedExercises} onSave={saveBulkEdit} />
         </Sheet>
       )}
 
