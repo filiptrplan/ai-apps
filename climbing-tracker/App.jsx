@@ -15,7 +15,7 @@ import {
   groupSteps,
   normalizeSupersets,
 } from "./format.js";
-import { LLM_GUIDANCE } from "./llmGuidance.js";
+import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
@@ -371,13 +371,14 @@ export function ClimbingTrackerApp() {
   };
 
   const copyLlmGuidance = async () => {
+    const guidance = buildLlmGuidance(exercises);
     try {
-      await navigator.clipboard.writeText(LLM_GUIDANCE);
+      await navigator.clipboard.writeText(guidance);
       setLlmCopied(true);
       setTimeout(() => setLlmCopied(false), 2000);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = LLM_GUIDANCE;
+      ta.value = guidance;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
       document.body.appendChild(ta);

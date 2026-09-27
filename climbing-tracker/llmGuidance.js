@@ -1,4 +1,4 @@
-export const LLM_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
+const BASE_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
 
 Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
 
@@ -73,9 +73,28 @@ Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds,
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
-- Every "exerciseId" referenced by a routine step must also appear as an exercise in the "exercises" array of the same JSON.
+- Every "exerciseId" referenced by a routine step must either appear as an exercise in the "exercises" array of the same JSON, or be the id of one of the user's EXISTING exercises listed below.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
 - Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
-- Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.
+- Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.`;
+
+// Lists the user's existing exercises so the LLM reuses them (by id) instead
+// of creating duplicates. Importing merges by id, so reused ids are safe.
+function existingExercisesSection(exercises) {
+  if (!exercises.length) {
+    return "EXISTING EXERCISES: the user has no exercises yet, so define every exercise you need in the \"exercises\" array.";
+  }
+  const lines = exercises.map(ex => JSON.stringify(ex)).join("\n");
+  return `EXISTING EXERCISES - the user already has these exercises in the app:
+${lines}
+
+Do NOT create duplicates of these. If an exercise you need is the same as (or essentially the same as) one of the above, even under a slightly different name, reference its existing "id" from routine steps and leave it out of the "exercises" array; use per-step "sets"/"restSec"/"targetSets" overrides if the routine needs different targets. Only add genuinely new exercises to the "exercises" array, with ids that don't clash with the ones above. Only include an existing exercise in the "exercises" array (with its same "id") if the user explicitly asks to change it - that overwrites it.`;
+}
+
+export function buildLlmGuidance(exercises) {
+  return `${BASE_GUIDANCE}
+
+${existingExercisesSection(exercises || [])}
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
+}
