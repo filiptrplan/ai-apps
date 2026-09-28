@@ -1,9 +1,9 @@
 import { s, d, C } from "../styles.js";
 import { formatTime, isStepComplete, groupSteps } from "../format.js";
-import { sounds } from "../sounds.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
 import { Header, useIsDesktop } from "./Layout.jsx";
 import { RestBar, RestDockContext } from "./RestBar.jsx";
+import { useRestTimer } from "./useRestTimer.js";
 import { Icon } from "./Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
@@ -65,48 +65,19 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   // Superset members log without their own between-set rest; the block's
   // round rest replaces it.
   const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
-  const [interRest, setInterRest] = useState(null); // { label, timeLeft, total, paused }
-  const intervalRef = useRef(null);
-  const timeLeftRef = useRef(0);
+  const interRestTimer = useRestTimer();
+  const interRest = interRestTimer.rest; // { label, timeLeft, total, paused }
 
   const [restDock, setRestDock] = useState(null);
 
   const desktop = useIsDesktop();
   useWakeLock();
 
-  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
-
-  const tick = () => {
-    timeLeftRef.current -= 1;
-    if (timeLeftRef.current <= 0) {
-      clearTick();
-      sounds.workStart();
-      setInterRest(null);
-    } else {
-      setInterRest(r => r && { ...r, timeLeft: timeLeftRef.current });
-      if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
-    }
-  };
-
   const startInterRest = (restAfterSec, label = "Next exercise in") => {
-    clearTick();
-    timeLeftRef.current = restAfterSec;
-    setInterRest({ label, timeLeft: restAfterSec, total: restAfterSec, paused: false });
-    sounds.restStart();
-    intervalRef.current = setInterval(tick, 1000);
+    const notice = label === "Next round in" ? "Next superset round" : "Next exercise";
+    interRestTimer.start(restAfterSec, { label, notice });
   };
-
-  const skipInterRest = () => { clearTick(); setInterRest(null); };
-  const toggleInterRestPause = () => {
-    setInterRest(r => {
-      if (!r) return r;
-      if (r.paused) { intervalRef.current = setInterval(tick, 1000); return { ...r, paused: false }; }
-      clearTick();
-      return { ...r, paused: true };
-    });
-  };
-
-  useEffect(() => () => clearTick(), []);
+  const skipInterRest = interRestTimer.stop;
 
   const moveCard = (position, dir) => {
     skipInterRest();
@@ -188,7 +159,7 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
           timeLeft={interRest.timeLeft}
           total={interRest.total}
           paused={interRest.paused}
-          onTogglePause={toggleInterRestPause}
+          onTogglePause={interRestTimer.togglePause}
           onSkip={skipInterRest}
         />
       )}

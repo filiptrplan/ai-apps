@@ -74,3 +74,14 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// Tapping the "Rest over" notification brings the app back to the front.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const client = clients.find((c) => "focus" in c);
+      return client ? client.focus() : self.clients.openWindow("./climbing-tracker");
+    })
+  );
+});

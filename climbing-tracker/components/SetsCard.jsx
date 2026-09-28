@@ -1,9 +1,9 @@
 import { s } from "../styles.js";
-import { sounds } from "../sounds.js";
 import { Icon } from "./Icons.jsx";
 import { RestBar } from "./RestBar.jsx";
+import { useRestTimer } from "./useRestTimer.js";
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect } = React;
 
 export function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
   return (
@@ -41,44 +41,13 @@ export function SetsCard({ exercise, onChange }) {
   };
 
   const [rows, setRows] = useState(() => Array.from({ length: targetSets }, (_, i) => makeRow(i)));
-  const [restRowIndex, setRestRowIndex] = useState(null);
-  const [restTimeLeft, setRestTimeLeft] = useState(restSec);
-  const [restPaused, setRestPaused] = useState(false);
-  const intervalRef = useRef(null);
-  const timeLeftRef = useRef(restSec);
+  const restTimer = useRestTimer();
+  const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
 
   useEffect(() => { onChange({ rows }); }, [rows]);
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  const clearTick = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
-
-  const tick = () => {
-    timeLeftRef.current -= 1;
-    if (timeLeftRef.current <= 0) {
-      clearTick();
-      sounds.workStart();
-      setRestRowIndex(null);
-    } else {
-      setRestTimeLeft(timeLeftRef.current);
-      if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
-    }
-  };
-
-  const startRest = (rowIndex) => {
-    clearTick();
-    timeLeftRef.current = restSec;
-    setRestTimeLeft(restSec);
-    setRestPaused(false);
-    setRestRowIndex(rowIndex);
-    sounds.restStart();
-    intervalRef.current = setInterval(tick, 1000);
-  };
-
-  const skipRest = () => { clearTick(); setRestRowIndex(null); };
-  const toggleRestPause = () => {
-    if (restPaused) { intervalRef.current = setInterval(tick, 1000); setRestPaused(false); }
-    else { clearTick(); setRestPaused(true); }
-  };
+  const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
+  const skipRest = restTimer.stop;
 
   const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   const removeLastRow = () => {
@@ -131,10 +100,10 @@ export function SetsCard({ exercise, onChange }) {
           {restRowIndex === i && (
             <RestBar
               label={`Rest · ${exercise.name}`}
-              timeLeft={restTimeLeft}
-              total={restSec}
-              paused={restPaused}
-              onTogglePause={toggleRestPause}
+              timeLeft={restTimer.rest.timeLeft}
+              total={restTimer.rest.total}
+              paused={restTimer.rest.paused}
+              onTogglePause={restTimer.togglePause}
               onSkip={skipRest}
             />
           )}
