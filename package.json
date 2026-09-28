@@ -6,6 +6,7 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@supabase/supabase-js": "^2.110.0",
     "uplot": "^1.6.32"
   },

@@ -4,6 +4,12 @@
 // /api/resolve-maps-link?url=... follows a Google Maps short link
 // (maps.app.goo.gl) to the full URL, which browsers can't do themselves
 // because the redirect is cross-origin. Only Google Maps links are followed.
+//
+// /api/recipe-cost prices a recipe at Aldi Suisse with Claude; see
+// recipe-cost/server.js. Needs the ANTHROPIC_API_KEY secret
+// (`wrangler secret put ANTHROPIC_API_KEY`).
+
+import { handleRecipeCost } from "./recipe-cost/server.js";
 
 const SHORT_HOSTS = new Set(["maps.app.goo.gl", "goo.gl"]);
 const MAX_REDIRECTS = 5;
@@ -55,10 +61,13 @@ export async function resolveMapsLink(input) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/api/resolve-maps-link") {
       return resolveMapsLink(url.searchParams.get("url") ?? "");
+    }
+    if (url.pathname === "/api/recipe-cost") {
+      return handleRecipeCost(request, env, ctx);
     }
     return env.ASSETS.fetch(request);
   },

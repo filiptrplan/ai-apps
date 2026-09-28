@@ -22,3 +22,12 @@ pnpm run build
 
 This runs `build.js`, which compiles every `*-app.jsx` file in the repo
 root into its matching `*-app.js` file via esbuild.
+
+## Server secrets
+
+The Cloudflare Worker (`worker.js`) needs an `ANTHROPIC_API_KEY` secret for
+Recipe Cost's `/api/recipe-cost` endpoint:
+
+```sh
+npx wrangler secret put ANTHROPIC_API_KEY
+```
