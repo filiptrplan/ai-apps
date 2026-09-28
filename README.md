@@ -22,3 +22,15 @@ pnpm run build
 
 This runs `build.js`, which compiles every `*-app.jsx` file in the repo
 root into its matching `*-app.js` file via esbuild.
+
+## Server-side API
+
+`worker.js` (a Cloudflare Worker) handles `/api/*` paths that aren't static
+files. `/api/shopping-list` calls Claude for the Shopping List app and needs
+an Anthropic API key set as a Worker secret:
+
+```sh
+npx wrangler secret put ANTHROPIC_API_KEY
+```
+
+It only answers signed-in users, so the key can't be spent by anyone else.

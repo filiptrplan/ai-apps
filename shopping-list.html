@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Shopping List</title>
+  <meta name="description" content="Paste recipes and get one combined shopping list, summed up and sorted by aisle.">
+  <meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141513" media="(prefers-color-scheme: dark)">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#F6F4EF;--card:#FFFFFF;--fg:#1C1D1A;--muted:#6B6D66;--line:#E4E1D8;
+      --accent:#2F7D4F;--accentText:#FFFFFF;--accentSoft:#E3F0E7;--error:#B3261E;
+    }
+    @media (prefers-color-scheme:dark){
+      :root{
+        --bg:#141513;--card:#1E201D;--fg:#ECEDE8;--muted:#9A9C94;--line:#30322E;
+        --accent:#5DB07F;--accentText:#0E1A12;--accentSoft:#1F3327;--error:#F2B8B5;
+      }
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body,#app{margin:0;min-height:100%}
+    body{background:var(--bg);color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+    button,textarea{font:inherit;color:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    button:disabled{opacity:.45;cursor:default}
+    button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    .sl{max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+    .sl-header{display:flex;align-items:center;gap:8px;padding:calc(16px + env(safe-area-inset-top)) 0 8px}
+    .sl-header h1{margin:0;font-size:1.35rem;font-weight:700}
+    .sl-back{color:var(--muted);text-decoration:none;font-size:1.8rem;line-height:1;padding:0 6px 4px 0}
+    .sl-tabs{position:sticky;top:0;z-index:1;display:flex;gap:4px;padding:8px 0;background:var(--bg)}
+    .sl-tabs button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);border-radius:10px;font-weight:600;color:var(--muted)}
+    .sl-tabs button.on{background:var(--accent);border-color:var(--accent);color:var(--accentText)}
+    .sl-main{display:flex;flex-direction:column;gap:12px;padding-top:8px}
+    .sl-hint,.sl-note,.sl-from{margin:0;color:var(--muted);font-size:.92rem}
+    .sl-note a{color:var(--accent)}
+    .sl-error{margin:0;color:var(--error);font-size:.95rem}
+
+    .sl-recipe{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+    .sl-recipe-head{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+    .sl-recipe textarea{width:100%;resize:vertical;border:none;background:transparent;font-size:.95rem;min-height:120px;padding:0}
+    .sl-recipe textarea:focus{outline:none}
+    .sl-recipe:focus-within{border-color:var(--accent)}
+    .sl-link{background:none;border:none;padding:4px 0;color:var(--accent);font-weight:600;font-size:.9rem}
+    .sl-primary{padding:14px;border:none;border-radius:12px;background:var(--accent);color:var(--accentText);font-weight:700;font-size:1rem}
+    .sl-secondary{padding:12px;border:1px dashed var(--line);border-radius:12px;background:transparent;color:var(--muted);font-weight:600}
+    .sl-empty{text-align:center;color:var(--muted);padding:48px 0;display:flex;flex-direction:column;gap:12px;align-items:center}
+    .sl-empty p{margin:0}
+
+    .sl-toolbar{display:flex;align-items:center;gap:16px}
+    .sl-progress{flex:1;font-size:.92rem;color:var(--muted)}
+    .sl-group h2{margin:8px 0 6px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .sl-group ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .sl-group li+li{border-top:1px solid var(--line)}
+    .sl-group label{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;cursor:pointer}
+    .sl-group input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
+    .sl-item{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .sl-item-top{display:flex;justify-content:space-between;gap:12px}
+    .sl-name{overflow-wrap:anywhere}
+    .sl-name::first-letter{text-transform:uppercase}
+    .sl-amount{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .sl-sub{font-size:.8rem;color:var(--muted)}
+    .sl-group li.done .sl-name,.sl-group li.done .sl-amount{text-decoration:line-through;color:var(--muted);font-weight:400}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="./shopping-list-app.js"></script>
+</body>
+</html>
