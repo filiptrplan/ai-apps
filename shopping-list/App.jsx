@@ -46,16 +46,14 @@ export function ShoppingListApp() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/shopping-list", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ recipes: filled.map((r) => r.text) }),
+      const { data, error: fnError } = await supabase.functions.invoke("shopping-list", {
+        body: { recipes: filled.map((r) => r.text) },
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+      if (fnError) {
+        // Non-2xx responses carry the function's { error } message in the body.
+        const details = await fnError.context?.json?.().catch(() => null);
+        throw new Error(details?.error ?? fnError.message);
+      }
       setResult(data);
       setChecked({});
       setTab("list");

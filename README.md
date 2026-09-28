@@ -23,14 +23,14 @@ pnpm run build
 This runs `build.js`, which compiles every `*-app.jsx` file in the repo
 root into its matching `*-app.js` file via esbuild.
 
-## Server-side API
+## Supabase Edge Functions
 
-`worker.js` (a Cloudflare Worker) handles `/api/*` paths that aren't static
-files. `/api/shopping-list` calls Claude for the Shopping List app and needs
-an Anthropic API key set as a Worker secret:
+`supabase/functions/shopping-list` calls an LLM through OpenRouter for the
+Shopping List app. It needs an OpenRouter API key set as a secret:
 
 ```sh
-npx wrangler secret put ANTHROPIC_API_KEY
+supabase secrets set OPENROUTER_API_KEY=...
+supabase functions deploy shopping-list
 ```
 
 It only answers signed-in users, so the key can't be spent by anyone else.

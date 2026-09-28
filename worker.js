@@ -4,11 +4,6 @@
 // /api/resolve-maps-link?url=... follows a Google Maps short link
 // (maps.app.goo.gl) to the full URL, which browsers can't do themselves
 // because the redirect is cross-origin. Only Google Maps links are followed.
-//
-// /api/shopping-list turns pasted recipes into shopping list rows with Claude
-// (see api/shoppingList.js).
-
-import { shoppingList } from "./api/shoppingList.js";
 
 const SHORT_HOSTS = new Set(["maps.app.goo.gl", "goo.gl"]);
 const MAX_REDIRECTS = 5;
@@ -64,9 +59,6 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/api/resolve-maps-link") {
       return resolveMapsLink(url.searchParams.get("url") ?? "");
-    }
-    if (url.pathname === "/api/shopping-list") {
-      return shoppingList(request, env);
     }
     return env.ASSETS.fetch(request);
   },
