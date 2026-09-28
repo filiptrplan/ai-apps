@@ -20292,20 +20292,17 @@ ${lines.join("\n")}` : null;
       setRecipes(rest.length ? rest : [newRecipe()]);
     };
     async function build() {
-      var _a;
+      var _a, _b, _c;
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/shopping-list", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ recipes: filled.map((r) => r.text) })
+        const { data, error: fnError } = await supabase.functions.invoke("shopping-list", {
+          body: { recipes: filled.map((r) => r.text) }
         });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !data) throw new Error((_a = data == null ? void 0 : data.error) != null ? _a : `Request failed (${res.status}).`);
+        if (fnError) {
+          const details = await ((_b = (_a = fnError.context) == null ? void 0 : _a.json) == null ? void 0 : _b.call(_a).catch(() => null));
+          throw new Error((_c = details == null ? void 0 : details.error) != null ? _c : fnError.message);
+        }
         setResult(data);
         setChecked({});
         setTab("list");

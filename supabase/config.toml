@@ -385,6 +385,11 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# The function checks the caller's session itself (the gateway's JWT check
+# would also let through the public key), so the gateway check is off.
+[functions.shopping-list]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
