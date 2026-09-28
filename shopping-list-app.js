@@ -20162,6 +20162,17 @@ ${suffix}`;
     await supabase2.from("app_data_backups").delete().eq("user_id", userId).lt("backup_date", cutoffStr());
   }
 
+  // shared/ai.js
+  async function callAI(functionName, body) {
+    var _a, _b, _c;
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+    if (error) {
+      const details = await ((_b = (_a = error.context) == null ? void 0 : _a.json) == null ? void 0 : _b.call(_a).catch(() => null));
+      throw new Error((_c = details == null ? void 0 : details.error) != null ? _c : error.message);
+    }
+    return data;
+  }
+
   // shopping-list/aggregate.js
   var CATEGORY_ORDER = [
     "Vegetables",
@@ -20212,12 +20223,14 @@ ${suffix}`;
     if (byUnit.size > 1) byUnit.delete("to taste");
     return [...byUnit.entries()].map(([unit, qty]) => ({ unit, qty })).sort((a, b) => UNIT_ORDER.indexOf(a.unit) - UNIT_ORDER.indexOf(b.unit));
   }
-  function buildList(result) {
-    var _a;
-    if (!result) return [];
-    const titles = new Map(result.recipes.map((r) => [r.index, r.title]));
+  function amountLabel(item) {
+    return item.extraId ? item.amountText : item.amounts.map(formatAmount).join(" + ");
+  }
+  function buildList(result, extras = []) {
+    var _a, _b, _c, _d;
+    const titles = new Map(((_a = result == null ? void 0 : result.recipes) != null ? _a : []).map((r) => [r.index, r.title]));
     const byKey = /* @__PURE__ */ new Map();
-    for (const row of result.items) {
+    for (const row of (_b = result == null ? void 0 : result.items) != null ? _b : []) {
       const key = itemKey(row.name);
       if (!key) continue;
       let item = byKey.get(key);
@@ -20226,7 +20239,7 @@ ${suffix}`;
         byKey.set(key, item);
       }
       item.rows.push(row);
-      if ((_a = row.note) == null ? void 0 : _a.trim()) item.notes.add(row.note.trim());
+      if ((_c = row.note) == null ? void 0 : _c.trim()) item.notes.add(row.note.trim());
     }
     const groups = /* @__PURE__ */ new Map();
     for (const item of byKey.values()) {
@@ -20248,6 +20261,20 @@ ${suffix}`;
       if (!groups.has(category)) groups.set(category, []);
       groups.get(category).push(entry);
     }
+    for (const extra of extras) {
+      const category = CATEGORY_ORDER.includes(extra.category) ? extra.category : "Other";
+      const entry = {
+        key: `extra:${extra.id}`,
+        extraId: extra.id,
+        name: extra.name,
+        amountText: (_d = extra.amount) != null ? _d : "",
+        amounts: [],
+        notes: [],
+        sources: []
+      };
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(entry);
+    }
     return CATEGORY_ORDER.filter((c) => groups.has(c)).map((category) => ({
       category,
       items: groups.get(category).sort((a, b) => a.name.localeCompare(b.name))
@@ -20255,17 +20282,46 @@ ${suffix}`;
   }
   function listToText(groups, checked = {}) {
     return groups.map(({ category, items }) => {
-      const lines = items.filter((it) => !checked[it.key]).map((it) => `- ${it.name}: ${it.amounts.map(formatAmount).join(" + ")}`);
+      const lines = items.filter((it) => !checked[it.key]).map((it) => amountLabel(it) ? `- ${it.name}: ${amountLabel(it)}` : `- ${it.name}`);
       return lines.length ? `${category}
 ${lines.join("\n")}` : null;
     }).filter(Boolean).join("\n\n");
   }
 
   // shopping-list/App.jsx
-  var { useState: useState3, useEffect: useEffect3, useMemo } = React;
+  var { useState: useState3, useEffect: useEffect3, useMemo, useRef: useRef2 } = React;
   var APP_ID = "shopping-list";
+  function newId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  }
   function newRecipe() {
-    return { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: "" };
+    return { id: newId(), text: "" };
+  }
+  var BUILD_STEPS = ["Reading recipes\u2026", "Matching ingredients\u2026", "Adding up amounts\u2026", "Sorting by aisle\u2026"];
+  function BuildingList() {
+    const [step, setStep] = useState3(0);
+    const ref = useRef2(null);
+    useEffect3(() => {
+      var _a;
+      (_a = ref.current) == null ? void 0 : _a.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      const t = setInterval(() => setStep((s) => Math.min(s + 1, BUILD_STEPS.length - 1)), 2200);
+      return () => clearInterval(t);
+    }, []);
+    return /* @__PURE__ */ React.createElement("div", { className: "sl-loading", role: "status", "aria-live": "polite", ref }, /* @__PURE__ */ React.createElement("div", { className: "sl-loading-head" }, /* @__PURE__ */ React.createElement("span", { className: "sl-spinner", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "sl-loading-text", key: step }, BUILD_STEPS[step])), /* @__PURE__ */ React.createElement("div", { className: "sl-skeleton", "aria-hidden": "true" }, [62, 40, 54, 32, 48].map((w, i) => /* @__PURE__ */ React.createElement("div", { className: "sl-skel-row", key: i, style: { animationDelay: `${i * 0.12}s` } }, /* @__PURE__ */ React.createElement("span", { className: "sl-skel-box" }), /* @__PURE__ */ React.createElement("span", { className: "sl-skel-line", style: { width: `${w}%` } }), /* @__PURE__ */ React.createElement("span", { className: "sl-skel-amt" })))));
+  }
+  function AddItem({ onAdd }) {
+    const [name, setName] = useState3("");
+    const [amount, setAmount] = useState3("");
+    const [category, setCategory] = useState3("Other");
+    const submit = (e) => {
+      e.preventDefault();
+      if (!name.trim()) return;
+      onAdd({ id: newId(), name: name.trim(), amount: amount.trim(), category });
+      setName("");
+      setAmount("");
+      setCategory("Other");
+    };
+    return /* @__PURE__ */ React.createElement("form", { className: "sl-add", onSubmit: submit }, /* @__PURE__ */ React.createElement("div", { className: "sl-add-row" }, /* @__PURE__ */ React.createElement("input", { className: "sl-add-name", value: name, onChange: (e) => setName(e.target.value), placeholder: "Add an item, e.g. paper towels", "aria-label": "Item" }), /* @__PURE__ */ React.createElement("input", { className: "sl-add-amount", value: amount, onChange: (e) => setAmount(e.target.value), placeholder: "Amount", "aria-label": "Amount (optional)" })), /* @__PURE__ */ React.createElement("div", { className: "sl-add-row" }, /* @__PURE__ */ React.createElement("select", { value: category, onChange: (e) => setCategory(e.target.value), "aria-label": "Aisle" }, CATEGORY_ORDER.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), /* @__PURE__ */ React.createElement("button", { type: "submit", className: "sl-add-btn", disabled: !name.trim() }, "Add")));
   }
   function useStorage(key, fallback) {
     return useSyncedStorage(APP_ID, key, fallback);
@@ -20274,15 +20330,17 @@ ${lines.join("\n")}` : null;
     const session = useSession();
     const [recipes, setRecipes] = useStorage("shopping-list-recipes", [newRecipe()]);
     const [result, setResult] = useStorage("shopping-list-result", null);
+    const [extras, setExtras] = useStorage("shopping-list-extras", []);
     const [checked, setChecked] = useStorage("shopping-list-checked", {});
-    const [tab, setTab] = useState3(result ? "list" : "recipes");
+    const [tab, setTab] = useState3(result || extras.length ? "list" : "recipes");
     const [loading, setLoading] = useState3(false);
     const [error, setError] = useState3("");
     const [copied, setCopied] = useState3(false);
+    const [confirmClear, setConfirmClear] = useState3(false);
     useEffect3(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
-    const groups = useMemo(() => buildList(result), [result]);
+    const groups = useMemo(() => buildList(result, extras), [result, extras]);
     const total = groups.reduce((n, g) => n + g.items.length, 0);
     const done = groups.reduce((n, g) => n + g.items.filter((it) => checked[it.key]).length, 0);
     const filled = recipes.filter((r) => r.text.trim());
@@ -20292,19 +20350,12 @@ ${lines.join("\n")}` : null;
       setRecipes(rest.length ? rest : [newRecipe()]);
     };
     async function build() {
-      var _a, _b, _c;
       setLoading(true);
       setError("");
       try {
-        const { data, error: fnError } = await supabase.functions.invoke("shopping-list", {
-          body: { recipes: filled.map((r) => r.text) }
-        });
-        if (fnError) {
-          const details = await ((_b = (_a = fnError.context) == null ? void 0 : _a.json) == null ? void 0 : _b.call(_a).catch(() => null));
-          throw new Error((_c = details == null ? void 0 : details.error) != null ? _c : fnError.message);
-        }
+        const data = await callAI("shopping-list", { recipes: filled.map((r) => r.text) });
         setResult(data);
-        setChecked({});
+        setChecked((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k.startsWith("extra:"))));
         setTab("list");
       } catch (err) {
         setError(err.message || "Something went wrong.");
@@ -20320,6 +20371,27 @@ ${lines.join("\n")}` : null;
       } catch {
       }
     }
+    const addExtra = (item) => setExtras((prev) => [...prev, item]);
+    const removeExtra = (id) => {
+      setExtras((prev) => prev.filter((x) => x.id !== id));
+      setChecked((prev) => {
+        const next = { ...prev };
+        delete next[`extra:${id}`];
+        return next;
+      });
+    };
+    useEffect3(() => {
+      if (!confirmClear) return;
+      const t = setTimeout(() => setConfirmClear(false), 3e3);
+      return () => clearTimeout(t);
+    }, [confirmClear]);
+    function clearList() {
+      if (!confirmClear) return setConfirmClear(true);
+      setResult(null);
+      setExtras([]);
+      setChecked({});
+      setConfirmClear(false);
+    }
     const toggle = (key) => {
       const next = { ...checked };
       if (next[key]) delete next[key];
@@ -20334,12 +20406,12 @@ ${lines.join("\n")}` : null;
         placeholder: "Chicken curry\n200 g chicken breast\n1 onion\n2 cloves garlic\n\u2026",
         rows: 7
       }
-    ))), /* @__PURE__ */ React.createElement("button", { className: "sl-secondary", onClick: () => setRecipes([...recipes, newRecipe()]) }, "+ Add another recipe"), error && /* @__PURE__ */ React.createElement("p", { className: "sl-error" }, error), session === null && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to build lists with AI."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", disabled: !session || loading || filled.length === 0, onClick: build }, loading ? "Reading recipes\u2026" : result ? "Rebuild shopping list" : "Build shopping list"), result && !loading && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, "Rebuilding replaces the current list and its ticks.")), tab === "list" && /* @__PURE__ */ React.createElement("main", { className: "sl-main" }, total === 0 ? /* @__PURE__ */ React.createElement("div", { className: "sl-empty" }, /* @__PURE__ */ React.createElement("p", null, "No list yet."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", onClick: () => setTab("recipes") }, "Add recipes")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-toolbar" }, /* @__PURE__ */ React.createElement("span", { className: "sl-progress" }, done, " of ", total, " in the basket"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: copyList }, copied ? "Copied" : "Copy"), done > 0 && /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: () => setChecked({}) }, "Untick all")), result.recipes.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "sl-from" }, "From: ", result.recipes.map((r) => r.title).join(" \xB7 ")), groups.map(({ category, items }) => {
+    ))), /* @__PURE__ */ React.createElement("button", { className: "sl-secondary", onClick: () => setRecipes([...recipes, newRecipe()]) }, "+ Add another recipe"), error && /* @__PURE__ */ React.createElement("p", { className: "sl-error" }, error), session === null && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to build lists with AI."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", disabled: !session || loading || filled.length === 0, onClick: build }, loading ? /* @__PURE__ */ React.createElement("span", { className: "sl-busy" }, /* @__PURE__ */ React.createElement("span", { className: "sl-spinner sl-spinner-sm", "aria-hidden": "true" }), "Building\u2026") : result ? "Rebuild shopping list" : "Build shopping list"), loading && /* @__PURE__ */ React.createElement(BuildingList, null), result && !loading && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, "Rebuilding replaces the recipe items and their ticks. Items you added yourself stay.")), tab === "list" && /* @__PURE__ */ React.createElement("main", { className: "sl-main" }, total === 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-empty" }, /* @__PURE__ */ React.createElement("p", null, "No list yet. Build one from recipes, or add items yourself below."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", onClick: () => setTab("recipes") }, "Add recipes")), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-toolbar" }, /* @__PURE__ */ React.createElement("span", { className: "sl-progress" }, done, " of ", total, " in the basket"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: copyList }, copied ? "Copied" : "Copy"), done > 0 && /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: () => setChecked({}) }, "Untick all"), /* @__PURE__ */ React.createElement("button", { className: `sl-link sl-danger${confirmClear ? " armed" : ""}`, onClick: clearList }, confirmClear ? "Tap to confirm" : "Clear list")), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra }), (result == null ? void 0 : result.recipes.length) > 0 && /* @__PURE__ */ React.createElement("p", { className: "sl-from" }, "From: ", result.recipes.map((r) => r.title).join(" \xB7 ")), groups.map(({ category, items }) => {
       const sorted = [...items].sort((a, b) => !!checked[a.key] - !!checked[b.key]);
-      return /* @__PURE__ */ React.createElement("section", { className: "sl-group", key: category }, /* @__PURE__ */ React.createElement("h2", null, category), /* @__PURE__ */ React.createElement("ul", null, sorted.map((it) => /* @__PURE__ */ React.createElement("li", { key: it.key, className: checked[it.key] ? "done" : "" }, /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!checked[it.key], onChange: () => toggle(it.key) }), /* @__PURE__ */ React.createElement("span", { className: "sl-item" }, /* @__PURE__ */ React.createElement("span", { className: "sl-item-top" }, /* @__PURE__ */ React.createElement("span", { className: "sl-name" }, it.name), /* @__PURE__ */ React.createElement("span", { className: "sl-amount" }, it.amounts.map(formatAmount).join(" + "))), (it.notes.length > 0 || it.sources.length > 1) && /* @__PURE__ */ React.createElement("span", { className: "sl-sub" }, [
+      return /* @__PURE__ */ React.createElement("section", { className: "sl-group", key: category }, /* @__PURE__ */ React.createElement("h2", null, category), /* @__PURE__ */ React.createElement("ul", null, sorted.map((it) => /* @__PURE__ */ React.createElement("li", { key: it.key, className: checked[it.key] ? "done" : "" }, /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!checked[it.key], onChange: () => toggle(it.key) }), /* @__PURE__ */ React.createElement("span", { className: "sl-item" }, /* @__PURE__ */ React.createElement("span", { className: "sl-item-top" }, /* @__PURE__ */ React.createElement("span", { className: "sl-name" }, it.name), /* @__PURE__ */ React.createElement("span", { className: "sl-amount" }, amountLabel(it))), (it.notes.length > 0 || it.sources.length > 1) && /* @__PURE__ */ React.createElement("span", { className: "sl-sub" }, [
         ...it.notes,
         ...it.sources.length > 1 ? [it.sources.map((s) => `${s.title}: ${s.amounts.map(formatAmount).join(" + ")}`).join(" \xB7 ")] : []
-      ].join(" \u2014 "))))))));
+      ].join(" \u2014 ")))), it.extraId && /* @__PURE__ */ React.createElement("button", { className: "sl-remove", onClick: () => removeExtra(it.extraId), "aria-label": `Remove ${it.name}` }, "\xD7")))));
     }))));
   }
 

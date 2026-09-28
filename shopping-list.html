@@ -24,10 +24,10 @@
     *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body,#app{margin:0;min-height:100%}
     body{background:var(--bg);color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
-    button,textarea{font:inherit;color:inherit}
+    button,textarea,input,select{font:inherit;color:inherit}
     button{cursor:pointer;touch-action:manipulation}
     button:disabled{opacity:.45;cursor:default}
-    button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
     .sl{max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
     .sl-header{display:flex;align-items:center;gap:8px;padding:calc(16px + env(safe-area-inset-top)) 0 8px}
@@ -66,6 +66,42 @@
     .sl-amount{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
     .sl-sub{font-size:.8rem;color:var(--muted)}
     .sl-group li.done .sl-name,.sl-group li.done .sl-amount{text-decoration:line-through;color:var(--muted);font-weight:400}
+    .sl-group li{display:flex;align-items:flex-start}
+    .sl-group li label{flex:1;min-width:0}
+    .sl-remove{flex:none;border:none;background:none;color:var(--muted);font-size:1.3rem;line-height:1;padding:11px 14px 11px 4px}
+
+    .sl-danger{color:var(--error)}
+    .sl-danger.armed{background:var(--error);color:var(--card);border-radius:8px;padding:4px 10px}
+
+    .sl-add{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+    .sl-add:focus-within{border-color:var(--accent)}
+    .sl-add-row{display:flex;gap:8px}
+    .sl-add input,.sl-add select{min-width:0;font:inherit;font-size:.95rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+    .sl-add-name{flex:1}
+    .sl-add-amount{width:96px;flex:none}
+    .sl-add select{flex:1}
+    .sl-add-btn{flex:none;padding:9px 20px;border:none;border-radius:8px;background:var(--accent);color:var(--accentText);font-weight:700}
+
+    .sl-busy{display:inline-flex;align-items:center;gap:10px}
+    .sl-spinner{width:22px;height:22px;flex:none;border-radius:50%;border:2.5px solid var(--accentSoft);border-top-color:var(--accent);animation:sl-spin .8s linear infinite}
+    .sl-spinner-sm{width:16px;height:16px;border-width:2px;border-color:rgba(255,255,255,.35);border-top-color:var(--accentText)}
+    .sl-loading{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;scroll-margin:16px}
+    .sl-loading-head{display:flex;align-items:center;gap:10px;font-weight:600}
+    .sl-loading-text{animation:sl-fade .35s ease-out}
+    .sl-skeleton{display:flex;flex-direction:column}
+    .sl-skel-row{display:flex;align-items:center;gap:12px;padding:10px 0;animation:sl-pulse 1.4s ease-in-out infinite}
+    .sl-skel-row+.sl-skel-row{border-top:1px solid var(--line)}
+    .sl-skel-box,.sl-skel-line,.sl-skel-amt{display:block;border-radius:6px;background:var(--line)}
+    .sl-skel-box{width:18px;height:18px;flex:none}
+    .sl-skel-line{height:12px}
+    .sl-skel-amt{width:44px;height:12px;margin-left:auto}
+    @keyframes sl-spin{to{transform:rotate(360deg)}}
+    @keyframes sl-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    @keyframes sl-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+    @media (prefers-reduced-motion:reduce){
+      .sl-spinner{animation-duration:2.4s}
+      .sl-skel-row,.sl-loading-text{animation:none}
+    }
   </style>
 </head>
 <body>

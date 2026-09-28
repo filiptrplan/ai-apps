@@ -6,12 +6,12 @@
 // consistent across recipes and quantities converted to a small set of
 // units; the app sums matching rows itself, so the arithmetic stays exact.
 //
-// Needs the OPENROUTER_API_KEY secret:
-//   supabase secrets set OPENROUTER_API_KEY=...
+// Needs the OPENROUTER_API_KEY secret (see _shared/openrouter.ts).
 // Deploy with:
 //   supabase functions deploy shopping-list
 
-const MODEL = "openai/gpt-6-luna";
+import { json, serveSignedIn } from "../_shared/http.ts";
+import { AIError, structuredCompletion } from "../_shared/openrouter.ts";
 
 const MAX_RECIPES = 20;
 const MAX_TOTAL_CHARS = 60000;
@@ -86,43 +86,7 @@ Also give each recipe a short title (use its own title if it has one).
 
 Skip plain tap water. Skip lines that are clearly not ingredients (method steps, nutrition info, serving suggestions that aren't part of the recipe). Do not scale amounts: use them exactly as the recipe states.`;
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
-
-// True when the request carries a signed-in user's access token (not just
-// the public key, which is also sent as a bearer token when logged out).
-async function isSignedIn(request: Request) {
-  const auth = request.headers.get("authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return false;
-  const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
-    headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "", Authorization: auth },
-  });
-  return res.ok;
-}
-
-Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!(await isSignedIn(request))) return json({ error: "Sign in to build a shopping list." }, 401);
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (!apiKey) return json({ error: "The server has no OpenRouter API key configured." }, 500);
-
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+serveSignedIn("Sign in to build a shopping list.", async (body) => {
   const recipes: string[] = Array.isArray(body?.recipes)
     ? body.recipes.filter((r: unknown) => typeof r === "string" && r.trim())
     : [];
@@ -132,49 +96,25 @@ Deno.serve(async (request) => {
     return json({ error: "Those recipes are too long - try fewer at once." }, 400);
   }
 
-  const content = recipes
+  const user = recipes
     .map((text, i) => `<recipe index="${i}">\n${text.trim()}\n</recipe>`)
     .join("\n\n");
 
-  let res;
   try {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "X-Title": "AI Apps - Shopping List",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 16000,
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "shopping_list", strict: true, schema: SCHEMA },
-        },
-        // Only route to providers that enforce the schema.
-        provider: { require_parameters: true },
-      }),
+    const list = await structuredCompletion({
+      system: SYSTEM,
+      user,
+      schema: SCHEMA,
+      schemaName: "shopping_list",
+      title: "AI Apps - Shopping List",
     });
-  } catch {
-    return json({ error: "Couldn't reach the AI service." }, 502);
-  }
-  if (res.status === 429) return json({ error: "Too many requests - try again in a minute." }, 429);
-  if (!res.ok) return json({ error: `AI request failed (${res.status}).` }, 502);
-
-  const data = await res.json().catch(() => null);
-  const choice = data?.choices?.[0];
-  if (!choice) return json({ error: data?.error?.message ?? "The AI returned no answer - try again." }, 502);
-  if (choice.finish_reason === "length") return json({ error: "Too many ingredients at once - try fewer recipes." }, 422);
-  if (choice.message?.refusal) return json({ error: "The AI declined to process these recipes." }, 422);
-
-  try {
-    return json(JSON.parse(choice.message?.content));
-  } catch {
-    return json({ error: "The AI returned something unreadable - try again." }, 502);
+    return json(list);
+  } catch (err) {
+    if (!(err instanceof AIError)) throw err;
+    const message = {
+      too_long: "Too many ingredients at once - try fewer recipes.",
+      refused: "The AI declined to process these recipes.",
+    }[err.code as string] ?? err.message;
+    return json({ error: message }, err.status);
   }
 });

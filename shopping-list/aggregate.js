@@ -63,16 +63,23 @@ function sumAmounts(rows) {
     .sort((a, b) => UNIT_ORDER.indexOf(a.unit) - UNIT_ORDER.indexOf(b.unit));
 }
 
+// The amount column for a list entry: summed amounts for recipe items, the
+// typed text for items added by hand.
+export function amountLabel(item) {
+  return item.extraId ? item.amountText : item.amounts.map(formatAmount).join(" + ");
+}
+
 // result: { recipes: [{ index, title }], items: [{ recipeIndex, name,
-// category, quantity, unit, note }] } as returned by the API.
+// category, quantity, unit, note }] } as returned by the API, or null.
+// extras: items added by hand, [{ id, name, amount, category }].
 // Returns [{ category, items: [{ key, name, amounts, notes, sources }] }]
-// with categories in CATEGORY_ORDER and items alphabetical.
-export function buildList(result) {
-  if (!result) return [];
-  const titles = new Map(result.recipes.map((r) => [r.index, r.title]));
+// with categories in CATEGORY_ORDER and items alphabetical. Hand-added items
+// also carry extraId and amountText, and are never merged with recipe items.
+export function buildList(result, extras = []) {
+  const titles = new Map((result?.recipes ?? []).map((r) => [r.index, r.title]));
   const byKey = new Map();
 
-  for (const row of result.items) {
+  for (const row of result?.items ?? []) {
     const key = itemKey(row.name);
     if (!key) continue;
     let item = byKey.get(key);
@@ -102,6 +109,21 @@ export function buildList(result) {
     groups.get(category).push(entry);
   }
 
+  for (const extra of extras) {
+    const category = CATEGORY_ORDER.includes(extra.category) ? extra.category : "Other";
+    const entry = {
+      key: `extra:${extra.id}`,
+      extraId: extra.id,
+      name: extra.name,
+      amountText: extra.amount ?? "",
+      amounts: [],
+      notes: [],
+      sources: [],
+    };
+    if (!groups.has(category)) groups.set(category, []);
+    groups.get(category).push(entry);
+  }
+
   return CATEGORY_ORDER.filter((c) => groups.has(c)).map((category) => ({
     category,
     items: groups.get(category).sort((a, b) => a.name.localeCompare(b.name)),
@@ -114,7 +136,7 @@ export function listToText(groups, checked = {}) {
     .map(({ category, items }) => {
       const lines = items
         .filter((it) => !checked[it.key])
-        .map((it) => `- ${it.name}: ${it.amounts.map(formatAmount).join(" + ")}`);
+        .map((it) => (amountLabel(it) ? `- ${it.name}: ${amountLabel(it)}` : `- ${it.name}`));
       return lines.length ? `${category}\n${lines.join("\n")}` : null;
     })
     .filter(Boolean)
