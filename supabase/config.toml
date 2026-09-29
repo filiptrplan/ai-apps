@@ -396,6 +396,9 @@ verify_jwt = false
 [functions.shopping-merge]
 verify_jwt = false
 
+[functions.price-estimate]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

@@ -49,3 +49,13 @@ the same key:
 ```sh
 supabase functions deploy shopping-merge
 ```
+
+`supabase/functions/price-estimate` estimates what a recipe or shopping list
+costs at Aldi Suisse, with the same key. Packaged goods are priced from Aldi
+Suisse's product search; fresh fruit and vegetables, which Aldi doesn't list
+online, from the Federal Office for Agriculture's monthly Swiss retail prices
+(LINDAS). Neither needs a key:
+
+```sh
+supabase functions deploy price-estimate
+```
