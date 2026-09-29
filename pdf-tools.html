@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PDF Tools</title>
+  <meta name="description" content="Small PDF tools that run in your browser, starting with a margin extender.">
+  <meta name="theme-color" content="#F4F5F8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131417" media="(prefers-color-scheme: dark)">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#F4F5F8;--card:#FFFFFF;--fg:#1A1C22;--muted:#686C78;--line:#E1E3EA;--stage:#E7E9EF;
+      --accent:#2B5FD9;--accentText:#FFFFFF;--accentSoft:#E4EBFB;--error:#B3261E;
+    }
+    @media (prefers-color-scheme:dark){
+      :root{
+        --bg:#131417;--card:#1D1F24;--fg:#ECEDF1;--muted:#9A9EAA;--line:#2F323A;--stage:#0D0E10;
+        --accent:#7FA2F5;--accentText:#0E1529;--accentSoft:#1F2A44;--error:#F2B8B5;
+      }
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body,#app{margin:0;min-height:100%}
+    body{background:var(--bg);color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+    button,input{font:inherit;color:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    button:disabled{opacity:.45;cursor:default}
+    button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    .pt{max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+    .pt.pt-wide{max-width:1100px}
+    .pt-header{display:flex;align-items:center;gap:8px;padding:calc(16px + env(safe-area-inset-top)) 0 12px}
+    .pt-header h1{margin:0;font-size:1.35rem;font-weight:700}
+    .pt-back{color:var(--muted);text-decoration:none;font-size:1.8rem;line-height:1;padding:0 6px 4px 0}
+    .pt-muted{color:var(--muted)}
+    .pt-small{font-size:.85rem;margin:0}
+    .pt-error{margin:0;color:var(--error);font-size:.95rem}
+
+    .pt-list{display:grid;gap:12px}
+    .pt-item{display:flex;flex-direction:column;gap:4px;padding:16px 18px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;font-size:.95rem}
+    .pt-item:hover{border-color:var(--accent)}
+    .pt-item-title{font-weight:600;font-size:1rem}
+
+    .pt-tool{display:grid;gap:16px;align-items:start}
+    @media (min-width:860px){
+      .pt-tool{grid-template-columns:340px 1fr}
+      .pt-controls{position:sticky;top:16px}
+    }
+    .pt-controls{display:flex;flex-direction:column;gap:12px;min-width:0}
+    .pt-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+    .pt-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .pt-label{font-weight:600}
+
+    .pt-drop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px;border:2px dashed var(--line);border-radius:12px;background:var(--card);text-align:center}
+    .pt-drop.over{border-color:var(--accent);background:var(--accentSoft)}
+    .pt-filename{font-weight:600;overflow-wrap:anywhere}
+
+    .pt-segmented{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+    .pt-segmented button{border:none;background:transparent;padding:4px 10px;font-size:.85rem;font-weight:600;color:var(--muted)}
+    .pt-segmented button+button{border-left:1px solid var(--line)}
+    .pt-segmented button.on{background:var(--accent);color:var(--accentText)}
+
+    .pt-side{display:grid;grid-template-columns:56px 1fr 72px;align-items:center;gap:10px}
+    .pt-side-name{text-transform:capitalize;font-size:.92rem;color:var(--muted)}
+    .pt-side input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+    .pt-side input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:right;font-variant-numeric:tabular-nums}
+    .pt-check{display:flex;gap:10px;align-items:flex-start;font-size:.92rem;cursor:pointer}
+    .pt-check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
+
+    .pt-primary{padding:12px 18px;border:none;border-radius:12px;background:var(--accent);color:var(--accentText);font-weight:700}
+    .pt-link{background:none;border:none;padding:4px 0;color:var(--accent);font-weight:600;font-size:.9rem}
+
+    .pt-preview{display:flex;flex-direction:column;gap:10px;min-width:0}
+    .pt-canvas-wrap{display:flex;justify-content:center;align-items:center;padding:20px;background:var(--stage);border-radius:12px;min-height:240px}
+    .pt-canvas{display:block;max-width:100%;max-height:calc(100vh - 180px);width:auto;height:auto;box-shadow:0 1px 3px rgba(0,0,0,.18),0 6px 20px rgba(0,0,0,.08)}
+    .pt-placeholder{display:flex;justify-content:center;align-items:center;min-height:320px;background:var(--stage);border-radius:12px;color:var(--muted)}
+    .pt-size{text-align:center}
+    .pt-size strong{color:var(--fg);font-weight:600}
+    .pt-pager{display:flex;justify-content:center;align-items:center;gap:16px;font-size:.92rem;font-variant-numeric:tabular-nums}
+    .pt-pager button{width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:1.3rem;line-height:1}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="./pdf-tools-app.js"></script>
+</body>
+</html>
