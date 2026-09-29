@@ -34,3 +34,10 @@ supabase functions deploy shopping-list
 ```
 
 It only answers signed-in users, so the key can't be spent by anyone else.
+
+`supabase/functions/recipe-import` powers the Recipes app's "✦ Magic" import
+(screenshots, pasted text or a link → recipe) with the same OpenRouter key:
+
+```sh
+supabase functions deploy recipe-import
+```
