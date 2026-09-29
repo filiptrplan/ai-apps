@@ -5,17 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Recipes</title>
   <meta name="description" content="Shopping lists and a recipe notebook: scale servings, run step timers and add ingredients to your list.">
-  <meta name="theme-color" content="#f5f3ec" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f140f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f3ec">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <style>
-    /* "Market" palette from the design; dark mode uses its "Night garden" colours. */
+    /* "Market" palette from the design; always light. */
     :root{
-      color-scheme:light dark;
+      color-scheme:light;
       --bg:#f5f3ec;--surface:#ffffff;--ink:#1e2a1b;--muted:#686f62;
       --line:rgba(30,42,27,.09);--cb-line:rgba(30,42,27,.3);
       --accent:oklch(0.87 0.18 125);--accent-ink:#1e2a1b;
@@ -25,16 +24,6 @@
       --font:'Bricolage Grotesque',system-ui,sans-serif;
       --r:20px;--row-r:14px;--pill:999px;
       --nav-h:calc(64px + env(safe-area-inset-bottom));
-    }
-    @media (prefers-color-scheme:dark){
-      :root{
-        --bg:#0f140f;--surface:#182017;--ink:#ecf1e8;--muted:#96a292;
-        --line:rgba(236,241,232,.08);--cb-line:rgba(236,241,232,.3);
-        --accent:oklch(0.86 0.13 165);--accent-ink:#0c140f;
-        --soft:rgba(120,230,185,.12);--soft-ink:oklch(0.86 0.13 165);--dot:oklch(0.86 0.13 165);
-        --ph-a:#1b241a;--ph-b:#20291f;--nav-bg:#121811;
-        --chip-on:oklch(0.86 0.13 165);--chip-on-ink:#0c140f;--error:oklch(0.75 0.14 30);
-      }
     }
     *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body,#app{margin:0;min-height:100%}
