@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect to AI Apps</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root{
+      --bg:#fafafa;
+      --fg:#111;
+      --muted:#666;
+      --line:#e7e7e7;
+      --card:#fff;
+      --button:#111;
+      --buttonText:#fff;
+      --danger:#b42318;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font:16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main{
+      width:min(480px, calc(100% - 32px));
+      margin:48px auto;
+    }
+    .card{
+      padding:22px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+    }
+    h1{margin:0 0 8px;font-size:1.3rem;font-weight:700}
+    p{margin:0 0 12px}
+    .muted{color:var(--muted);font-size:.95rem}
+    .error{color:var(--danger)}
+    ul{margin:0 0 16px;padding-left:20px}
+    code{font-size:.9em;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;overflow-wrap:anywhere}
+    form{display:grid;gap:8px;margin-top:8px}
+    input{
+      font:inherit;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      min-width:0;
+    }
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+    button{
+      font:inherit;
+      cursor:pointer;
+      background:var(--button);
+      color:var(--buttonText);
+      border:1px solid var(--button);
+      padding:10px 16px;
+      border-radius:8px;
+      font-weight:600;
+    }
+    button.secondary{background:transparent;color:var(--fg);border-color:var(--line)}
+    button.link{background:none;border:none;padding:0;color:var(--muted);font-weight:400;text-decoration:underline}
+    button:disabled{opacity:.5;cursor:default}
+    .actions button{flex:1}
+  </style>
+</head>
+<body>
+  <main>
+    <div id="card" class="card"><p class="muted">Loading&hellip;</p></div>
+  </main>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // Consent step of the MCP server's OAuth flow (see mcp/http.js): Supabase
+    // Auth redirects here with ?authorization_id=..., the user signs in if
+    // needed and approves or denies, and Supabase then sends them back to
+    // the client (claude.ai) with an authorization code or an error.
+    // Same public (anon/publishable) key as shared/supabaseClient.js.
+    const supabase = createClient(
+      "https://zqxvlczqfqmcojbgwogs.supabase.co",
+      "sb_publishable_IYIQPdhNqRWKj2SCS3pHKA_kp4jbYVr"
+    );
+
+    // What the MCP server's tools can touch, shown before approving.
+    const ACCESS = [
+      "Climbing Tracker: read and change your exercises, routines, workout history and bodyweight",
+    ];
+
+    const card = document.getElementById("card");
+    const authorizationId = new URLSearchParams(location.search).get("authorization_id");
+
+    function el(tag, props = {}, ...children) {
+      const node = Object.assign(document.createElement(tag), props);
+      node.append(...children);
+      return node;
+    }
+
+    function render(...children) {
+      card.replaceChildren(...children);
+    }
+
+    function renderMessage(title, text, isError = false) {
+      render(el("h1", { textContent: title }), el("p", { className: isError ? "error" : "muted", textContent: text }));
+    }
+
+    function renderSignIn(message) {
+      const email = el("input", { type: "email", required: true, autocomplete: "email", placeholder: "you@example.com" });
+      const password = el("input", { type: "password", required: true, minLength: 6, autocomplete: "current-password", placeholder: "password" });
+      const signIn = el("button", { type: "submit", textContent: "Sign in" });
+      const form = el("form", {}, email, password, signIn);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        signIn.disabled = true;
+        const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+        if (error) renderSignIn(error.message);
+      });
+      render(
+        el("h1", { textContent: "Sign in to connect" }),
+        el("p", { className: "muted", textContent: "An app wants to connect to your AI Apps account. Sign in with your AI Apps account to continue." }),
+        form,
+        ...(message ? [el("p", { className: "error", textContent: message, style: "margin:12px 0 0" })] : [])
+      );
+    }
+
+    async function decide(approve, buttons) {
+      buttons.forEach(b => { b.disabled = true; });
+      const { data, error } = approve
+        ? await supabase.auth.oauth.approveAuthorization(authorizationId, { skipBrowserRedirect: true })
+        : await supabase.auth.oauth.denyAuthorization(authorizationId, { skipBrowserRedirect: true });
+      if (error) {
+        renderMessage("Something went wrong", `${error.message}. Start connecting again from the app.`, true);
+        return;
+      }
+      renderMessage(approve ? "Connected" : "Access denied", "Returning to the app…");
+      location.assign(data.redirect_url);
+    }
+
+    function renderConsent(details) {
+      const clientName = details.client?.name || "An app";
+      let redirectHost = details.redirect_uri;
+      try { redirectHost = new URL(details.redirect_uri).host; } catch {}
+
+      const approve = el("button", { type: "button", textContent: "Allow" });
+      const deny = el("button", { type: "button", className: "secondary", textContent: "Deny" });
+      approve.addEventListener("click", () => decide(true, [approve, deny]));
+      deny.addEventListener("click", () => decide(false, [approve, deny]));
+      const signOut = el("button", { type: "button", className: "link", textContent: "Not you? Sign out" });
+      signOut.addEventListener("click", () => supabase.auth.signOut());
+
+      render(
+        el("h1", { textContent: `Allow ${clientName} to access your apps?` }),
+        el("p", { className: "muted" }, "Signed in as ", el("strong", { textContent: details.user?.email || "" }), ". ", signOut),
+        el("p", { textContent: `${clientName} will be able to:` }),
+        el("ul", {}, ...ACCESS.map(text => el("li", { textContent: text }))),
+        el("p", { className: "muted" }, "You'll be sent back to ", el("code", { textContent: redirectHost }), ". Only allow this if you started connecting from there."),
+        el("div", { className: "actions" }, deny, approve)
+      );
+    }
+
+    let loadedFor = null;
+    async function load(session) {
+      if (!session) {
+        loadedFor = null;
+        renderSignIn();
+        return;
+      }
+      if (loadedFor === session.user.id) return;
+      loadedFor = session.user.id;
+      const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
+      if (error) {
+        renderMessage("This request can't be completed", `${error.message}. It may have expired, so start connecting again from the app.`, true);
+        return;
+      }
+      if (data.redirect_url) {
+        // Already approved before: Supabase sends the user straight back.
+        renderMessage("Connected", "Returning to the app…");
+        location.assign(data.redirect_url);
+        return;
+      }
+      renderConsent(data);
+    }
+
+    if (!authorizationId) {
+      renderMessage("Nothing to approve", "This page is opened by an app asking to connect to your account. Start connecting from the app.", true);
+    } else {
+      const { data } = await supabase.auth.getSession();
+      await load(data.session);
+      // Deferred: calling supabase.auth inside this callback can deadlock.
+      supabase.auth.onAuthStateChange((_event, session) => { setTimeout(() => load(session), 0); });
+    }
+  </script>
+</body>
+</html>

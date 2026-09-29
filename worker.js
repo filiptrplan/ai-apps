@@ -1,9 +1,14 @@
 // Cloudflare Worker for the static site. Static files are served by the assets
 // binding before this script runs; it only handles paths that aren't files.
 //
+// /mcp is the MCP server for the apps (see mcp/http.js), with its OAuth
+// protected resource metadata under /.well-known/oauth-protected-resource.
+//
 // /api/resolve-maps-link?url=... follows a Google Maps short link
 // (maps.app.goo.gl) to the full URL, which browsers can't do themselves
 // because the redirect is cross-origin. Only Google Maps links are followed.
+
+import { MCP_PATH, RESOURCE_METADATA_PATHS, handleMcp, handleResourceMetadata } from "./mcp/http.js";
 
 const SHORT_HOSTS = new Set(["maps.app.goo.gl", "goo.gl"]);
 const MAX_REDIRECTS = 5;
@@ -57,6 +62,8 @@ export async function resolveMapsLink(input) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === MCP_PATH) return handleMcp(request);
+    if (RESOURCE_METADATA_PATHS.includes(url.pathname)) return handleResourceMetadata(request);
     if (url.pathname === "/api/resolve-maps-link") {
       return resolveMapsLink(url.searchParams.get("url") ?? "");
     }
