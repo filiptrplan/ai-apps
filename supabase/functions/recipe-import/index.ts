@@ -20,17 +20,27 @@ const MAX_PAGE_BYTES = 3_000_000;
 const PAGE_TIMEOUT_MS = 8000;
 const MAX_REDIRECTS = 5;
 
+const SECTION = {
+  type: "object",
+  additionalProperties: false,
+  required: ["name", "items"],
+  properties: {
+    name: { type: "string" },
+    items: { type: "array", items: { type: "string" } },
+  },
+};
+
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["name", "cat", "time", "serves", "ings", "steps"],
+  required: ["name", "cat", "time", "serves", "ingredients", "method"],
   properties: {
     name: { type: "string" },
     cat: { type: "string", enum: ["Breakfast", "Lunch", "Dinner"] },
     time: { type: "integer", description: "Total minutes." },
     serves: { type: "integer" },
-    ings: { type: "array", items: { type: "string" } },
-    steps: { type: "array", items: { type: "string" } },
+    ingredients: { type: "array", items: SECTION },
+    method: { type: "array", items: SECTION },
   },
 };
 
@@ -40,8 +50,10 @@ const SYSTEM = `You turn the sources a user gives you (screenshots, photos of a 
 - cat: the meal it best fits.
 - time: total time in minutes (prep + cooking). Estimate if not stated.
 - serves: number of servings as stated, else a sensible estimate.
-- ings: one string per ingredient, quantity first, then the ingredient name in Title case, e.g. "2 cups Spinach", "200 g Chicken breast", "1 Lemon". Keep the recipe's own units and amounts. Leave the quantity out if there is none ("Salt").
-- steps: the method as concise steps, one per string, without numbering. Keep durations in the text ("simmer for 10 minutes") since the app turns them into timers.
+- ingredients: sections of ingredients. Each item is one ingredient, quantity first, then the ingredient name in Title case, e.g. "2 cups Spinach", "200 g Chicken breast", "1 Lemon". Keep the recipe's own units and amounts. Leave the quantity out if there is none ("Salt").
+- method: sections of steps. Each item is one concise step, without numbering. Keep durations in the text ("simmer for 10 minutes") since the app turns them into timers.
+
+Sections: when the recipe groups its ingredients or method by component (e.g. "Sauce", "Dough", "Topping"), make one section per group, named as the recipe names it. Otherwise use a single section with an empty name. Ingredients and method are grouped independently.
 
 Use the language the recipe is written in. If the sources contain no recipe at all, return an empty name and empty lists.`;
 
@@ -226,7 +238,7 @@ Deno.serve(async (request) => {
   } catch {
     return json({ error: "The AI returned something unreadable - try again." }, 502);
   }
-  if (!recipe.name && !recipe.ings?.length) {
+  if (!recipe.name && !recipe.ingredients?.some((s: { items: string[] }) => s.items.length)) {
     return json({ error: "Couldn't find a recipe in that. Try more text or a clearer screenshot." }, 422);
   }
   return json(recipe);
