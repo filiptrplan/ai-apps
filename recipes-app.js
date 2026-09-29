@@ -20162,6 +20162,17 @@ ${suffix}`;
     await supabase2.from("app_data_backups").delete().eq("user_id", userId).lt("backup_date", cutoffStr());
   }
 
+  // shared/ai.js
+  async function callAI(functionName, body) {
+    var _a, _b, _c;
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+    if (error) {
+      const details = await ((_b = (_a = error.context) == null ? void 0 : _a.json) == null ? void 0 : _b.call(_a).catch(() => null));
+      throw new Error((_c = details == null ? void 0 : details.error) != null ? _c : error.message);
+    }
+    return data;
+  }
+
   // recipes/format.js
   var CATS = ["Breakfast", "Lunch", "Dinner"];
   var uid = () => Math.random().toString(36).slice(2, 9);
@@ -20205,6 +20216,7 @@ ${suffix}`;
     const m = line.match(ING_RE);
     return m ? { q: m[1], n: m[2] } : { q: "", n: line };
   }
+  var ingToLine = (g) => [g.q, g.n].filter(Boolean).join(" ");
   function stepMin(s) {
     const m = s.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*min/i);
     return m ? parseInt(m[2] || m[1], 10) : null;
@@ -20352,14 +20364,15 @@ ${suffix}`;
       finishSettle();
       setEditingTitle(false);
       setEditingId(item.id);
-      setDraft(item.name);
+      setDraft(ingToLine({ q: item.q, n: item.name }));
     }
     function commitItem() {
       if (!editingId) return;
       const v = draft.trim();
+      const { q, n } = parseIng(v);
       updateItems(
         list.id,
-        (items) => v ? items.map((i) => i.id === editingId ? { ...i, name: v } : i) : items.filter((i) => i.id !== editingId)
+        (items) => v ? items.map((i) => i.id === editingId ? { ...i, name: n, q } : i) : items.filter((i) => i.id !== editingId)
       );
       setEditingId(null);
     }
@@ -20409,7 +20422,8 @@ ${suffix}`;
       e.preventDefault();
       const v = addDraft.trim();
       if (!v) return;
-      updateItems(list.id, (items) => [{ id: uid(), name: v, checked: false }, ...items]);
+      const { q, n } = parseIng(v);
+      updateItems(list.id, (items) => [{ id: uid(), name: n, q, checked: false }, ...items]);
       setAddDraft("");
     }
     function clearDone() {
@@ -20460,7 +20474,7 @@ ${suffix}`;
             onBlur: commitItem,
             onPointerDown: stop
           }
-        ) : /* @__PURE__ */ React.createElement("span", { className: `ra-row-name${checked ? " done" : ""}`, onClick: () => edit(i) }, i.name),
+        ) : /* @__PURE__ */ React.createElement("span", { className: `ra-row-name${checked ? " done" : ""}`, onClick: () => edit(i) }, i.name, i.q && /* @__PURE__ */ React.createElement("span", { className: "ra-row-q" }, i.q)),
         draggable && /* @__PURE__ */ React.createElement("span", { className: "ra-grip", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", null), /* @__PURE__ */ React.createElement("span", null), /* @__PURE__ */ React.createElement("span", null))
       );
     };
@@ -20478,7 +20492,7 @@ ${suffix}`;
     ) : /* @__PURE__ */ React.createElement("h1", { className: "ra-title editable", onClick: startTitleEdit }, list.name), /* @__PURE__ */ React.createElement("div", { className: "ra-chips" }, lists.map((l) => {
       const n = l.items.filter((i) => !i.checked).length;
       return /* @__PURE__ */ React.createElement("button", { key: l.id, className: `ra-chip${l.id === list.id ? " on" : ""}`, onClick: () => switchList(l.id) }, l.name, n > 0 && /* @__PURE__ */ React.createElement("span", { className: "ra-chip-count" }, n));
-    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set")), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
+    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set")), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
   }
 
   // recipes/photos.js
@@ -20631,9 +20645,10 @@ ${suffix}`;
   function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, onBack, onEdit, addToList }) {
     const sv = servings != null ? servings : recipe.serves;
     const k = sv > 0 ? sv / recipe.serves : 1;
-    const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-    const ings = allIngs(recipe);
-    const missing = ings.filter((g) => !have.has(g.n.toLowerCase()));
+    const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
+    const src = (g) => `${recipe.id}:${g.id}`;
+    const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
+    const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
     return /* @__PURE__ */ React.createElement("main", { className: "ra-detail" }, /* @__PURE__ */ React.createElement(Photo, { path: recipe.photo, session, className: `ra-detail-ph${recipe.photo ? " has-photo" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn", onClick: onBack, "aria-label": "Back" }, "\u2190"), /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn text", onClick: onEdit }, "Edit")), /* @__PURE__ */ React.createElement("div", { className: "ra-detail-body" }, /* @__PURE__ */ React.createElement(Tags, { tags: recipe.tags }), /* @__PURE__ */ React.createElement("h1", { className: "ra-title detail" }, recipe.name), /* @__PURE__ */ React.createElement("div", { className: "ra-servings" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Servings"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted" }, recipe.time, " min")), /* @__PURE__ */ React.createElement("div", { className: "ra-stepper" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setServings(Math.max(1, (sv || 1) - 1)), "aria-label": "Fewer servings" }, "\u2212"), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -20650,10 +20665,10 @@ ${suffix}`;
       {
         className: `ra-pill-btn${missing.length ? " accent" : ""}`,
         disabled: !missing.length,
-        onClick: () => addToList(missing)
+        onClick: () => addToList(missing.map(toAdd))
       },
       missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`
-    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(g.n.toLowerCase()) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([g]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), recipe.method.some((sec) => sec.items.length) && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), recipe.method.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, sec.items.map((step, i) => {
+    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), recipe.method.some((sec) => sec.items.length) && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), recipe.method.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, sec.items.map((step, i) => {
       const key = `${recipe.id}:${step.id}`;
       const detected = stepMin(step.text);
       const label = `${recipe.name}, ${sec.name ? `${sec.name} ` : ""}step ${i + 1}`;
@@ -21172,6 +21187,44 @@ ${suffix}`;
     )));
   }
 
+  // recipes/merge.js
+  function mergeRequest(items, addedIds) {
+    const added = new Set(addedIds);
+    const row = (i) => ({ id: i.id, q: i.q || "", name: i.name });
+    const todo = items.filter((i) => !i.checked);
+    return {
+      list: todo.filter((i) => !added.has(i.id)).map(row),
+      add: todo.filter((i) => added.has(i.id)).map(row)
+    };
+  }
+  function applyMerges(items, groups, sent) {
+    const sentById = new Map([...sent.list, ...sent.add].map((r) => [r.id, r]));
+    const addIds = new Set(sent.add.map((r) => r.id));
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const unchanged = (id) => {
+      const i = byId.get(id);
+      const r = sentById.get(id);
+      return i && r && !i.checked && i.name === r.name && (i.q || "") === r.q;
+    };
+    const drop = /* @__PURE__ */ new Set();
+    const update = /* @__PURE__ */ new Map();
+    const merged = [];
+    for (const g of groups || []) {
+      const ids = [...new Set((g.merge || []).filter((id) => id !== g.keep))];
+      if (!ids.length || !unchanged(g.keep) || drop.has(g.keep) || update.has(g.keep)) continue;
+      if (!ids.every((id) => addIds.has(id) && unchanged(id) && !drop.has(id) && !update.has(id))) continue;
+      const keep = byId.get(g.keep);
+      const src = [...new Set([keep, ...ids.map((id) => byId.get(id))].flatMap((i) => i.src || []))];
+      update.set(g.keep, { ...keep, q: typeof g.q === "string" ? g.q.trim() : keep.q, src });
+      ids.forEach((id) => drop.add(id));
+      merged.push({ name: keep.name, q: update.get(g.keep).q });
+    }
+    return {
+      items: items.filter((i) => !drop.has(i.id)).map((i) => update.get(i.id) || i),
+      merged
+    };
+  }
+
   // recipes/App.jsx
   var { useState: useState7, useEffect: useEffect7, useRef: useRef5, useMemo } = React;
   var APP_ID = "recipes";
@@ -21203,6 +21256,10 @@ ${suffix}`;
     const toastT = useRef5(null);
     const timersRef = useRef5(timers);
     timersRef.current = timers;
+    const [mergeJobs, setMergeJobs] = useState7([]);
+    const merging = useRef5(false);
+    const listsRef = useRef5(lists);
+    listsRef.current = lists;
     useEffect7(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
@@ -21222,17 +21279,43 @@ ${suffix}`;
     }
     const updateItems = (listId, fn) => setLists((ls) => ls.map((l) => l.id === listId ? { ...l, items: fn(l.items) } : l));
     function addToList(ings) {
-      const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-      const add = ings.filter((g) => !have.has(g.n.toLowerCase()));
+      const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
+      const add = ings.filter((g) => !have.has(g.src));
       if (!add.length) return;
+      const rows = add.map((g) => ({ id: uid(), name: g.n, q: g.q, checked: false, src: [g.src] }));
       const names = new Set(add.map((g) => g.n.toLowerCase()));
       updateItems(list.id, (items) => [
         ...items.filter((i) => !i.checked),
-        ...add.map((g) => ({ id: uid(), name: g.n, checked: false })),
+        ...rows,
         ...items.filter((i) => i.checked && !names.has(i.name.toLowerCase()))
       ]);
+      if (session) setMergeJobs((js) => [...js, { listId: list.id, ids: rows.map((r) => r.id) }]);
       showToast(add.length === 1 ? `Added ${add[0].n} to ${list.name}` : `Added ${plural(add.length, "item")} to ${list.name}`);
     }
+    useEffect7(() => {
+      if (merging.current || !mergeJobs.length) return;
+      const job = mergeJobs[0];
+      const target = lists.find((l) => l.id === job.listId);
+      const sent = target && mergeRequest(target.items, job.ids);
+      const next = () => {
+        merging.current = false;
+        setMergeJobs((js) => js.slice(1));
+      };
+      if (!sent || !sent.add.length || !sent.list.length && sent.add.length < 2) return next();
+      merging.current = true;
+      callAI("shopping-merge", sent).then(({ groups }) => {
+        const cur = listsRef.current.find((l) => l.id === job.listId);
+        if (!cur) return;
+        const { merged } = applyMerges(cur.items, groups, sent);
+        if (!merged.length) return;
+        updateItems(job.listId, (items) => applyMerges(items, groups, sent).items);
+        const [m] = merged;
+        showToast(
+          merged.length === 1 ? `${m.name} was already on ${cur.name}${m.q ? ` \xB7 now ${m.q}` : ""}` : `Combined ${plural(merged.length, "item")} already on ${cur.name}`
+        );
+      }).catch(() => {
+      }).finally(next);
+    }, [mergeJobs, lists]);
     function setTimer(key, fn) {
       setTimers((ts) => {
         const next = { ...ts };

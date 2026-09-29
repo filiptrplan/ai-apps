@@ -1,4 +1,4 @@
-import { uid, plural } from "./format.js";
+import { uid, plural, parseIng, ingToLine } from "./format.js";
 
 const { useState, useRef, useEffect } = React;
 
@@ -17,7 +17,8 @@ const stop = (e) => e.stopPropagation();
 
 // Shopping list tab: tick items (they sink into "In the cart" after a beat),
 // hold a row to drag it, tap a name or the list title to rename it (an empty
-// name deletes it), switch lists with the chips.
+// name deletes it), switch lists with the chips. Items and edits are typed
+// amount first ("2 Onions"); the amount shows after the name.
 export function ListTab({ lists, list, setActive, setLists, updateItems, showToast }) {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -143,13 +144,14 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
     finishSettle();
     setEditingTitle(false);
     setEditingId(item.id);
-    setDraft(item.name);
+    setDraft(ingToLine({ q: item.q, n: item.name }));
   }
   function commitItem() {
     if (!editingId) return;
     const v = draft.trim();
+    const { q, n } = parseIng(v);
     updateItems(list.id, (items) =>
-      v ? items.map((i) => (i.id === editingId ? { ...i, name: v } : i)) : items.filter((i) => i.id !== editingId)
+      v ? items.map((i) => (i.id === editingId ? { ...i, name: n, q } : i)) : items.filter((i) => i.id !== editingId)
     );
     setEditingId(null);
   }
@@ -202,7 +204,8 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
     e.preventDefault();
     const v = addDraft.trim();
     if (!v) return;
-    updateItems(list.id, (items) => [{ id: uid(), name: v, checked: false }, ...items]);
+    const { q, n } = parseIng(v);
+    updateItems(list.id, (items) => [{ id: uid(), name: n, q, checked: false }, ...items]);
     setAddDraft("");
   }
   function clearDone() {
@@ -255,6 +258,7 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
         ) : (
           <span className={`ra-row-name${checked ? " done" : ""}`} onClick={() => edit(i)}>
             {i.name}
+            {i.q && <span className="ra-row-q">{i.q}</span>}
           </span>
         )}
         {draggable && (
@@ -301,7 +305,7 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
       </div>
 
       <form className="ra-add" onSubmit={addItem}>
-        <input value={addDraft} onChange={(e) => setAddDraft(e.target.value)} placeholder="Add an item" aria-label="New item" />
+        <input value={addDraft} onChange={(e) => setAddDraft(e.target.value)} placeholder="Add an item, e.g. 2 Lemons" aria-label="New item" />
         <button type="submit" aria-label="Add item">+</button>
       </form>
 

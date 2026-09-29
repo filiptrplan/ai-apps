@@ -2,12 +2,14 @@ import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
 import { supabase } from "../shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "../shared/backup.js";
+import { callAI } from "../shared/ai.js";
 import { uid, plural, normRecipe } from "./format.js";
 import { ListTab } from "./ListTab.jsx";
 import { Notebook } from "./Notebook.jsx";
 import { RecipeDetail } from "./RecipeDetail.jsx";
 import { Compose } from "./Compose.jsx";
 import { removePhoto } from "./photos.js";
+import { mergeRequest, applyMerges } from "./merge.js";
 
 const { useState, useEffect, useRef, useMemo } = React;
 
@@ -44,6 +46,13 @@ export function RecipesApp() {
   const toastT = useRef(null);
   const timersRef = useRef(timers);
   timersRef.current = timers;
+  // Batches of just-added rows, { listId, ids }, waiting for the AI to fold
+  // them into matching rows. One runs at a time, so each sees the last one's
+  // result.
+  const [mergeJobs, setMergeJobs] = useState([]);
+  const merging = useRef(false);
+  const listsRef = useRef(lists);
+  listsRef.current = lists;
 
   useEffect(() => {
     if (session) runDailyBackupIfNeeded(supabase, session);
@@ -68,20 +77,54 @@ export function RecipesApp() {
   const updateItems = (listId, fn) =>
     setLists((ls) => ls.map((l) => (l.id === listId ? { ...l, items: fn(l.items) } : l)));
 
-  // Adds ingredients to the end of the active list's "to get" items, taking
-  // any ticked copies out of the cart instead of duplicating them.
+  // Adds recipe ingredients ({ q, n, src }) to the end of the active list's
+  // "to get" items, taking any ticked copies out of the cart instead of
+  // duplicating them. When signed in, the AI then folds any that are already
+  // on the list into the existing row, adding up the amounts.
   function addToList(ings) {
-    const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-    const add = ings.filter((g) => !have.has(g.n.toLowerCase()));
+    const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
+    const add = ings.filter((g) => !have.has(g.src));
     if (!add.length) return;
+    const rows = add.map((g) => ({ id: uid(), name: g.n, q: g.q, checked: false, src: [g.src] }));
     const names = new Set(add.map((g) => g.n.toLowerCase()));
     updateItems(list.id, (items) => [
       ...items.filter((i) => !i.checked),
-      ...add.map((g) => ({ id: uid(), name: g.n, checked: false })),
+      ...rows,
       ...items.filter((i) => i.checked && !names.has(i.name.toLowerCase())),
     ]);
+    if (session) setMergeJobs((js) => [...js, { listId: list.id, ids: rows.map((r) => r.id) }]);
     showToast(add.length === 1 ? `Added ${add[0].n} to ${list.name}` : `Added ${plural(add.length, "item")} to ${list.name}`);
   }
+
+  useEffect(() => {
+    if (merging.current || !mergeJobs.length) return;
+    const job = mergeJobs[0];
+    const target = lists.find((l) => l.id === job.listId);
+    const sent = target && mergeRequest(target.items, job.ids);
+    const next = () => {
+      merging.current = false;
+      setMergeJobs((js) => js.slice(1));
+    };
+    if (!sent || !sent.add.length || (!sent.list.length && sent.add.length < 2)) return next();
+    merging.current = true;
+    callAI("shopping-merge", sent)
+      .then(({ groups }) => {
+        const cur = listsRef.current.find((l) => l.id === job.listId);
+        if (!cur) return;
+        const { merged } = applyMerges(cur.items, groups, sent);
+        if (!merged.length) return;
+        updateItems(job.listId, (items) => applyMerges(items, groups, sent).items);
+        const [m] = merged;
+        showToast(
+          merged.length === 1
+            ? `${m.name} was already on ${cur.name}${m.q ? ` · now ${m.q}` : ""}`
+            : `Combined ${plural(merged.length, "item")} already on ${cur.name}`
+        );
+      })
+      // The rows just stay separate if the AI can't be reached.
+      .catch(() => {})
+      .finally(next);
+  }, [mergeJobs, lists]);
 
   function setTimer(key, fn) {
     setTimers((ts) => {

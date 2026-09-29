@@ -52,9 +52,12 @@ function StepTimer({ tm, detected, open, update, close }) {
 export function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, onBack, onEdit, addToList }) {
   const sv = servings ?? recipe.serves;
   const k = sv > 0 ? sv / recipe.serves : 1;
-  const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-  const ings = allIngs(recipe);
-  const missing = ings.filter((g) => !have.has(g.n.toLowerCase()));
+  // Which of this recipe's ingredients are on the list, even when they've
+  // been combined with the same ingredient from another recipe.
+  const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
+  const src = (g) => `${recipe.id}:${g.id}`;
+  const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
+  const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
 
   return (
     <main className="ra-detail">
@@ -91,7 +94,7 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
           <button
             className={`ra-pill-btn${missing.length ? " accent" : ""}`}
             disabled={!missing.length}
-            onClick={() => addToList(missing)}
+            onClick={() => addToList(missing.map(toAdd))}
           >
             {missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`}
           </button>
@@ -103,10 +106,10 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
               <div key={g.id} className="ra-ing">
                 <span className="ra-ing-q">{scaleQty(g.q, k)}</span>
                 <span className="ra-ing-n">{g.n}</span>
-                {have.has(g.n.toLowerCase()) ? (
+                {have.has(src(g)) ? (
                   <span className="ra-on-list">On list</span>
                 ) : (
-                  <button className="ra-ing-add" onClick={() => addToList([g])} aria-label={`Add ${g.n} to shopping list`}>+</button>
+                  <button className="ra-ing-add" onClick={() => addToList([toAdd(g)])} aria-label={`Add ${g.n} to shopping list`}>+</button>
                 )}
               </div>
             ))}
