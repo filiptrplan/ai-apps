@@ -393,6 +393,9 @@ verify_jwt = false
 [functions.recipe-import]
 verify_jwt = false
 
+[functions.shopping-merge]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

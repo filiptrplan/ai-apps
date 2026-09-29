@@ -41,3 +41,11 @@ It only answers signed-in users, so the key can't be spent by anyone else.
 ```sh
 supabase functions deploy recipe-import
 ```
+
+`supabase/functions/shopping-merge` spots ingredients added from a recipe
+that are already on the Recipes app's list and adds up their amounts, with
+the same key:
+
+```sh
+supabase functions deploy shopping-merge
+```
