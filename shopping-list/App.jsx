@@ -4,6 +4,7 @@ import { supabase } from "../shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import { callAI } from "../shared/ai.js";
 import { CATEGORY_ORDER, amountLabel, buildList, formatAmount, listToText } from "./aggregate.js";
+import { runEstimate, estimateKey, priceTotals, chf, priceDetail, monthLabel } from "../shared/prices.js";
 
 const { useState, useEffect, useMemo, useRef } = React;
 
@@ -76,6 +77,87 @@ function AddItem({ onAdd }) {
   );
 }
 
+// What the unticked items cost at Aldi Suisse, from an estimate kept by
+// the app (see shared/prices.js).
+function PricePanel({ est, stale, onRefresh, onClose }) {
+  if (est.loading) {
+    return (
+      <div className="sl-price" role="status" aria-live="polite">
+        <div className="sl-loading-head">
+          <span className="sl-spinner" aria-hidden="true" />
+          <span>Looking up Aldi prices…</span>
+        </div>
+      </div>
+    );
+  }
+  if (est.error) {
+    return (
+      <div className="sl-price">
+        <p className="sl-error">{est.error}</p>
+        <div className="sl-price-actions">
+          <button className="sl-link" onClick={onRefresh}>Try again</button>
+          <button className="sl-link" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    );
+  }
+  const byId = new Map(est.result.items.map((i) => [i.id, i]));
+  const t = priceTotals(est.result);
+  return (
+    <div className="sl-price">
+      <div className="sl-price-total">
+        <span>At Aldi Suisse</span>
+        <strong>{chf(t.buy)}</strong>
+      </div>
+      {t.missing > 0 && (
+        <p className="sl-note">
+          {t.missing === 1 ? "1 item has" : `${t.missing} items have`} no price and {t.missing === 1 ? "isn't" : "aren't"} counted.
+        </p>
+      )}
+      {stale && (
+        <p className="sl-price-stale">
+          The list changed. <button className="sl-link" onClick={onRefresh}>Recalculate</button>
+        </p>
+      )}
+      <ul>
+        {est.items.map((row) => {
+          const p = byId.get(row.id) || { source: "none" };
+          return (
+            <li key={row.id} className={p.source === "none" ? "none" : ""}>
+              <span className="sl-price-main">
+                <span className="sl-item-top">
+                  <span className="sl-name">{row.name}</span>
+                  {row.q && <span className="sl-price-q">{row.q}</span>}
+                </span>
+                <span className="sl-sub">
+                  {p.source === "aldi" && <>{p.product}{p.size ? ` · ${p.size}` : ""} · {priceDetail(p)}</>}
+                  {p.source === "produce" && (
+                    <>
+                      <span className="sl-price-tag">Swiss avg.</span>
+                      {p.product} · {priceDetail(p)}
+                    </>
+                  )}
+                  {p.source === "none" && "No price found"}
+                </span>
+                {p.note && <span className="sl-sub">{p.note}</span>}
+              </span>
+              {p.source !== "none" && <span className="sl-amount">{chf(p.buy)}</span>}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="sl-note">
+        Prices from aldi-suisse.ch.
+        {t.produce && ` Swiss avg.: fresh produce, Swiss retail average ${monthLabel(est.result.produceMonth)} (BLW), as Aldi doesn't list it online.`}
+      </p>
+      <div className="sl-price-actions">
+        {!stale && <button className="sl-link" onClick={onRefresh}>Refresh</button>}
+        <button className="sl-link" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
 function useStorage(key, fallback) {
   return useSyncedStorage(APP_ID, key, fallback);
 }
@@ -93,6 +175,8 @@ export function ShoppingListApp() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  // Price estimate for the unticked items, kept while the app is open.
+  const [price, setPrice] = useState(null);
 
   useEffect(() => {
     if (session) runDailyBackupIfNeeded(supabase, session);
@@ -102,6 +186,9 @@ export function ShoppingListApp() {
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const done = groups.reduce((n, g) => n + g.items.filter((it) => checked[it.key]).length, 0);
   const filled = recipes.filter((r) => r.text.trim());
+  // What's still to get, as sent for a price estimate.
+  const priceItems = groups.flatMap((g) => g.items).filter((it) => !checked[it.key]).map((it) => ({ id: it.key, q: amountLabel(it) || "", name: it.name }));
+  const estimate = () => runEstimate(priceItems, setPrice);
 
   const updateRecipe = (id, text) => setRecipes(recipes.map((r) => (r.id === id ? { ...r, text } : r)));
   const removeRecipe = (id) => {
@@ -238,11 +325,29 @@ export function ShoppingListApp() {
               <div className="sl-toolbar">
                 <span className="sl-progress">{done} of {total} in the basket</span>
                 <button className="sl-link" onClick={copyList}>{copied ? "Copied" : "Copy"}</button>
+                {!price && priceItems.length > 0 && (
+                  <button
+                    className="sl-link"
+                    disabled={!session}
+                    title={session ? undefined : "Sign in on the home page to estimate prices"}
+                    onClick={estimate}
+                  >
+                    Estimate cost
+                  </button>
+                )}
                 {done > 0 && <button className="sl-link" onClick={() => setChecked({})}>Untick all</button>}
                 <button className={`sl-link sl-danger${confirmClear ? " armed" : ""}`} onClick={clearList}>
                   {confirmClear ? "Tap to confirm" : "Clear list"}
                 </button>
               </div>
+              {price && (
+                <PricePanel
+                  est={price}
+                  stale={!price.loading && price.key !== estimateKey(priceItems)}
+                  onRefresh={estimate}
+                  onClose={() => setPrice(() => null)}
+                />
+              )}
               <AddItem onAdd={addExtra} />
               {result?.recipes.length > 0 && (
                 <p className="sl-from">From: {result.recipes.map((r) => r.title).join(" · ")}</p>

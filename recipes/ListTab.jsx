@@ -1,4 +1,6 @@
 import { uid, plural, parseIng, ingToLine } from "./format.js";
+import { runEstimate, estimateKey } from "../shared/prices.js";
+import { PriceBreakdown } from "./Prices.jsx";
 
 const { useState, useRef, useEffect } = React;
 
@@ -20,7 +22,7 @@ const stop = (e) => e.stopPropagation();
 // name deletes it), switch lists with the chips. Items and edits are typed
 // amount first ("2 Onions"); the amount shows after the name. A typed item
 // that's already on the list is combined with it, like recipe ingredients.
-export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast }) {
+export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draft, setDraft] = useState("");
@@ -241,6 +243,9 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
     todo = drag.order.map((id) => byId.get(id)).filter(Boolean);
   }
   const done = list.items.filter(inCart);
+  // What's still to get, as sent for a price estimate.
+  const priceItems = list.items.filter((i) => !i.checked).map((i) => ({ id: i.id, q: i.q || "", name: i.name }));
+  const estimate = () => runEstimate(priceItems, setPrice);
 
   const renderRow = (i, draggable) => {
     const dragging = draggable && drag && drag.id === i.id;
@@ -327,16 +332,36 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
 
       <div className="ra-section-head">
         <span>{todo.length ? `${todo.length} to get` : "All set"}</span>
-        {list.items.length > 0 && (
-          <button
-            className={`ra-small-btn${confirmClear ? " confirm" : ""}`}
-            onClick={clearAll}
-            onBlur={() => setConfirmClear(false)}
-          >
-            {confirmClear ? "Tap again to clear" : "Clear list"}
-          </button>
-        )}
+        <span className="ra-section-btns">
+          {todo.length > 0 && !price && (
+            <button
+              className="ra-small-btn"
+              disabled={!session}
+              title={session ? undefined : "Sign in on the home page to estimate prices"}
+              onClick={estimate}
+            >
+              Estimate cost
+            </button>
+          )}
+          {list.items.length > 0 && (
+            <button
+              className={`ra-small-btn${confirmClear ? " confirm" : ""}`}
+              onClick={clearAll}
+              onBlur={() => setConfirmClear(false)}
+            >
+              {confirmClear ? "Tap again to clear" : "Clear list"}
+            </button>
+          )}
+        </span>
       </div>
+      {price && (
+        <PriceBreakdown
+          est={price}
+          stale={!price.loading && price.key !== estimateKey(priceItems)}
+          onRefresh={estimate}
+          onClose={() => setPrice(() => null)}
+        />
+      )}
       <div>{todo.map((i) => renderRow(i, true))}</div>
       {todo.length === 0 && <p className="ra-empty">Nothing left to get.</p>}
 

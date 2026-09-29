@@ -40,6 +40,9 @@ export function RecipesApp() {
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All");
   const [servings, setServings] = useState({});
+  // Price estimates by recipe id (and "list:<id>" for lists), kept while
+  // the app is open.
+  const [prices, setPrices] = useState({});
   const [timers, setTimers] = useState({});
   const [, setNow] = useState(0);
   const [toast, setToast] = useState(null);
@@ -202,6 +205,9 @@ export function RecipesApp() {
         updateItems={updateItems}
         queueMerge={queueMerge}
         showToast={showToast}
+        session={session}
+        price={prices[`list:${list.id}`]}
+        setPrice={(fn) => setPrices((ps) => ({ ...ps, [`list:${list.id}`]: fn(ps[`list:${list.id}`]) }))}
       />
     );
   } else if (compose) {
@@ -224,6 +230,8 @@ export function RecipesApp() {
         list={list}
         servings={servings[recipe.id]}
         setServings={(n) => setServings((s) => ({ ...s, [recipe.id]: n }))}
+        price={prices[recipe.id]}
+        setPrice={(fn) => setPrices((ps) => ({ ...ps, [recipe.id]: fn(ps[recipe.id]) }))}
         timers={timers}
         setTimer={setTimer}
         onBack={() => setRecipeId(null)}

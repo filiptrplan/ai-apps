@@ -77,6 +77,29 @@
     .ra-section-head.cart{margin-bottom:2px}
     .ra-small-btn{height:30px;padding:0 12px;border-radius:var(--pill);border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500}
     .ra-small-btn.confirm{background:var(--error);border-color:var(--error);color:var(--bg)}
+    .ra-small-btn:disabled{opacity:.45}
+    .ra-section-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .ra-link{padding:0;border:none;background:none;text-decoration:underline;font-weight:500}
+
+    .ra-price{margin-top:12px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;gap:10px}
+    .ra-price-hint{margin-top:8px}
+    .ra-price-totals{display:flex;flex-wrap:wrap;gap:8px 22px}
+    .ra-price-totals>div{display:flex;flex-direction:column;gap:1px}
+    .ra-price-totals strong{font-size:20px;font-weight:700;letter-spacing:-0.01em;font-variant-numeric:tabular-nums}
+    .ra-price-stale{font-size:13px;color:var(--soft-ink);background:var(--soft);border-radius:10px;padding:8px 10px}
+    .ra-price-rows{list-style:none;margin:0;padding:0}
+    .ra-price-rows li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+    .ra-price-rows li.none .ra-price-sub{font-style:italic}
+    .ra-price-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .ra-price-name{font-size:15px;overflow-wrap:anywhere}
+    .ra-price-name .ra-row-q{font-size:13px}
+    .ra-price-sub,.ra-price-note{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+    .ra-price-note{opacity:.85}
+    .ra-price-tag{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:var(--pill);background:var(--soft);color:var(--soft-ink);font-size:11px;font-weight:600;font-style:normal}
+    .ra-price-cost{flex:none;display:flex;flex-direction:column;align-items:flex-end;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .ra-price-cost .ra-muted{font-weight:400}
+    .ra-price-src{border-top:1px solid var(--line);padding-top:10px}
+    .ra-price-actions{display:flex;gap:8px;justify-content:flex-end}
 
     .ra-row{height:54px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line)}
     .ra-row.drag{padding:0 10px;margin:0 -10px;position:relative;z-index:1;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y;cursor:grab;transition:transform .18s ease,box-shadow .15s,background .15s}

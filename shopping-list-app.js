@@ -20288,6 +20288,41 @@ ${lines.join("\n")}` : null;
     }).filter(Boolean).join("\n\n");
   }
 
+  // shared/prices.js
+  var estimatePrices = (items) => callAI("price-estimate", { items });
+  var estimateKey = (items) => JSON.stringify(items.map((i) => [i.id, i.q, i.name]));
+  function runEstimate(items, set) {
+    const key = estimateKey(items);
+    set(() => ({ key, items, loading: true }));
+    const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
+    estimatePrices(items).then(
+      (result) => done({ result }),
+      (err) => done({ error: err.message || "Couldn't estimate prices." })
+    );
+  }
+  function priceTotals(result) {
+    const items = (result == null ? void 0 : result.items) || [];
+    const priced = items.filter((i) => i.source !== "none");
+    return {
+      buy: priced.reduce((n, i) => n + i.buy, 0),
+      used: priced.reduce((n, i) => n + i.used, 0),
+      priced: priced.length,
+      missing: items.length - priced.length,
+      produce: priced.some((i) => i.source === "produce")
+    };
+  }
+  var chf = (n) => `CHF ${(Math.round(n * 20) / 20).toFixed(2)}`;
+  function priceDetail(i) {
+    if (i.source === "aldi") return `${i.qty} \xD7 ${chf(i.unitPrice)}`;
+    if (i.source === "produce") return `${+i.qty.toFixed(3)} ${i.unit} \xD7 ${chf(i.unitPrice)}`;
+    return "";
+  }
+  function monthLabel(m) {
+    if (!m) return "";
+    const [y, mo] = m.split("-").map(Number);
+    return new Date(Date.UTC(y, mo - 1, 1)).toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" });
+  }
+
   // shopping-list/App.jsx
   var { useState: useState3, useEffect: useEffect3, useMemo, useRef: useRef2 } = React;
   var APP_ID = "shopping-list";
@@ -20323,6 +20358,20 @@ ${lines.join("\n")}` : null;
     };
     return /* @__PURE__ */ React.createElement("form", { className: "sl-add", onSubmit: submit }, /* @__PURE__ */ React.createElement("div", { className: "sl-add-row" }, /* @__PURE__ */ React.createElement("input", { className: "sl-add-name", value: name, onChange: (e) => setName(e.target.value), placeholder: "Add an item, e.g. paper towels", "aria-label": "Item" }), /* @__PURE__ */ React.createElement("input", { className: "sl-add-amount", value: amount, onChange: (e) => setAmount(e.target.value), placeholder: "Amount", "aria-label": "Amount (optional)" })), /* @__PURE__ */ React.createElement("div", { className: "sl-add-row" }, /* @__PURE__ */ React.createElement("select", { value: category, onChange: (e) => setCategory(e.target.value), "aria-label": "Aisle" }, CATEGORY_ORDER.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), /* @__PURE__ */ React.createElement("button", { type: "submit", className: "sl-add-btn", disabled: !name.trim() }, "Add")));
   }
+  function PricePanel({ est, stale, onRefresh, onClose }) {
+    if (est.loading) {
+      return /* @__PURE__ */ React.createElement("div", { className: "sl-price", role: "status", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("div", { className: "sl-loading-head" }, /* @__PURE__ */ React.createElement("span", { className: "sl-spinner", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", null, "Looking up Aldi prices\u2026")));
+    }
+    if (est.error) {
+      return /* @__PURE__ */ React.createElement("div", { className: "sl-price" }, /* @__PURE__ */ React.createElement("p", { className: "sl-error" }, est.error), /* @__PURE__ */ React.createElement("div", { className: "sl-price-actions" }, /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: onRefresh }, "Try again"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: onClose }, "Close")));
+    }
+    const byId = new Map(est.result.items.map((i) => [i.id, i]));
+    const t = priceTotals(est.result);
+    return /* @__PURE__ */ React.createElement("div", { className: "sl-price" }, /* @__PURE__ */ React.createElement("div", { className: "sl-price-total" }, /* @__PURE__ */ React.createElement("span", null, "At Aldi Suisse"), /* @__PURE__ */ React.createElement("strong", null, chf(t.buy))), t.missing > 0 && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, t.missing === 1 ? "1 item has" : `${t.missing} items have`, " no price and ", t.missing === 1 ? "isn't" : "aren't", " counted."), stale && /* @__PURE__ */ React.createElement("p", { className: "sl-price-stale" }, "The list changed. ", /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: onRefresh }, "Recalculate")), /* @__PURE__ */ React.createElement("ul", null, est.items.map((row) => {
+      const p = byId.get(row.id) || { source: "none" };
+      return /* @__PURE__ */ React.createElement("li", { key: row.id, className: p.source === "none" ? "none" : "" }, /* @__PURE__ */ React.createElement("span", { className: "sl-price-main" }, /* @__PURE__ */ React.createElement("span", { className: "sl-item-top" }, /* @__PURE__ */ React.createElement("span", { className: "sl-name" }, row.name), row.q && /* @__PURE__ */ React.createElement("span", { className: "sl-price-q" }, row.q)), /* @__PURE__ */ React.createElement("span", { className: "sl-sub" }, p.source === "aldi" && /* @__PURE__ */ React.createElement(React.Fragment, null, p.product, p.size ? ` \xB7 ${p.size}` : "", " \xB7 ", priceDetail(p)), p.source === "produce" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "sl-price-tag" }, "Swiss avg."), p.product, " \xB7 ", priceDetail(p)), p.source === "none" && "No price found"), p.note && /* @__PURE__ */ React.createElement("span", { className: "sl-sub" }, p.note)), p.source !== "none" && /* @__PURE__ */ React.createElement("span", { className: "sl-amount" }, chf(p.buy)));
+    })), /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, "Prices from aldi-suisse.ch.", t.produce && ` Swiss avg.: fresh produce, Swiss retail average ${monthLabel(est.result.produceMonth)} (BLW), as Aldi doesn't list it online.`), /* @__PURE__ */ React.createElement("div", { className: "sl-price-actions" }, !stale && /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: onRefresh }, "Refresh"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: onClose }, "Close")));
+  }
   function useStorage(key, fallback) {
     return useSyncedStorage(APP_ID, key, fallback);
   }
@@ -20337,6 +20386,7 @@ ${lines.join("\n")}` : null;
     const [error, setError] = useState3("");
     const [copied, setCopied] = useState3(false);
     const [confirmClear, setConfirmClear] = useState3(false);
+    const [price, setPrice] = useState3(null);
     useEffect3(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
@@ -20344,6 +20394,8 @@ ${lines.join("\n")}` : null;
     const total = groups.reduce((n, g) => n + g.items.length, 0);
     const done = groups.reduce((n, g) => n + g.items.filter((it) => checked[it.key]).length, 0);
     const filled = recipes.filter((r) => r.text.trim());
+    const priceItems = groups.flatMap((g) => g.items).filter((it) => !checked[it.key]).map((it) => ({ id: it.key, q: amountLabel(it) || "", name: it.name }));
+    const estimate = () => runEstimate(priceItems, setPrice);
     const updateRecipe = (id, text) => setRecipes(recipes.map((r) => r.id === id ? { ...r, text } : r));
     const removeRecipe = (id) => {
       const rest = recipes.filter((r) => r.id !== id);
@@ -20406,7 +20458,24 @@ ${lines.join("\n")}` : null;
         placeholder: "Chicken curry\n200 g chicken breast\n1 onion\n2 cloves garlic\n\u2026",
         rows: 7
       }
-    ))), /* @__PURE__ */ React.createElement("button", { className: "sl-secondary", onClick: () => setRecipes([...recipes, newRecipe()]) }, "+ Add another recipe"), error && /* @__PURE__ */ React.createElement("p", { className: "sl-error" }, error), session === null && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to build lists with AI."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", disabled: !session || loading || filled.length === 0, onClick: build }, loading ? /* @__PURE__ */ React.createElement("span", { className: "sl-busy" }, /* @__PURE__ */ React.createElement("span", { className: "sl-spinner sl-spinner-sm", "aria-hidden": "true" }), "Building\u2026") : result ? "Rebuild shopping list" : "Build shopping list"), loading && /* @__PURE__ */ React.createElement(BuildingList, null), result && !loading && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, "Rebuilding replaces the recipe items and their ticks. Items you added yourself stay.")), tab === "list" && /* @__PURE__ */ React.createElement("main", { className: "sl-main" }, total === 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-empty" }, /* @__PURE__ */ React.createElement("p", null, "No list yet. Build one from recipes, or add items yourself below."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", onClick: () => setTab("recipes") }, "Add recipes")), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-toolbar" }, /* @__PURE__ */ React.createElement("span", { className: "sl-progress" }, done, " of ", total, " in the basket"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: copyList }, copied ? "Copied" : "Copy"), done > 0 && /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: () => setChecked({}) }, "Untick all"), /* @__PURE__ */ React.createElement("button", { className: `sl-link sl-danger${confirmClear ? " armed" : ""}`, onClick: clearList }, confirmClear ? "Tap to confirm" : "Clear list")), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra }), (result == null ? void 0 : result.recipes.length) > 0 && /* @__PURE__ */ React.createElement("p", { className: "sl-from" }, "From: ", result.recipes.map((r) => r.title).join(" \xB7 ")), groups.map(({ category, items }) => {
+    ))), /* @__PURE__ */ React.createElement("button", { className: "sl-secondary", onClick: () => setRecipes([...recipes, newRecipe()]) }, "+ Add another recipe"), error && /* @__PURE__ */ React.createElement("p", { className: "sl-error" }, error), session === null && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to build lists with AI."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", disabled: !session || loading || filled.length === 0, onClick: build }, loading ? /* @__PURE__ */ React.createElement("span", { className: "sl-busy" }, /* @__PURE__ */ React.createElement("span", { className: "sl-spinner sl-spinner-sm", "aria-hidden": "true" }), "Building\u2026") : result ? "Rebuild shopping list" : "Build shopping list"), loading && /* @__PURE__ */ React.createElement(BuildingList, null), result && !loading && /* @__PURE__ */ React.createElement("p", { className: "sl-note" }, "Rebuilding replaces the recipe items and their ticks. Items you added yourself stay.")), tab === "list" && /* @__PURE__ */ React.createElement("main", { className: "sl-main" }, total === 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-empty" }, /* @__PURE__ */ React.createElement("p", null, "No list yet. Build one from recipes, or add items yourself below."), /* @__PURE__ */ React.createElement("button", { className: "sl-primary", onClick: () => setTab("recipes") }, "Add recipes")), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sl-toolbar" }, /* @__PURE__ */ React.createElement("span", { className: "sl-progress" }, done, " of ", total, " in the basket"), /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: copyList }, copied ? "Copied" : "Copy"), !price && priceItems.length > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "sl-link",
+        disabled: !session,
+        title: session ? void 0 : "Sign in on the home page to estimate prices",
+        onClick: estimate
+      },
+      "Estimate cost"
+    ), done > 0 && /* @__PURE__ */ React.createElement("button", { className: "sl-link", onClick: () => setChecked({}) }, "Untick all"), /* @__PURE__ */ React.createElement("button", { className: `sl-link sl-danger${confirmClear ? " armed" : ""}`, onClick: clearList }, confirmClear ? "Tap to confirm" : "Clear list")), price && /* @__PURE__ */ React.createElement(
+      PricePanel,
+      {
+        est: price,
+        stale: !price.loading && price.key !== estimateKey(priceItems),
+        onRefresh: estimate,
+        onClose: () => setPrice(() => null)
+      }
+    ), /* @__PURE__ */ React.createElement(AddItem, { onAdd: addExtra }), (result == null ? void 0 : result.recipes.length) > 0 && /* @__PURE__ */ React.createElement("p", { className: "sl-from" }, "From: ", result.recipes.map((r) => r.title).join(" \xB7 ")), groups.map(({ category, items }) => {
       const sorted = [...items].sort((a, b) => !!checked[a.key] - !!checked[b.key]);
       return /* @__PURE__ */ React.createElement("section", { className: "sl-group", key: category }, /* @__PURE__ */ React.createElement("h2", null, category), /* @__PURE__ */ React.createElement("ul", null, sorted.map((it) => /* @__PURE__ */ React.createElement("li", { key: it.key, className: checked[it.key] ? "done" : "" }, /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!checked[it.key], onChange: () => toggle(it.key) }), /* @__PURE__ */ React.createElement("span", { className: "sl-item" }, /* @__PURE__ */ React.createElement("span", { className: "sl-item-top" }, /* @__PURE__ */ React.createElement("span", { className: "sl-name" }, it.name), /* @__PURE__ */ React.createElement("span", { className: "sl-amount" }, amountLabel(it))), (it.notes.length > 0 || it.sources.length > 1) && /* @__PURE__ */ React.createElement("span", { className: "sl-sub" }, [
         ...it.notes,

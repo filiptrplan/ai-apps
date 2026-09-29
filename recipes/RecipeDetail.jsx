@@ -1,6 +1,8 @@
 import { scaleQty, stepMin, fmtClock, allIngs } from "./format.js";
 import { Tags } from "./Notebook.jsx";
 import { Photo } from "./Photo.jsx";
+import { runEstimate, estimateKey } from "../shared/prices.js";
+import { PriceBreakdown } from "./Prices.jsx";
 
 // Per-step timer: closed -> setting (pick minutes) -> active (running,
 // paused or done). Timers live in the app so they keep running when you
@@ -49,7 +51,7 @@ function StepTimer({ tm, detected, open, update, close }) {
   );
 }
 
-export function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, onBack, onEdit, addToList }) {
+export function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, onBack, onEdit, addToList }) {
   const sv = servings ?? recipe.serves;
   const k = sv > 0 ? sv / recipe.serves : 1;
   // Which of this recipe's ingredients are on the list, even when they've
@@ -58,6 +60,9 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
   const src = (g) => `${recipe.id}:${g.id}`;
   const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
   const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
+  // Every ingredient at the chosen servings, as sent for a price estimate.
+  const priceItems = allIngs(recipe).map((g) => ({ id: g.id, q: scaleQty(g.q, k), name: g.n }));
+  const estimate = () => runEstimate(priceItems, setPrice);
 
   return (
     <main className="ra-detail">
@@ -115,6 +120,33 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
             ))}
           </section>
         ))}
+
+        {priceItems.length > 0 && (
+          <>
+            <div className="ra-sub-head">
+              <h2>Cost</h2>
+              {!price && (
+                <button className="ra-pill-btn" disabled={!session} onClick={estimate}>
+                  Estimate at Aldi
+                </button>
+              )}
+            </div>
+            {!price && session === null && (
+              <p className="ra-muted sm ra-price-hint">
+                <a href="./">Sign in on the home page</a> to estimate prices.
+              </p>
+            )}
+            {price && (
+              <PriceBreakdown
+                est={price}
+                servings={sv}
+                stale={!price.loading && price.key !== estimateKey(priceItems)}
+                onRefresh={estimate}
+                onClose={() => setPrice(() => null)}
+              />
+            )}
+          </>
+        )}
 
         {recipe.method.some((sec) => sec.items.length) && <h2 className="ra-method-head">Method</h2>}
         {recipe.method.map((sec) => (

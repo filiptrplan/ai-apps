@@ -47,13 +47,25 @@
     .sl-recipe textarea:focus{outline:none}
     .sl-recipe:focus-within{border-color:var(--accent)}
     .sl-link{background:none;border:none;padding:4px 0;color:var(--accent);font-weight:600;font-size:.9rem}
+    .sl-link:disabled{opacity:.45}
     .sl-primary{padding:14px;border:none;border-radius:12px;background:var(--accent);color:var(--accentText);font-weight:700;font-size:1rem}
     .sl-secondary{padding:12px;border:1px dashed var(--line);border-radius:12px;background:transparent;color:var(--muted);font-weight:600}
     .sl-empty{text-align:center;color:var(--muted);padding:48px 0;display:flex;flex-direction:column;gap:12px;align-items:center}
     .sl-empty p{margin:0}
 
-    .sl-toolbar{display:flex;align-items:center;gap:16px}
+    .sl-toolbar{display:flex;align-items:center;gap:4px 16px;flex-wrap:wrap}
     .sl-progress{flex:1;font-size:.92rem;color:var(--muted)}
+    .sl-price{display:flex;flex-direction:column;gap:10px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+    .sl-price-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-weight:600}
+    .sl-price-total strong{font-size:1.4rem;font-variant-numeric:tabular-nums}
+    .sl-price-stale{margin:0;font-size:.9rem;background:var(--accentSoft);border-radius:8px;padding:6px 10px}
+    .sl-price ul{list-style:none;margin:0;padding:0}
+    .sl-price li{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+    .sl-price li.none .sl-sub{font-style:italic}
+    .sl-price-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .sl-price-q{color:var(--muted);font-size:.9rem;white-space:nowrap}
+    .sl-price-tag{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;background:var(--accentSoft);color:var(--accent);font-size:.72rem;font-weight:600;font-style:normal}
+    .sl-price-actions{display:flex;gap:16px;justify-content:flex-end}
     .sl-group h2{margin:8px 0 6px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
     .sl-group ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
     .sl-group li+li{border-top:1px solid var(--line)}

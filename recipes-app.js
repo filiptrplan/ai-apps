@@ -20237,6 +20237,58 @@ ${suffix}`;
   }
   var allIngs = (r) => r.ingredients.flatMap((s) => s.items);
 
+  // shared/prices.js
+  var estimatePrices = (items) => callAI("price-estimate", { items });
+  var estimateKey = (items) => JSON.stringify(items.map((i) => [i.id, i.q, i.name]));
+  function runEstimate(items, set) {
+    const key = estimateKey(items);
+    set(() => ({ key, items, loading: true }));
+    const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
+    estimatePrices(items).then(
+      (result) => done({ result }),
+      (err) => done({ error: err.message || "Couldn't estimate prices." })
+    );
+  }
+  function priceTotals(result) {
+    const items = (result == null ? void 0 : result.items) || [];
+    const priced = items.filter((i) => i.source !== "none");
+    return {
+      buy: priced.reduce((n, i) => n + i.buy, 0),
+      used: priced.reduce((n, i) => n + i.used, 0),
+      priced: priced.length,
+      missing: items.length - priced.length,
+      produce: priced.some((i) => i.source === "produce")
+    };
+  }
+  var chf = (n) => `CHF ${(Math.round(n * 20) / 20).toFixed(2)}`;
+  function priceDetail(i) {
+    if (i.source === "aldi") return `${i.qty} \xD7 ${chf(i.unitPrice)}`;
+    if (i.source === "produce") return `${+i.qty.toFixed(3)} ${i.unit} \xD7 ${chf(i.unitPrice)}`;
+    return "";
+  }
+  function monthLabel(m) {
+    if (!m) return "";
+    const [y, mo] = m.split("-").map(Number);
+    return new Date(Date.UTC(y, mo - 1, 1)).toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" });
+  }
+
+  // recipes/Prices.jsx
+  function PriceBreakdown({ est, servings, stale, onRefresh, onClose }) {
+    if (est.loading) {
+      return /* @__PURE__ */ React.createElement("div", { className: "ra-price", role: "status", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("p", { className: "ra-muted" }, "Looking up Aldi prices\u2026"));
+    }
+    if (est.error) {
+      return /* @__PURE__ */ React.createElement("div", { className: "ra-price" }, /* @__PURE__ */ React.createElement("p", { className: "ra-error" }, est.error), /* @__PURE__ */ React.createElement("div", { className: "ra-price-actions" }, /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onRefresh }, "Try again"), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onClose }, "Close")));
+    }
+    const byId = new Map(est.result.items.map((i) => [i.id, i]));
+    const t = priceTotals(est.result);
+    const recipe = servings != null;
+    return /* @__PURE__ */ React.createElement("div", { className: "ra-price" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-totals" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "At the till"), /* @__PURE__ */ React.createElement("strong", null, chf(t.buy))), recipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Used"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used))), recipe && servings > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Per serving"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used / servings)))), t.missing > 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm" }, t.missing === 1 ? "1 item has" : `${t.missing} items have`, " no price and ", t.missing === 1 ? "isn't" : "aren't", " counted."), stale && /* @__PURE__ */ React.createElement("p", { className: "ra-price-stale" }, recipe ? "Servings or ingredients changed." : "The list changed.", " ", /* @__PURE__ */ React.createElement("button", { className: "ra-link", onClick: onRefresh }, "Recalculate")), /* @__PURE__ */ React.createElement("ul", { className: "ra-price-rows" }, est.items.map((row) => {
+      const p = byId.get(row.id) || { source: "none" };
+      return /* @__PURE__ */ React.createElement("li", { key: row.id, className: p.source === "none" ? "none" : "" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-main" }, /* @__PURE__ */ React.createElement("span", { className: "ra-price-name" }, row.name, row.q && /* @__PURE__ */ React.createElement("span", { className: "ra-row-q" }, row.q)), /* @__PURE__ */ React.createElement("span", { className: "ra-price-sub" }, p.source === "aldi" && /* @__PURE__ */ React.createElement(React.Fragment, null, p.product, p.size ? ` \xB7 ${p.size}` : ""), p.source === "produce" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ra-price-tag" }, "Swiss avg."), p.product), p.source === "none" && "No price found", p.source !== "none" && /* @__PURE__ */ React.createElement("span", { className: "ra-price-calc" }, " \xB7 ", priceDetail(p))), p.note && /* @__PURE__ */ React.createElement("span", { className: "ra-price-note" }, p.note)), p.source !== "none" && /* @__PURE__ */ React.createElement("div", { className: "ra-price-cost" }, /* @__PURE__ */ React.createElement("span", null, chf(recipe ? p.used : p.buy)), recipe && p.buy !== p.used && /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "of ", chf(p.buy))));
+    })), /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-src" }, "Prices from aldi-suisse.ch.", t.produce && ` Swiss avg.: fresh produce, Swiss retail average ${monthLabel(est.result.produceMonth)} (BLW), as Aldi doesn't list it online.`), /* @__PURE__ */ React.createElement("div", { className: "ra-price-actions" }, !stale && /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onRefresh }, "Refresh"), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onClose }, "Close")));
+  }
+
   // recipes/ListTab.jsx
   var { useState: useState3, useRef: useRef2, useEffect: useEffect3 } = React;
   var ROW_H = 54;
@@ -20250,7 +20302,7 @@ ${suffix}`;
     }
   };
   var stop = (e) => e.stopPropagation();
-  function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast }) {
+  function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
     const [editingId, setEditingId] = useState3(null);
     const [editingTitle, setEditingTitle] = useState3(false);
     const [draft, setDraft] = useState3("");
@@ -20456,6 +20508,8 @@ ${suffix}`;
       todo = drag.order.map((id) => byId.get(id)).filter(Boolean);
     }
     const done = list.items.filter(inCart);
+    const priceItems = list.items.filter((i) => !i.checked).map((i) => ({ id: i.id, q: i.q || "", name: i.name }));
+    const estimate = () => runEstimate(priceItems, setPrice);
     const renderRow = (i, draggable) => {
       const dragging = draggable && drag && drag.id === i.id;
       const checked = shownChecked(i);
@@ -20507,7 +20561,16 @@ ${suffix}`;
     ) : /* @__PURE__ */ React.createElement("h1", { className: "ra-title editable", onClick: startTitleEdit }, list.name), /* @__PURE__ */ React.createElement("div", { className: "ra-chips" }, lists.map((l) => {
       const n = l.items.filter((i) => !i.checked).length;
       return /* @__PURE__ */ React.createElement("button", { key: l.id, className: `ra-chip${l.id === list.id ? " on" : ""}`, onClick: () => switchList(l.id) }, l.name, n > 0 && /* @__PURE__ */ React.createElement("span", { className: "ra-chip-count" }, n));
-    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set"), list.items.length > 0 && /* @__PURE__ */ React.createElement(
+    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set"), /* @__PURE__ */ React.createElement("span", { className: "ra-section-btns" }, todo.length > 0 && !price && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "ra-small-btn",
+        disabled: !session,
+        title: session ? void 0 : "Sign in on the home page to estimate prices",
+        onClick: estimate
+      },
+      "Estimate cost"
+    ), list.items.length > 0 && /* @__PURE__ */ React.createElement(
       "button",
       {
         className: `ra-small-btn${confirmClear ? " confirm" : ""}`,
@@ -20515,7 +20578,15 @@ ${suffix}`;
         onBlur: () => setConfirmClear(false)
       },
       confirmClear ? "Tap again to clear" : "Clear list"
-    )), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
+    ))), price && /* @__PURE__ */ React.createElement(
+      PriceBreakdown,
+      {
+        est: price,
+        stale: !price.loading && price.key !== estimateKey(priceItems),
+        onRefresh: estimate,
+        onClose: () => setPrice(() => null)
+      }
+    ), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
   }
 
   // recipes/photos.js
@@ -20665,13 +20736,15 @@ ${suffix}`;
     );
     return /* @__PURE__ */ React.createElement("div", { className: `ra-timer-run${tm.done ? " done" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "ra-timer-bar", style: { width: `${progress}%` } }), /* @__PURE__ */ React.createElement("span", { className: "ra-timer-clock" }, tm.done ? "Time's up" : fmtClock(left)), /* @__PURE__ */ React.createElement("button", { className: "pause", onClick: pause }, tm.done ? "Restart" : tm.running ? "Pause" : "Resume"), /* @__PURE__ */ React.createElement("button", { className: "reset", onClick: () => update((o) => ({ dur: o.dur, label: o.label })) }, "Reset"));
   }
-  function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, onBack, onEdit, addToList }) {
+  function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, onBack, onEdit, addToList }) {
     const sv = servings != null ? servings : recipe.serves;
     const k = sv > 0 ? sv / recipe.serves : 1;
     const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
     const src = (g) => `${recipe.id}:${g.id}`;
     const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
     const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
+    const priceItems = allIngs(recipe).map((g) => ({ id: g.id, q: scaleQty(g.q, k), name: g.n }));
+    const estimate = () => runEstimate(priceItems, setPrice);
     return /* @__PURE__ */ React.createElement("main", { className: "ra-detail" }, /* @__PURE__ */ React.createElement(Photo, { path: recipe.photo, session, className: `ra-detail-ph${recipe.photo ? " has-photo" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn", onClick: onBack, "aria-label": "Back" }, "\u2190"), /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn text", onClick: onEdit }, "Edit")), /* @__PURE__ */ React.createElement("div", { className: "ra-detail-body" }, /* @__PURE__ */ React.createElement(Tags, { tags: recipe.tags }), /* @__PURE__ */ React.createElement("h1", { className: "ra-title detail" }, recipe.name), /* @__PURE__ */ React.createElement("div", { className: "ra-servings" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Servings"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted" }, recipe.time, " min")), /* @__PURE__ */ React.createElement("div", { className: "ra-stepper" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setServings(Math.max(1, (sv || 1) - 1)), "aria-label": "Fewer servings" }, "\u2212"), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -20691,7 +20764,16 @@ ${suffix}`;
         onClick: () => addToList(missing.map(toAdd))
       },
       missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`
-    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), recipe.method.some((sec) => sec.items.length) && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), recipe.method.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, sec.items.map((step, i) => {
+    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), priceItems.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Cost"), !price && /* @__PURE__ */ React.createElement("button", { className: "ra-pill-btn", disabled: !session, onClick: estimate }, "Estimate at Aldi")), !price && session === null && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to estimate prices."), price && /* @__PURE__ */ React.createElement(
+      PriceBreakdown,
+      {
+        est: price,
+        servings: sv,
+        stale: !price.loading && price.key !== estimateKey(priceItems),
+        onRefresh: estimate,
+        onClose: () => setPrice(() => null)
+      }
+    )), recipe.method.some((sec) => sec.items.length) && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), recipe.method.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, sec.items.map((step, i) => {
       const key = `${recipe.id}:${step.id}`;
       const detected = stepMin(step.text);
       const label = `${recipe.name}, ${sec.name ? `${sec.name} ` : ""}step ${i + 1}`;
@@ -21273,6 +21355,7 @@ ${suffix}`;
     const [query, setQuery] = useState7("");
     const [cat, setCat] = useState7("All");
     const [servings, setServings] = useState7({});
+    const [prices, setPrices] = useState7({});
     const [timers, setTimers] = useState7({});
     const [, setNow] = useState7(0);
     const [toast, setToast] = useState7(null);
@@ -21405,7 +21488,10 @@ ${suffix}`;
           setLists,
           updateItems,
           queueMerge,
-          showToast
+          showToast,
+          session,
+          price: prices[`list:${list.id}`],
+          setPrice: (fn) => setPrices((ps) => ({ ...ps, [`list:${list.id}`]: fn(ps[`list:${list.id}`]) }))
         }
       );
     } else if (compose) {
@@ -21430,6 +21516,8 @@ ${suffix}`;
           list,
           servings: servings[recipe.id],
           setServings: (n) => setServings((s) => ({ ...s, [recipe.id]: n })),
+          price: prices[recipe.id],
+          setPrice: (fn) => setPrices((ps) => ({ ...ps, [recipe.id]: fn(ps[recipe.id]) })),
           timers,
           setTimer,
           onBack: () => setRecipeId(null),
