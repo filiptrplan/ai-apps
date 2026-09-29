@@ -6,6 +6,8 @@ import { Icon } from "./Icons.jsx";
 
 const { useState, useEffect, useRef } = React;
 
+const PREP_SEC = 5; // "get ready" countdown before each tapped start
+
 // Reports its progress live via onChange (rather than a one-shot onComplete)
 // so the containing page can read the current completedSets at any time,
 // including mid-timer, when the workout is finished. Work/rest/sets are
@@ -15,8 +17,11 @@ const { useState, useEffect, useRef } = React;
 // With superset set, each set is a single work phase started by a tap; the
 // card's own rest is skipped (the superset's round rest replaces it) but
 // restSec is still reported unchanged so it doesn't look edited.
+//
+// Every tapped start (Start, or "Start set N" in a superset) runs a short
+// prep countdown first so there's time to get into position.
 export function IntervalCard({ exercise, superset, onChange }) {
-  const [phase, setPhase] = useState("idle"); // idle | work | rest | next (superset only) | done
+  const [phase, setPhase] = useState("idle"); // idle | prep | work | rest | next (superset only) | done
   const [workSec, setWorkSec] = useState(exercise.workSec);
   const [restSec, setRestSec] = useState(exercise.restSec);
   const [totalSets, setTotalSets] = useState(exercise.sets);
@@ -87,7 +92,9 @@ export function IntervalCard({ exercise, superset, onChange }) {
   const runTick = () => {
     timeLeftRef.current -= 1;
     if (timeLeftRef.current <= 0) {
-      if (phaseRef.current === "work") {
+      if (phaseRef.current === "prep") {
+        enterWork();
+      } else if (phaseRef.current === "work") {
         endWork(false);
       } else if (phaseRef.current === "rest") {
         currentSetRef.current += 1;
@@ -104,14 +111,22 @@ export function IntervalCard({ exercise, superset, onChange }) {
     }
   };
 
-  const beginWork = () => {
-    getAudioCtx();
+  const enterWork = () => {
     phaseRef.current = "work";
     timeLeftRef.current = configRef.current.workSec;
     setPhase("work");
     setTimeLeft(configRef.current.workSec);
-    setPaused(false);
     sounds.workStart();
+  };
+
+  const beginWork = () => {
+    getAudioCtx(); // unlock audio on user gesture
+    clearTick();
+    phaseRef.current = "prep";
+    timeLeftRef.current = PREP_SEC;
+    setPhase("prep");
+    setTimeLeft(PREP_SEC);
+    setPaused(false);
     intervalRef.current = setInterval(runTick, 1000);
   };
 
@@ -146,7 +161,9 @@ export function IntervalCard({ exercise, superset, onChange }) {
   };
 
   const skip = () => {
-    if (phaseRef.current === "rest") {
+    if (phaseRef.current === "prep") {
+      enterWork();
+    } else if (phaseRef.current === "rest") {
       currentSetRef.current += 1;
       phaseRef.current = "work";
       timeLeftRef.current = configRef.current.workSec;
@@ -160,11 +177,11 @@ export function IntervalCard({ exercise, superset, onChange }) {
 
   useEffect(() => () => clearTick(), []);
 
-  const running = phase === "work" || phase === "rest";
-  const phaseColor = phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
+  const running = phase === "prep" || phase === "work" || phase === "rest";
+  const phaseColor = phase === "prep" ? C.text : phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
   const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
   const completed = phase === "done" ? (completedRef.current >= totalSets ? totalSets : completedRef.current) : completedRef.current;
-  const phaseTotal = phase === "rest" ? restSec : workSec;
+  const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
   const fraction = running ? (phaseTotal > 0 ? timeLeft / phaseTotal : 0) : phase === "done" ? 0 : 1;
 
   return (
@@ -195,7 +212,7 @@ export function IntervalCard({ exercise, superset, onChange }) {
             )}
             {running && (
               <>
-                <div style={{ ...s.phaseLabel, color: paused ? C.muted : phaseColor }}>{paused ? "PAUSED" : phase.toUpperCase()}</div>
+                <div style={{ ...s.phaseLabel, color: paused ? C.muted : phaseColor }}>{paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()}</div>
                 <div style={{ ...s.timerDigits, color: phaseColor }}>{formatTime(timeLeft)}</div>
                 <div style={s.timerSub}>Set {currentSet} of {totalSets}</div>
               </>

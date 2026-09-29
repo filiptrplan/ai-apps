@@ -23,6 +23,7 @@ function useStorage(key, fallback) {
 }
 
 const TABS = ["Timer", "Presets", "History"];
+const PREP_SEC = 5; // "get ready" countdown after pressing Start
 
 let audioCtx = null;
 function getAudioCtx() {
@@ -121,7 +122,7 @@ function IntervalTimerApp() {
   const [totalSets, setTotalSets] = useState(5);
 
   // Timer state
-  const [phase, setPhase] = useState("idle"); // idle | work | rest | done
+  const [phase, setPhase] = useState("idle"); // idle | prep | work | rest | done
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -148,7 +149,13 @@ function IntervalTimerApp() {
     timeLeftRef.current -= 1;
 
     if (timeLeftRef.current <= 0) {
-      if (phaseRef.current === "work") {
+      if (phaseRef.current === "prep") {
+        phaseRef.current = "work";
+        timeLeftRef.current = configRef.current.workSec;
+        setPhase("work");
+        setTimeLeft(configRef.current.workSec);
+        sounds.workStart();
+      } else if (phaseRef.current === "work") {
         if (currentSetRef.current >= configRef.current.totalSets) {
           phaseRef.current = "done";
           setPhase("done");
@@ -182,14 +189,13 @@ function IntervalTimerApp() {
   const startTimer = () => {
     clearInterval_();
     getAudioCtx(); // unlock audio on user gesture
-    phaseRef.current = "work";
+    phaseRef.current = "prep";
     currentSetRef.current = 1;
-    timeLeftRef.current = workSec;
-    setPhase("work");
+    timeLeftRef.current = PREP_SEC;
+    setPhase("prep");
     setCurrentSet(1);
-    setTimeLeft(workSec);
+    setTimeLeft(PREP_SEC);
     setPaused(false);
-    sounds.workStart();
 
     intervalRef.current = setInterval(runTick, 1000);
   };
@@ -216,7 +222,13 @@ function IntervalTimerApp() {
   };
 
   const skipPhase = () => {
-    if (phaseRef.current === "rest") {
+    if (phaseRef.current === "prep") {
+      phaseRef.current = "work";
+      timeLeftRef.current = configRef.current.workSec;
+      setPhase("work");
+      setTimeLeft(configRef.current.workSec);
+      sounds.workStart();
+    } else if (phaseRef.current === "rest") {
       // Skip rest -> next work
       currentSetRef.current += 1;
       phaseRef.current = "work";
@@ -263,12 +275,12 @@ function IntervalTimerApp() {
     });
   }, []);
 
-  const running = phase === "work" || phase === "rest";
+  const running = phase === "prep" || phase === "work" || phase === "rest";
   const isIdle = phase === "idle";
   const isDone = phase === "done";
 
-  const phaseColor = phase === "work" ? "#E8553A" : phase === "rest" ? "#3A9E6E" : "#888";
-  const phaseBg = phase === "work" ? "rgba(232,85,58,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
+  const phaseColor = phase === "work" ? "#E8553A" : phase === "rest" ? "#3A9E6E" : phase === "prep" ? "#F0AD4E" : "#888";
+  const phaseBg = phase === "work" ? "rgba(232,85,58,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : phase === "prep" ? "rgba(240,173,78,0.08)" : "transparent";
 
   const savePreset = () => {
     if (!presetName.trim()) return;
@@ -401,7 +413,7 @@ function IntervalTimerApp() {
             {running && (
               <>
                 <div style={{ ...s.phaseLabel, color: phaseColor }}>
-                  {phase.toUpperCase()}
+                  {phase === "prep" ? "GET READY" : phase.toUpperCase()}
                 </div>
                 <div style={{ ...s.timerDigits, color: phaseColor }}>
                   {formatTime(timeLeft)}

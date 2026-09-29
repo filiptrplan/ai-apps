@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/tslib/tslib.es6.mjs
+  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
   function __rest(s2, e) {
     var t = {};
     for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/iceberg-js/dist/index.mjs
+  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -20158,6 +20158,7 @@ ${suffix}`;
     return useSyncedStorage("interval-timer", key, fallback);
   }
   var TABS = ["Timer", "Presets", "History"];
+  var PREP_SEC = 5;
   var audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) {
@@ -20263,7 +20264,13 @@ ${suffix}`;
     const runTick = () => {
       timeLeftRef.current -= 1;
       if (timeLeftRef.current <= 0) {
-        if (phaseRef.current === "work") {
+        if (phaseRef.current === "prep") {
+          phaseRef.current = "work";
+          timeLeftRef.current = configRef.current.workSec;
+          setPhase("work");
+          setTimeLeft(configRef.current.workSec);
+          sounds.workStart();
+        } else if (phaseRef.current === "work") {
           if (currentSetRef.current >= configRef.current.totalSets) {
             phaseRef.current = "done";
             setPhase("done");
@@ -20296,14 +20303,13 @@ ${suffix}`;
     const startTimer = () => {
       clearInterval_();
       getAudioCtx();
-      phaseRef.current = "work";
+      phaseRef.current = "prep";
       currentSetRef.current = 1;
-      timeLeftRef.current = workSec;
-      setPhase("work");
+      timeLeftRef.current = PREP_SEC;
+      setPhase("prep");
       setCurrentSet(1);
-      setTimeLeft(workSec);
+      setTimeLeft(PREP_SEC);
       setPaused(false);
-      sounds.workStart();
       intervalRef.current = setInterval(runTick, 1e3);
     };
     const togglePause = () => {
@@ -20326,7 +20332,13 @@ ${suffix}`;
       timeLeftRef.current = 0;
     };
     const skipPhase = () => {
-      if (phaseRef.current === "rest") {
+      if (phaseRef.current === "prep") {
+        phaseRef.current = "work";
+        timeLeftRef.current = configRef.current.workSec;
+        setPhase("work");
+        setTimeLeft(configRef.current.workSec);
+        sounds.workStart();
+      } else if (phaseRef.current === "rest") {
         currentSetRef.current += 1;
         phaseRef.current = "work";
         timeLeftRef.current = configRef.current.workSec;
@@ -20365,11 +20377,11 @@ ${suffix}`;
         runDailyBackupIfNeeded(supabase, session);
       });
     }, []);
-    const running = phase === "work" || phase === "rest";
+    const running = phase === "prep" || phase === "work" || phase === "rest";
     const isIdle = phase === "idle";
     const isDone = phase === "done";
-    const phaseColor = phase === "work" ? "#E8553A" : phase === "rest" ? "#3A9E6E" : "#888";
-    const phaseBg = phase === "work" ? "rgba(232,85,58,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : "transparent";
+    const phaseColor = phase === "work" ? "#E8553A" : phase === "rest" ? "#3A9E6E" : phase === "prep" ? "#F0AD4E" : "#888";
+    const phaseBg = phase === "work" ? "rgba(232,85,58,0.08)" : phase === "rest" ? "rgba(58,158,110,0.08)" : phase === "prep" ? "rgba(240,173,78,0.08)" : "transparent";
     const savePreset = () => {
       if (!presetName.trim()) return;
       const p = { id: Date.now(), name: presetName.trim(), workSec, restSec, sets: totalSets };
@@ -20457,7 +20469,7 @@ ${suffix}`;
       },
       t,
       t === "History" && history.length > 0 ? ` (${history.length})` : ""
-    ))), tab === "Timer" && /* @__PURE__ */ React.createElement("div", { style: s.page }, isIdle && /* @__PURE__ */ React.createElement("div", { style: s.config }, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Work"), /* @__PURE__ */ React.createElement(EditableNum, { value: workSec, onChange: setWorkSec, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Rest"), /* @__PURE__ */ React.createElement(EditableNum, { value: restSec, onChange: setRestSec, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Sets"), /* @__PURE__ */ React.createElement(EditableNum, { value: totalSets, onChange: setTotalSets, min: 1, max: 99, step: 1 }))), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: phaseBg } }, isIdle && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " sets \xB7 ", formatTime(workSec), " work \xB7 ", formatTime(restSec), " rest"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub2 }, "Total: ", formatTime(totalSets * workSec + (totalSets - 1) * restSec))), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: phaseColor } }, phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " / ", configRef.current.totalSets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), isDone && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, configRef.current.totalSets, " sets completed"))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, isIdle && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: startTimer }, "Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skipPhase }, "Skip"), /* @__PURE__ */ React.createElement("button", { style: s.stopBtn, onClick: stopTimer }, "Stop")), isDone && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: stopTimer }, "Reset")), isIdle && presets.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.quickPresets }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 8 } }, "Quick load"), /* @__PURE__ */ React.createElement("div", { style: s.presetChips }, presets.map((p) => /* @__PURE__ */ React.createElement("button", { key: p.id, style: s.chip, onClick: () => loadPreset(p) }, p.name))))), tab === "Presets" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.presetForm }, /* @__PURE__ */ React.createElement(
+    ))), tab === "Timer" && /* @__PURE__ */ React.createElement("div", { style: s.page }, isIdle && /* @__PURE__ */ React.createElement("div", { style: s.config }, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Work"), /* @__PURE__ */ React.createElement(EditableNum, { value: workSec, onChange: setWorkSec, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Rest"), /* @__PURE__ */ React.createElement(EditableNum, { value: restSec, onChange: setRestSec, suffix: "s" })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Sets"), /* @__PURE__ */ React.createElement(EditableNum, { value: totalSets, onChange: setTotalSets, min: 1, max: 99, step: 1 }))), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerBox, background: phaseBg } }, isIdle && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " sets \xB7 ", formatTime(workSec), " work \xB7 ", formatTime(restSec), " rest"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub2 }, "Total: ", formatTime(totalSets * workSec + (totalSets - 1) * restSec))), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: phaseColor } }, phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " / ", configRef.current.totalSets), paused && /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#F0AD4E", marginTop: 8, fontSize: 13 } }, "PAUSED")), isDone && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: "#3A9E6E" } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, configRef.current.totalSets, " sets completed"))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, isIdle && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: startTimer }, "Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.pauseBtn, onClick: togglePause }, paused ? "Resume" : "Pause"), /* @__PURE__ */ React.createElement("button", { style: s.skipBtn, onClick: skipPhase }, "Skip"), /* @__PURE__ */ React.createElement("button", { style: s.stopBtn, onClick: stopTimer }, "Stop")), isDone && /* @__PURE__ */ React.createElement("button", { style: s.startBtn, onClick: stopTimer }, "Reset")), isIdle && presets.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.quickPresets }, /* @__PURE__ */ React.createElement("div", { style: { ...s.label, marginBottom: 8 } }, "Quick load"), /* @__PURE__ */ React.createElement("div", { style: s.presetChips }, presets.map((p) => /* @__PURE__ */ React.createElement("button", { key: p.id, style: s.chip, onClick: () => loadPreset(p) }, p.name))))), tab === "Presets" && /* @__PURE__ */ React.createElement("div", { style: s.page }, /* @__PURE__ */ React.createElement("div", { style: s.presetForm }, /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.input,
