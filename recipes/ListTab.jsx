@@ -18,8 +18,9 @@ const stop = (e) => e.stopPropagation();
 // Shopping list tab: tick items (they sink into "In the cart" after a beat),
 // hold a row to drag it, tap a name or the list title to rename it (an empty
 // name deletes it), switch lists with the chips. Items and edits are typed
-// amount first ("2 Onions"); the amount shows after the name.
-export function ListTab({ lists, list, setActive, setLists, updateItems, showToast }) {
+// amount first ("2 Onions"); the amount shows after the name. A typed item
+// that's already on the list is combined with it, like recipe ingredients.
+export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast }) {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draft, setDraft] = useState("");
@@ -207,7 +208,9 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
     const v = addDraft.trim();
     if (!v) return;
     const { q, n } = parseIng(v);
-    updateItems(list.id, (items) => [{ id: uid(), name: n, q, checked: false }, ...items]);
+    const id = uid();
+    updateItems(list.id, (items) => [{ id, name: n, q, checked: false }, ...items]);
+    queueMerge(list.id, [id]);
     setAddDraft("");
   }
   function clearDone() {

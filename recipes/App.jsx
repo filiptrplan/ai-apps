@@ -77,10 +77,15 @@ export function RecipesApp() {
   const updateItems = (listId, fn) =>
     setLists((ls) => ls.map((l) => (l.id === listId ? { ...l, items: fn(l.items) } : l)));
 
+  // When signed in, has the AI fold just-added rows that are already on the
+  // list into the existing row, adding up the amounts.
+  const queueMerge = (listId, ids) => {
+    if (session) setMergeJobs((js) => [...js, { listId, ids }]);
+  };
+
   // Adds recipe ingredients ({ q, n, src }) to the end of the active list's
   // "to get" items, taking any ticked copies out of the cart instead of
-  // duplicating them. When signed in, the AI then folds any that are already
-  // on the list into the existing row, adding up the amounts.
+  // duplicating them, then queues them to be combined with matching rows.
   function addToList(ings) {
     const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
     const add = ings.filter((g) => !have.has(g.src));
@@ -92,7 +97,7 @@ export function RecipesApp() {
       ...rows,
       ...items.filter((i) => i.checked && !names.has(i.name.toLowerCase())),
     ]);
-    if (session) setMergeJobs((js) => [...js, { listId: list.id, ids: rows.map((r) => r.id) }]);
+    queueMerge(list.id, rows.map((r) => r.id));
     showToast(add.length === 1 ? `Added ${add[0].n} to ${list.name}` : `Added ${plural(add.length, "item")} to ${list.name}`);
   }
 
@@ -195,6 +200,7 @@ export function RecipesApp() {
         setActive={setActive}
         setLists={setLists}
         updateItems={updateItems}
+        queueMerge={queueMerge}
         showToast={showToast}
       />
     );

@@ -20250,7 +20250,7 @@ ${suffix}`;
     }
   };
   var stop = (e) => e.stopPropagation();
-  function ListTab({ lists, list, setActive, setLists, updateItems, showToast }) {
+  function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast }) {
     const [editingId, setEditingId] = useState3(null);
     const [editingTitle, setEditingTitle] = useState3(false);
     const [draft, setDraft] = useState3("");
@@ -20425,7 +20425,9 @@ ${suffix}`;
       const v = addDraft.trim();
       if (!v) return;
       const { q, n } = parseIng(v);
-      updateItems(list.id, (items) => [{ id: uid(), name: n, q, checked: false }, ...items]);
+      const id = uid();
+      updateItems(list.id, (items) => [{ id, name: n, q, checked: false }, ...items]);
+      queueMerge(list.id, [id]);
       setAddDraft("");
     }
     function clearDone() {
@@ -21299,6 +21301,9 @@ ${suffix}`;
       toastT.current = setTimeout(() => setToast(null), 2200);
     }
     const updateItems = (listId, fn) => setLists((ls) => ls.map((l) => l.id === listId ? { ...l, items: fn(l.items) } : l));
+    const queueMerge = (listId, ids) => {
+      if (session) setMergeJobs((js) => [...js, { listId, ids }]);
+    };
     function addToList(ings) {
       const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
       const add = ings.filter((g) => !have.has(g.src));
@@ -21310,7 +21315,7 @@ ${suffix}`;
         ...rows,
         ...items.filter((i) => i.checked && !names.has(i.name.toLowerCase()))
       ]);
-      if (session) setMergeJobs((js) => [...js, { listId: list.id, ids: rows.map((r) => r.id) }]);
+      queueMerge(list.id, rows.map((r) => r.id));
       showToast(add.length === 1 ? `Added ${add[0].n} to ${list.name}` : `Added ${plural(add.length, "item")} to ${list.name}`);
     }
     useEffect7(() => {
@@ -21399,6 +21404,7 @@ ${suffix}`;
           setActive,
           setLists,
           updateItems,
+          queueMerge,
           showToast
         }
       );
