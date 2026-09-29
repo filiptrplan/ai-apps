@@ -20115,7 +20115,8 @@ ${suffix}`;
     return [data, save, conflict];
   }
 
-  // climbing-tracker/storage.js
+  // climbing-tracker/data.js
+  var APP_ID = "climbing-tracker";
   var STORAGE_KEYS = {
     exercises: "climbing-tracker-exercises",
     routines: "climbing-tracker-routines",
@@ -20123,10 +20124,12 @@ ${suffix}`;
     settings: "climbing-tracker-settings"
   };
   function uid() {
-    return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
+
+  // climbing-tracker/storage.js
   function useStorage(key, fallback) {
-    return useSyncedStorage("climbing-tracker", key, fallback);
+    return useSyncedStorage(APP_ID, key, fallback);
   }
 
   // shared/backup.js
@@ -20358,6 +20361,18 @@ ${suffix}`;
     if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s\u2192${patch.restSec}s`);
     return parts.join(" \xB7 ");
   }
+  function applyRoutineStep(ex, step) {
+    var _a, _b, _c, _d, _e;
+    return {
+      ...ex,
+      sets: step.targetSets ? step.targetSets.length : (_a = step.sets) != null ? _a : ex.sets,
+      targetSets: (_b = step.targetSets) != null ? _b : null,
+      restSec: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0,
+      restAfterSec: (_e = step.restAfterSec) != null ? _e : 0,
+      routineStepId: step.id,
+      supersetGroup: step.supersetGroup || null
+    };
+  }
   function groupSteps(items, getGroup) {
     const blocks = [];
     items.forEach((item) => {
@@ -20375,16 +20390,7 @@ ${suffix}`;
   }
 
   // climbing-tracker/llmGuidance.js
-  var BASE_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
-
-Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
-
-{
-  "exercises": [ <Exercise>, ... ],
-  "routines": [ <Routine>, ... ]
-}
-
-Exercise objects use one of three "type" values:
+  var EXERCISE_GUIDANCE = `Exercise objects use one of three "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -20417,9 +20423,8 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "workSec": <integer, seconds of work per set>,
   "restSec": <integer, seconds of rest between sets>,
   "sets": <integer, number of work/rest cycles>
-}
-
-Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+}`;
+  var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
@@ -20446,7 +20451,19 @@ SUPERSETS - "supersetGroup" (optional, per routine step, default null) links con
 - The rest after the whole superset (before the next exercise) is the LAST member's "restAfterSec". "restAfterSec" on the other members is ignored.
 Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds, then 2 min before the next exercise:
   { "id": "st-1", "exerciseId": "ex-weighted-pullups", "sets": 3, "restSec": 0, "restAfterSec": null, "targetSets": null, "supersetGroup": "ss-1" },
-  { "id": "st-2", "exerciseId": "ex-pushups", "sets": 3, "restSec": 90, "restAfterSec": 120, "targetSets": null, "supersetGroup": "ss-1" }
+  { "id": "st-2", "exerciseId": "ex-pushups", "sets": 3, "restSec": 90, "restAfterSec": 120, "targetSets": null, "supersetGroup": "ss-1" }`;
+  var BASE_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
+
+Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
+
+{
+  "exercises": [ <Exercise>, ... ],
+  "routines": [ <Routine>, ... ]
+}
+
+${EXERCISE_GUIDANCE}
+
+${ROUTINE_GUIDANCE}
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
@@ -26994,18 +27011,8 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const startRoutine = (r) => {
       const exs = normalizeSupersets(r.steps).map((step) => {
-        var _a2, _b, _c, _d, _e;
         const ex = exercises.find((e) => e.id === step.exerciseId);
-        if (!ex) return null;
-        return {
-          ...ex,
-          sets: step.targetSets ? step.targetSets.length : (_a2 = step.sets) != null ? _a2 : ex.sets,
-          targetSets: (_b = step.targetSets) != null ? _b : null,
-          restSec: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0,
-          restAfterSec: (_e = step.restAfterSec) != null ? _e : 0,
-          routineStepId: step.id,
-          supersetGroup: step.supersetGroup || null
-        };
+        return ex ? applyRoutineStep(ex, step) : null;
       }).filter(Boolean);
       if (exs.length === 0) return;
       sessionLogsRef.current = exs.map(() => null);

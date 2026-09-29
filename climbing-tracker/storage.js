@@ -1,16 +1,8 @@
 import { useSyncedStorage } from "../shared/syncStorage.js";
+import { APP_ID } from "./data.js";
 
-export const STORAGE_KEYS = {
-  exercises: "climbing-tracker-exercises",
-  routines: "climbing-tracker-routines",
-  history: "climbing-tracker-history",
-  settings: "climbing-tracker-settings",
-};
-
-export function uid() {
-  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+export { STORAGE_KEYS, uid } from "./data.js";
 
 export function useStorage(key, fallback) {
-  return useSyncedStorage("climbing-tracker", key, fallback);
+  return useSyncedStorage(APP_ID, key, fallback);
 }

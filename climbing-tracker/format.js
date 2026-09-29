@@ -1,4 +1,4 @@
-import { uid } from "./storage.js";
+import { uid } from "./data.js";
 
 export const EXERCISE_TYPES = [
   { value: "reps", label: "Reps" },
@@ -262,6 +262,20 @@ export function formatDriftSummary(drift) {
   if ("workSec" in patch) parts.push(`Work: ${target.workSec}s→${patch.workSec}s`);
   if ("restSec" in patch) parts.push(`Rest: ${target.restSec}s→${patch.restSec}s`);
   return parts.join(" · ");
+}
+
+// The exercise as performed in a routine: the step's sets/rest overrides
+// (or per-set targetSets pattern) applied over the exercise's own defaults.
+export function applyRoutineStep(ex, step) {
+  return {
+    ...ex,
+    sets: step.targetSets ? step.targetSets.length : (step.sets ?? ex.sets),
+    targetSets: step.targetSets ?? null,
+    restSec: step.restSec ?? (ex.restSec ?? 0),
+    restAfterSec: step.restAfterSec ?? 0,
+    routineStepId: step.id,
+    supersetGroup: step.supersetGroup || null,
+  };
 }
 
 // Splits an ordered list into blocks: consecutive items sharing the same

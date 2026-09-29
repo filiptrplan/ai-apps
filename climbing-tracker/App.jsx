@@ -14,6 +14,7 @@ import {
   formatDriftSummary,
   groupSteps,
   normalizeSupersets,
+  applyRoutineStep,
 } from "./format.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
@@ -208,16 +209,7 @@ export function ClimbingTrackerApp() {
   const startRoutine = (r) => {
     const exs = normalizeSupersets(r.steps).map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
-      if (!ex) return null;
-      return {
-        ...ex,
-        sets: step.targetSets ? step.targetSets.length : (step.sets ?? ex.sets),
-        targetSets: step.targetSets ?? null,
-        restSec: step.restSec ?? (ex.restSec ?? 0),
-        restAfterSec: step.restAfterSec ?? 0,
-        routineStepId: step.id,
-        supersetGroup: step.supersetGroup || null,
-      };
+      return ex ? applyRoutineStep(ex, step) : null;
     }).filter(Boolean);
     if (exs.length === 0) return;
     sessionLogsRef.current = exs.map(() => null);

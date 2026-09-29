@@ -1,13 +1,7 @@
-const BASE_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
-
-Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
-
-{
-  "exercises": [ <Exercise>, ... ],
-  "routines": [ <Routine>, ... ]
-}
-
-Exercise objects use one of three "type" values:
+// The exercise and routine data model, shared by the app's LLM import prompt
+// (below) and the MCP server's tool descriptions (mcp/apps/climbing.js), so
+// both describe the same rules.
+export const EXERCISE_GUIDANCE = `Exercise objects use one of three "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -40,9 +34,9 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "workSec": <integer, seconds of work per set>,
   "restSec": <integer, seconds of rest between sets>,
   "sets": <integer, number of work/rest cycles>
-}
+}`;
 
-Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
@@ -69,7 +63,20 @@ SUPERSETS - "supersetGroup" (optional, per routine step, default null) links con
 - The rest after the whole superset (before the next exercise) is the LAST member's "restAfterSec". "restAfterSec" on the other members is ignored.
 Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds, then 2 min before the next exercise:
   { "id": "st-1", "exerciseId": "ex-weighted-pullups", "sets": 3, "restSec": 0, "restAfterSec": null, "targetSets": null, "supersetGroup": "ss-1" },
-  { "id": "st-2", "exerciseId": "ex-pushups", "sets": 3, "restSec": 90, "restAfterSec": 120, "targetSets": null, "supersetGroup": "ss-1" }
+  { "id": "st-2", "exerciseId": "ex-pushups", "sets": 3, "restSec": 90, "restAfterSec": 120, "targetSets": null, "supersetGroup": "ss-1" }`;
+
+const BASE_GUIDANCE = `You are generating data for the "Climbing Tracker" web app. The app stores exercises and routines as JSON that gets pasted into its "Import exercises & routines" dialog.
+
+Output the JSON inside a single fenced code block (\`\`\`json ... \`\`\`) so it's easy to copy, with no commentary before or after the block and no trailing commas. The JSON must match this exact shape:
+
+{
+  "exercises": [ <Exercise>, ... ],
+  "routines": [ <Routine>, ... ]
+}
+
+${EXERCISE_GUIDANCE}
+
+${ROUTINE_GUIDANCE}
 
 Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
