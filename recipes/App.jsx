@@ -2,14 +2,14 @@ import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
 import { supabase } from "../shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "../shared/backup.js";
-import { uid, plural } from "./format.js";
+import { uid, plural, normRecipe } from "./format.js";
 import { ListTab } from "./ListTab.jsx";
 import { Notebook } from "./Notebook.jsx";
 import { RecipeDetail } from "./RecipeDetail.jsx";
 import { Compose } from "./Compose.jsx";
 import { removePhoto } from "./photos.js";
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useMemo } = React;
 
 const APP_ID = "recipes";
 const DEFAULT_LISTS = [{ id: "default", name: "Groceries", items: [] }];
@@ -27,7 +27,8 @@ function readActive() {
 export function RecipesApp() {
   const session = useSession();
   const [lists, setLists, listsConflict] = useSyncedStorage(APP_ID, "recipes-lists", DEFAULT_LISTS);
-  const [recipes, setRecipes, recipesConflict] = useSyncedStorage(APP_ID, "recipes-recipes", NO_RECIPES);
+  const [storedRecipes, setRecipes, recipesConflict] = useSyncedStorage(APP_ID, "recipes-recipes", NO_RECIPES);
+  const recipes = useMemo(() => storedRecipes.map(normRecipe), [storedRecipes]);
   // Which list is open is per device, not synced.
   const [activeId, setActiveIdState] = useState(readActive);
   const [tab, setTab] = useState("list");

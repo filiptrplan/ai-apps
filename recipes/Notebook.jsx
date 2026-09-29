@@ -1,4 +1,4 @@
-import { CATS } from "./format.js";
+import { CATS, allIngs } from "./format.js";
 import { Photo } from "./Photo.jsx";
 
 const meta = (r) => `${r.time} min · Serves ${r.serves}`;
@@ -21,7 +21,7 @@ export function Notebook({ recipes, session, query, setQuery, cat, setCat, openR
   const filtered = recipes.filter(
     (r) =>
       (cat === "All" || r.cat === cat) &&
-      (!q || r.name.toLowerCase().includes(q) || r.ings.some((g) => g.n.toLowerCase().includes(q)))
+      (!q || r.name.toLowerCase().includes(q) || allIngs(r).some((g) => g.n.toLowerCase().includes(q)))
   );
   const [featured, ...rest] = filtered;
 

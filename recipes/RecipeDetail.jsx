@@ -1,4 +1,4 @@
-import { scaleQty, stepMin, fmtClock } from "./format.js";
+import { scaleQty, stepMin, fmtClock, allIngs } from "./format.js";
 import { Tags } from "./Notebook.jsx";
 import { Photo } from "./Photo.jsx";
 
@@ -53,7 +53,8 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
   const sv = servings ?? recipe.serves;
   const k = sv > 0 ? sv / recipe.serves : 1;
   const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-  const missing = recipe.ings.filter((g) => !have.has(g.n.toLowerCase()));
+  const ings = allIngs(recipe);
+  const missing = ings.filter((g) => !have.has(g.n.toLowerCase()));
 
   return (
     <main className="ra-detail">
@@ -95,42 +96,51 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
             {missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`}
           </button>
         </div>
-        <div>
-          {recipe.ings.map((g, i) => (
-            <div key={i} className="ra-ing">
-              <span className="ra-ing-q">{scaleQty(g.q, k)}</span>
-              <span className="ra-ing-n">{g.n}</span>
-              {have.has(g.n.toLowerCase()) ? (
-                <span className="ra-on-list">On list</span>
-              ) : (
-                <button className="ra-ing-add" onClick={() => addToList([g])} aria-label={`Add ${g.n} to shopping list`}>+</button>
-              )}
-            </div>
-          ))}
-        </div>
+        {recipe.ingredients.map((sec) => (
+          <section key={sec.id}>
+            {sec.name && <h3 className="ra-sec-head">{sec.name}</h3>}
+            {sec.items.map((g) => (
+              <div key={g.id} className="ra-ing">
+                <span className="ra-ing-q">{scaleQty(g.q, k)}</span>
+                <span className="ra-ing-n">{g.n}</span>
+                {have.has(g.n.toLowerCase()) ? (
+                  <span className="ra-on-list">On list</span>
+                ) : (
+                  <button className="ra-ing-add" onClick={() => addToList([g])} aria-label={`Add ${g.n} to shopping list`}>+</button>
+                )}
+              </div>
+            ))}
+          </section>
+        ))}
 
-        {recipe.steps.length > 0 && <h2 className="ra-method-head">Method</h2>}
-        <ol className="ra-steps">
-          {recipe.steps.map((text, i) => {
-            const key = `${recipe.id}:${i}`;
-            const detected = stepMin(text);
-            return (
-              <li key={i}>
-                <span className="ra-step-n">{i + 1}</span>
-                <div>
-                  <p>{text}</p>
-                  <StepTimer
-                    tm={timers[key]}
-                    detected={detected}
-                    open={() => setTimer(key, () => ({ dur: (detected || 5) * 60, label: `${recipe.name}, step ${i + 1}` }))}
-                    update={(fn) => setTimer(key, fn)}
-                    close={() => setTimer(key, () => null)}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        {recipe.method.some((sec) => sec.items.length) && <h2 className="ra-method-head">Method</h2>}
+        {recipe.method.map((sec) => (
+          <section key={sec.id}>
+            {sec.name && <h3 className="ra-sec-head">{sec.name}</h3>}
+            <ol className="ra-steps">
+              {sec.items.map((step, i) => {
+                const key = `${recipe.id}:${step.id}`;
+                const detected = stepMin(step.text);
+                const label = `${recipe.name}, ${sec.name ? `${sec.name} ` : ""}step ${i + 1}`;
+                return (
+                  <li key={step.id}>
+                    <span className="ra-step-n">{i + 1}</span>
+                    <div>
+                      <p>{step.text}</p>
+                      <StepTimer
+                        tm={timers[key]}
+                        detected={detected}
+                        open={() => setTimer(key, () => ({ dur: (detected || 5) * 60, label }))}
+                        update={(fn) => setTimer(key, fn)}
+                        close={() => setTimer(key, () => null)}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        ))}
       </div>
     </main>
   );

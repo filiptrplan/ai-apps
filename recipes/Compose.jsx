@@ -1,15 +1,24 @@
 import { supabase } from "../shared/supabaseClient.js";
-import { CATS, uid, parseIng, ingToLine } from "./format.js";
+import { CATS, uid, parseIng } from "./format.js";
+import { SectionEditor, blankSection, cleanSections } from "./SectionEditor.jsx";
 import { drawScaled, compressPhoto, uploadPhoto, removePhoto, usePhotoUrl } from "./photos.js";
 
 const { useState, useRef, useEffect } = React;
 
 const MAX_IMAGES = 8;
 const MAX_IMAGE_SIDE = 1600;
-const EMPTY_FORM = { name: "", cat: "Dinner", time: "", serves: "", ings: "", steps: "" };
+const emptyForm = () => ({
+  name: "",
+  cat: "Dinner",
+  time: "",
+  serves: "",
+  ingredients: [blankSection("ing")],
+  method: [blankSection("step")],
+});
 const EMPTY_MAGIC = { images: [], link: "", text: "", loading: false, error: "" };
 
-const lines = (x) => x.split("\n").map((y) => y.trim()).filter(Boolean);
+// The editor always shows at least one section to type into.
+const orBlank = (kind, sections) => (sections.length ? sections : [blankSection(kind)]);
 
 function toForm(r) {
   return {
@@ -17,9 +26,19 @@ function toForm(r) {
     cat: r.cat,
     time: String(r.time),
     serves: String(r.serves),
-    ings: r.ings.map(ingToLine).join("\n"),
-    steps: r.steps.join("\n"),
+    ingredients: orBlank("ing", r.ingredients),
+    method: orBlank("step", r.method),
   };
+}
+
+// Magic returns sections of plain strings; older versions of the function
+// returned flat `ings` and `steps` lists.
+function magicSections(kind, sections, flat, toItem) {
+  const secs = sections || [{ name: "", items: flat || [] }];
+  return orBlank(
+    kind,
+    secs.map((sec) => ({ id: uid(), name: sec.name || "", items: (sec.items || []).map(toItem) }))
+  );
 }
 
 // Shrinks a screenshot to a JPEG no larger than MAX_IMAGE_SIDE so a handful
@@ -81,7 +100,7 @@ function PhotoField({ photo, setPhoto, session, disabled }) {
 // screenshots, text or a link to the recipe-import function and drops the
 // result into the form for checking before saving.
 export function Compose({ initial, session, onCancel, onSave, onDelete }) {
-  const [form, setFormState] = useState(() => (initial ? toForm(initial) : EMPTY_FORM));
+  const [form, setFormState] = useState(() => (initial ? toForm(initial) : emptyForm()));
   const [mode, setMode] = useState("manual");
   const [magic, setMagicState] = useState(EMPTY_MAGIC);
   const [fromMagic, setFromMagic] = useState(false);
@@ -125,8 +144,8 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
       tags: initial && initial.cat === form.cat ? initial.tags : [form.cat],
       time: parseInt(form.time, 10) || 20,
       serves: parseInt(form.serves, 10) || 2,
-      ings: lines(form.ings).map(parseIng),
-      steps: lines(form.steps),
+      ingredients: cleanSections("ing", form.ingredients),
+      method: cleanSections("step", form.method),
     });
   }
 
@@ -164,8 +183,8 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
         cat: CATS.includes(data.cat) ? data.cat : "Dinner",
         time: data.time ? String(data.time) : "",
         serves: data.serves ? String(data.serves) : "",
-        ings: (data.ings || []).join("\n"),
-        steps: (data.steps || []).join("\n"),
+        ingredients: magicSections("ing", data.ingredients, data.ings, (line) => ({ id: uid(), ...parseIng(line) })),
+        method: magicSections("step", data.method, data.steps, (text) => ({ id: uid(), text })),
       });
       setMagicState(EMPTY_MAGIC);
       setFromMagic(true);
@@ -292,26 +311,24 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
               <input className="ra-field" value={form.serves} onChange={(e) => setForm("serves", e.target.value)} inputMode="numeric" placeholder="2" />
             </label>
           </div>
-          <label className="ra-label">
-            Ingredients, one per line
-            <textarea
-              className="ra-field"
-              value={form.ings}
-              onChange={(e) => setForm("ings", e.target.value)}
-              rows={6}
-              placeholder={"2 cups Spinach\n1 Lemon"}
+          <div className="ra-label">
+            Ingredients
+            <SectionEditor
+              kind="ing"
+              sections={form.ingredients}
+              setSections={(fn) => setFormState((f) => ({ ...f, ingredients: fn(f.ingredients) }))}
+              disabled={saving}
             />
-          </label>
-          <label className="ra-label">
-            Method, one step per line
-            <textarea
-              className="ra-field"
-              value={form.steps}
-              onChange={(e) => setForm("steps", e.target.value)}
-              rows={6}
-              placeholder="Preheat the oven to 200°C."
+          </div>
+          <div className="ra-label">
+            Method
+            <SectionEditor
+              kind="step"
+              sections={form.method}
+              setSections={(fn) => setFormState((f) => ({ ...f, method: fn(f.method) }))}
+              disabled={saving}
             />
-          </label>
+          </div>
           {initial && (
             <button
               className={`ra-delete${confirmDelete ? " confirm" : ""}`}

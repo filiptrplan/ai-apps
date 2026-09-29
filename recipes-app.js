@@ -20205,7 +20205,6 @@ ${suffix}`;
     const m = line.match(ING_RE);
     return m ? { q: m[1], n: m[2] } : { q: "", n: line };
   }
-  var ingToLine = (g) => [g.q, g.n].filter(Boolean).join(" ");
   function stepMin(s) {
     const m = s.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*min/i);
     return m ? parseInt(m[2] || m[1], 10) : null;
@@ -20215,6 +20214,16 @@ ${suffix}`;
     return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
   }
   var plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  function normRecipe(r) {
+    if (r.ingredients) return r;
+    const { ings = [], steps = [], ...rest } = r;
+    return {
+      ...rest,
+      ingredients: [{ id: "i", name: "", items: ings.map((g, i) => ({ id: `i${i}`, q: g.q, n: g.n })) }],
+      method: [{ id: "m", name: "", items: steps.map((text, i) => ({ id: `m${i}`, text })) }]
+    };
+  }
+  var allIngs = (r) => r.ingredients.flatMap((s) => s.items);
 
   // recipes/ListTab.jsx
   var { useState: useState3, useRef: useRef2, useEffect: useEffect3 } = React;
@@ -20582,7 +20591,7 @@ ${suffix}`;
   function Notebook({ recipes, session, query, setQuery, cat, setCat, openRecipe, openCompose }) {
     const q = query.trim().toLowerCase();
     const filtered = recipes.filter(
-      (r) => (cat === "All" || r.cat === cat) && (!q || r.name.toLowerCase().includes(q) || r.ings.some((g) => g.n.toLowerCase().includes(q)))
+      (r) => (cat === "All" || r.cat === cat) && (!q || r.name.toLowerCase().includes(q) || allIngs(r).some((g) => g.n.toLowerCase().includes(q)))
     );
     const [featured, ...rest] = filtered;
     return /* @__PURE__ */ React.createElement("main", { className: "ra-screen" }, /* @__PURE__ */ React.createElement("div", { className: "ra-eyebrow" }, /* @__PURE__ */ React.createElement("a", { href: "./", "aria-label": "All apps" }, "\u2039"), "Notebook"), /* @__PURE__ */ React.createElement("div", { className: "ra-title-row" }, /* @__PURE__ */ React.createElement("h1", { className: "ra-title" }, "Recipes"), /* @__PURE__ */ React.createElement("button", { className: "ra-accent-btn", onClick: openCompose }, /* @__PURE__ */ React.createElement("span", null, "+"), "Add recipe")), recipes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ra-empty big" }, /* @__PURE__ */ React.createElement("p", null, "No recipes yet."), /* @__PURE__ */ React.createElement("p", { className: "ra-muted" }, "Add one by hand, or let \u2726 Magic read it from a screenshot, text or link.")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
@@ -20623,7 +20632,8 @@ ${suffix}`;
     const sv = servings != null ? servings : recipe.serves;
     const k = sv > 0 ? sv / recipe.serves : 1;
     const have = new Set(list.items.filter((i) => !i.checked).map((i) => i.name.toLowerCase()));
-    const missing = recipe.ings.filter((g) => !have.has(g.n.toLowerCase()));
+    const ings = allIngs(recipe);
+    const missing = ings.filter((g) => !have.has(g.n.toLowerCase()));
     return /* @__PURE__ */ React.createElement("main", { className: "ra-detail" }, /* @__PURE__ */ React.createElement(Photo, { path: recipe.photo, session, className: `ra-detail-ph${recipe.photo ? " has-photo" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn", onClick: onBack, "aria-label": "Back" }, "\u2190"), /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn text", onClick: onEdit }, "Edit")), /* @__PURE__ */ React.createElement("div", { className: "ra-detail-body" }, /* @__PURE__ */ React.createElement(Tags, { tags: recipe.tags }), /* @__PURE__ */ React.createElement("h1", { className: "ra-title detail" }, recipe.name), /* @__PURE__ */ React.createElement("div", { className: "ra-servings" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Servings"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted" }, recipe.time, " min")), /* @__PURE__ */ React.createElement("div", { className: "ra-stepper" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setServings(Math.max(1, (sv || 1) - 1)), "aria-label": "Fewer servings" }, "\u2212"), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -20643,38 +20653,336 @@ ${suffix}`;
         onClick: () => addToList(missing)
       },
       missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`
-    )), /* @__PURE__ */ React.createElement("div", null, recipe.ings.map((g, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(g.n.toLowerCase()) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([g]), "aria-label": `Add ${g.n} to shopping list` }, "+")))), recipe.steps.length > 0 && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, recipe.steps.map((text, i) => {
-      const key = `${recipe.id}:${i}`;
-      const detected = stepMin(text);
-      return /* @__PURE__ */ React.createElement("li", { key: i }, /* @__PURE__ */ React.createElement("span", { className: "ra-step-n" }, i + 1), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, text), /* @__PURE__ */ React.createElement(
+    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(g.n.toLowerCase()) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([g]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), recipe.method.some((sec) => sec.items.length) && /* @__PURE__ */ React.createElement("h2", { className: "ra-method-head" }, "Method"), recipe.method.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), /* @__PURE__ */ React.createElement("ol", { className: "ra-steps" }, sec.items.map((step, i) => {
+      const key = `${recipe.id}:${step.id}`;
+      const detected = stepMin(step.text);
+      const label = `${recipe.name}, ${sec.name ? `${sec.name} ` : ""}step ${i + 1}`;
+      return /* @__PURE__ */ React.createElement("li", { key: step.id }, /* @__PURE__ */ React.createElement("span", { className: "ra-step-n" }, i + 1), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, step.text), /* @__PURE__ */ React.createElement(
         StepTimer,
         {
           tm: timers[key],
           detected,
-          open: () => setTimer(key, () => ({ dur: (detected || 5) * 60, label: `${recipe.name}, step ${i + 1}` })),
+          open: () => setTimer(key, () => ({ dur: (detected || 5) * 60, label })),
           update: (fn) => setTimer(key, fn),
           close: () => setTimer(key, () => null)
         }
       )));
-    }))));
+    }))))));
+  }
+
+  // recipes/SectionEditor.jsx
+  var { useState: useState5, useRef: useRef3, useEffect: useEffect5 } = React;
+  var EDGE_PX = 80;
+  var SCROLL_PX = 12;
+  var KINDS = {
+    ing: {
+      blank: () => ({ id: uid(), q: "", n: "" }),
+      fromLine: (line) => ({ id: uid(), ...parseIng(line) }),
+      isEmpty: (g) => !g.q.trim() && !g.n.trim(),
+      add: "Add ingredient"
+    },
+    step: {
+      blank: () => ({ id: uid(), text: "" }),
+      fromLine: (text) => ({ id: uid(), text }),
+      isEmpty: (s) => !s.text.trim(),
+      add: "Add step"
+    }
+  };
+  var blankSection = (kind) => ({ id: uid(), name: "", items: [KINDS[kind].blank()] });
+  function cleanSections(kind, sections) {
+    const k = KINDS[kind];
+    return sections.map((sec) => ({
+      id: sec.id,
+      name: sec.name.trim(),
+      items: sec.items.filter((it) => !k.isEmpty(it)).map((it) => kind === "ing" ? { id: it.id, q: it.q.trim(), n: it.n.trim() } : { id: it.id, text: it.text.trim() })
+    })).filter((sec) => sec.items.length);
+  }
+  function autosize(el) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+  function nearestGap(gaps, y) {
+    let best = gaps[0];
+    gaps.forEach((g) => {
+      if (Math.abs(g.y - y) < Math.abs(best.y - y)) best = g;
+    });
+    return best;
+  }
+  function SectionEditor({ kind, sections, setSections, disabled }) {
+    var _a;
+    const k = KINDS[kind];
+    const [focusId, setFocusId] = useState5(null);
+    const [confirmSec, setConfirmSec] = useState5(null);
+    const [drag, setDrag] = useState5(null);
+    const rootRef = useRef3(null);
+    const rowEls = useRef3(/* @__PURE__ */ new Map());
+    const listEls = useRef3(/* @__PURE__ */ new Map());
+    const sectionsRef = useRef3(sections);
+    sectionsRef.current = sections;
+    const showHeads = sections.length > 1 || !!((_a = sections[0]) == null ? void 0 : _a.name);
+    useEffect5(() => {
+      if (!focusId) return;
+      const el = rootRef.current && rootRef.current.querySelector(`[data-focus="${focusId}"]`);
+      if (el) {
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      }
+      setFocusId(null);
+    }, [focusId]);
+    const updateSec = (secId, fn) => setSections((ss) => ss.map((s) => s.id === secId ? fn(s) : s));
+    const updateItem = (secId, id, patch) => updateSec(secId, (s) => ({ ...s, items: s.items.map((it) => it.id === id ? { ...it, ...patch } : it) }));
+    function insertAfter(secId, afterId, items) {
+      updateSec(secId, (s) => {
+        const at = afterId ? s.items.findIndex((it) => it.id === afterId) + 1 : s.items.length;
+        return { ...s, items: [...s.items.slice(0, at), ...items, ...s.items.slice(at)] };
+      });
+      setFocusId(items[items.length - 1].id);
+    }
+    function removeItem(secId, id) {
+      const sec = sections.find((s) => s.id === secId);
+      const i = sec.items.findIndex((it) => it.id === id);
+      updateSec(secId, (s) => ({ ...s, items: s.items.filter((it) => it.id !== id) }));
+      return sec.items[i - 1] || sec.items[i + 1];
+    }
+    function addSection() {
+      const sec = { ...blankSection(kind), items: [] };
+      setSections((ss) => [...ss, sec]);
+      setFocusId(sec.id);
+    }
+    function removeSection(sec) {
+      if (sec.items.some((it) => !k.isEmpty(it)) && confirmSec !== sec.id) {
+        setConfirmSec(sec.id);
+        return;
+      }
+      setConfirmSec(null);
+      setSections((ss) => ss.filter((s) => s.id !== sec.id));
+    }
+    function onKeyDown(e, sec, it) {
+      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        insertAfter(sec.id, it.id, [k.blank()]);
+      } else if (e.key === "Backspace" && k.isEmpty(it) && sec.items.length > 1) {
+        e.preventDefault();
+        const next = removeItem(sec.id, it.id);
+        if (next) setFocusId(next.id);
+      }
+    }
+    function onPaste(e, sec, it) {
+      const lines = e.clipboardData.getData("text").split("\n").map((x) => x.trim()).filter(Boolean);
+      const empty = k.isEmpty(it);
+      if (!lines.length || lines.length === 1 && !(empty && kind === "ing")) return;
+      e.preventDefault();
+      const rows = lines.map(k.fromLine);
+      if (empty) {
+        const [first, ...rest] = rows;
+        updateItem(sec.id, it.id, { ...first, id: it.id });
+        if (rest.length) insertAfter(sec.id, it.id, rest);
+        else setFocusId(it.id);
+      } else {
+        insertAfter(sec.id, it.id, rows);
+      }
+    }
+    function startDrag(e, secId, id) {
+      if (disabled || e.button > 0) return;
+      e.preventDefault();
+      const pageY = (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+      };
+      const dragged = pageY(rowEls.current.get(id));
+      const gaps = [];
+      sectionsRef.current.forEach((sec) => {
+        const rest = sec.items.filter((it) => it.id !== id);
+        const from = sec.items.findIndex((it) => it.id === id);
+        for (let j = 0; j <= rest.length; j++) {
+          let y;
+          if (sec.id === secId && j === from) y = (dragged.top + dragged.bottom) / 2;
+          else if (rest[j - 1] && rest[j]) y = (pageY(rowEls.current.get(rest[j - 1].id)).bottom + pageY(rowEls.current.get(rest[j].id)).top) / 2;
+          else if (rest[j]) y = pageY(rowEls.current.get(rest[j].id)).top;
+          else if (rest[j - 1]) y = pageY(rowEls.current.get(rest[j - 1].id)).bottom;
+          else y = pageY(listEls.current.get(sec.id)).top;
+          gaps.push({ secId: sec.id, index: j, y });
+        }
+      });
+      const home = { secId, index: sectionsRef.current.find((s) => s.id === secId).items.findIndex((it) => it.id === id) };
+      const d = { id, secId, startY: e.clientY + window.scrollY, centre: (dragged.top + dragged.bottom) / 2, clientY: e.clientY, target: home };
+      let raf = 0;
+      function update() {
+        const off = d.clientY + window.scrollY - d.startY;
+        d.target = nearestGap(gaps, d.centre + off);
+        setDrag({ id, secId, off, target: d.target, home });
+      }
+      function tick() {
+        const dir = d.clientY < EDGE_PX ? -1 : d.clientY > window.innerHeight - EDGE_PX ? 1 : 0;
+        if (dir) {
+          window.scrollBy(0, dir * SCROLL_PX);
+          update();
+        }
+        raf = requestAnimationFrame(tick);
+      }
+      function onMove(ev) {
+        d.clientY = ev.clientY;
+        update();
+      }
+      function onTouchMove(ev) {
+        ev.preventDefault();
+      }
+      function onUp() {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        window.removeEventListener("touchmove", onTouchMove);
+        setDrag(null);
+        const t = d.target;
+        if (t.secId === home.secId && t.index === home.index) return;
+        setSections((ss) => {
+          const item = ss.find((s) => s.id === secId).items.find((it) => it.id === id);
+          const out = ss.map((s) => ({ ...s, items: s.items.filter((it) => it.id !== id) }));
+          return out.map((s) => s.id === t.secId ? { ...s, items: [...s.items.slice(0, t.index), item, ...s.items.slice(t.index)] } : s);
+        });
+      }
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      window.addEventListener("touchmove", onTouchMove, { passive: false });
+      if (navigator.vibrate) navigator.vibrate(8);
+      update();
+      raf = requestAnimationFrame(tick);
+    }
+    const moved = drag && (drag.target.secId !== drag.home.secId || drag.target.index !== drag.home.index);
+    function renderRow(sec, it, n) {
+      const dragging = drag && drag.id === it.id;
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          ref: (el) => el ? rowEls.current.set(it.id, el) : rowEls.current.delete(it.id),
+          className: `ra-ed-row${dragging ? " dragging" : ""}`,
+          style: dragging ? { transform: `translateY(${drag.off}px)` } : void 0
+        },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: "ra-ed-grip",
+            onPointerDown: (e) => startDrag(e, sec.id, it.id),
+            onContextMenu: (e) => e.preventDefault(),
+            "aria-label": "Drag to reorder",
+            tabIndex: -1
+          },
+          /* @__PURE__ */ React.createElement("span", { className: "ra-grip" }, /* @__PURE__ */ React.createElement("span", null), /* @__PURE__ */ React.createElement("span", null), /* @__PURE__ */ React.createElement("span", null))
+        ),
+        kind === "ing" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "ra-ed-field q",
+            value: it.q,
+            onChange: (e) => updateItem(sec.id, it.id, { q: e.target.value }),
+            onPaste: (e) => onPaste(e, sec, it),
+            placeholder: "Qty",
+            "aria-label": "Quantity",
+            disabled
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "ra-ed-field",
+            "data-focus": it.id,
+            value: it.n,
+            onChange: (e) => updateItem(sec.id, it.id, { n: e.target.value }),
+            onKeyDown: (e) => onKeyDown(e, sec, it),
+            onPaste: (e) => onPaste(e, sec, it),
+            placeholder: "Ingredient",
+            "aria-label": "Ingredient",
+            disabled
+          }
+        )) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ra-step-n sm" }, n), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            className: "ra-ed-field step",
+            "data-focus": it.id,
+            ref: (el) => autosize(el),
+            rows: 1,
+            value: it.text,
+            onChange: (e) => {
+              autosize(e.target);
+              updateItem(sec.id, it.id, { text: e.target.value });
+            },
+            onKeyDown: (e) => onKeyDown(e, sec, it),
+            onPaste: (e) => onPaste(e, sec, it),
+            placeholder: "Describe this step",
+            "aria-label": `Step ${n}`,
+            disabled
+          }
+        )),
+        /* @__PURE__ */ React.createElement("button", { className: "ra-ed-remove", onClick: () => removeItem(sec.id, it.id), "aria-label": "Remove", disabled }, "\u2715")
+      );
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "ra-ed", ref: rootRef }, sections.map((sec) => {
+      const rest = drag ? sec.items.filter((it) => it.id !== drag.id) : sec.items;
+      const dropAt = moved && drag.target.secId === sec.id ? drag.target.index : -1;
+      const dropBefore = dropAt >= 0 && rest[dropAt] ? rest[dropAt].id : null;
+      return /* @__PURE__ */ React.createElement("div", { key: sec.id, className: "ra-ed-sec" }, showHeads && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-head" }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "ra-ed-name",
+          "data-focus": sec.id,
+          value: sec.name,
+          onChange: (e) => updateSec(sec.id, (s) => ({ ...s, name: e.target.value })),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              insertAfter(sec.id, null, [k.blank()]);
+            }
+          },
+          placeholder: "Section name, e.g. Sauce",
+          "aria-label": "Section name",
+          disabled
+        }
+      ), sections.length > 1 && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          className: `ra-ed-sec-remove${confirmSec === sec.id ? " confirm" : ""}`,
+          onClick: () => removeSection(sec),
+          onBlur: () => setConfirmSec(null),
+          disabled
+        },
+        confirmSec === sec.id ? "Remove section?" : "Remove"
+      )), /* @__PURE__ */ React.createElement("div", { className: "ra-ed-list", ref: (el) => el ? listEls.current.set(sec.id, el) : listEls.current.delete(sec.id) }, sec.items.map((it, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: it.id }, dropBefore === it.id && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" }), renderRow(sec, it, i + 1))), dropAt >= 0 && !dropBefore && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" })), /* @__PURE__ */ React.createElement("button", { className: "ra-ed-add", onClick: () => insertAfter(sec.id, null, [k.blank()]), disabled }, "+ ", k.add));
+    }), /* @__PURE__ */ React.createElement("button", { className: "ra-ed-add-sec", onClick: addSection, disabled }, "+ Add section"));
   }
 
   // recipes/Compose.jsx
-  var { useState: useState5, useRef: useRef3, useEffect: useEffect5 } = React;
+  var { useState: useState6, useRef: useRef4, useEffect: useEffect6 } = React;
   var MAX_IMAGES = 8;
   var MAX_IMAGE_SIDE = 1600;
-  var EMPTY_FORM = { name: "", cat: "Dinner", time: "", serves: "", ings: "", steps: "" };
+  var emptyForm = () => ({
+    name: "",
+    cat: "Dinner",
+    time: "",
+    serves: "",
+    ingredients: [blankSection("ing")],
+    method: [blankSection("step")]
+  });
   var EMPTY_MAGIC = { images: [], link: "", text: "", loading: false, error: "" };
-  var lines = (x) => x.split("\n").map((y) => y.trim()).filter(Boolean);
+  var orBlank = (kind, sections) => sections.length ? sections : [blankSection(kind)];
   function toForm(r) {
     return {
       name: r.name,
       cat: r.cat,
       time: String(r.time),
       serves: String(r.serves),
-      ings: r.ings.map(ingToLine).join("\n"),
-      steps: r.steps.join("\n")
+      ingredients: orBlank("ing", r.ingredients),
+      method: orBlank("step", r.method)
     };
+  }
+  function magicSections(kind, sections, flat, toItem) {
+    const secs = sections || [{ name: "", items: flat || [] }];
+    return orBlank(
+      kind,
+      secs.map((sec) => ({ id: uid(), name: sec.name || "", items: (sec.items || []).map(toItem) }))
+    );
   }
   async function readImage(file) {
     const canvas = await drawScaled(file, MAX_IMAGE_SIDE);
@@ -20683,7 +20991,7 @@ ${suffix}`;
   }
   function PhotoField({ photo, setPhoto, session, disabled }) {
     const savedUrl = usePhotoUrl(photo && photo.path, session);
-    const [error, setError] = useState5("");
+    const [error, setError] = useState6("");
     const url = photo ? photo.preview || savedUrl : null;
     if (!session) {
       return /* @__PURE__ */ React.createElement("div", { className: "ra-ph ra-photo-field" }, session === null && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in"), " to add photos"));
@@ -20702,20 +21010,20 @@ ${suffix}`;
     return /* @__PURE__ */ React.createElement("div", { className: "ra-photo-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `ra-ph ra-photo-field${disabled ? " disabled" : ""}` }, /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: pick, disabled }), url ? /* @__PURE__ */ React.createElement("img", { className: "ra-photo", src: url, alt: "" }) : !photo && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-hint" }, "+ add photo"), photo && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-change" }, "Change")), photo && !disabled && /* @__PURE__ */ React.createElement("button", { className: "ra-photo-remove", onClick: () => setPhoto(null), "aria-label": "Remove photo" }, "\u2715"), error && /* @__PURE__ */ React.createElement("p", { className: "ra-error" }, error));
   }
   function Compose({ initial, session, onCancel, onSave, onDelete }) {
-    const [form, setFormState] = useState5(() => initial ? toForm(initial) : EMPTY_FORM);
-    const [mode, setMode] = useState5("manual");
-    const [magic, setMagicState] = useState5(EMPTY_MAGIC);
-    const [fromMagic, setFromMagic] = useState5(false);
-    const [confirmDelete, setConfirmDelete] = useState5(false);
-    const [photo, setPhoto] = useState5(() => initial && initial.photo ? { path: initial.photo } : null);
-    const [saving, setSaving] = useState5(false);
-    const [saveError, setSaveError] = useState5("");
-    const magicRef = useRef3(magic);
+    const [form, setFormState] = useState6(() => initial ? toForm(initial) : emptyForm());
+    const [mode, setMode] = useState6("manual");
+    const [magic, setMagicState] = useState6(EMPTY_MAGIC);
+    const [fromMagic, setFromMagic] = useState6(false);
+    const [confirmDelete, setConfirmDelete] = useState6(false);
+    const [photo, setPhoto] = useState6(() => initial && initial.photo ? { path: initial.photo } : null);
+    const [saving, setSaving] = useState6(false);
+    const [saveError, setSaveError] = useState6("");
+    const magicRef = useRef4(magic);
     magicRef.current = magic;
     const setForm = (k, v) => setFormState((f) => ({ ...f, [k]: v }));
     const setMagic = (p) => setMagicState((m) => ({ ...m, ...p }));
     const canSave = !!form.name.trim() && !saving;
-    useEffect5(() => () => photo && photo.preview && URL.revokeObjectURL(photo.preview), [photo]);
+    useEffect6(() => () => photo && photo.preview && URL.revokeObjectURL(photo.preview), [photo]);
     const hasSources = magic.images.length > 0 || !!magic.link.trim() || !!magic.text.trim();
     const canRunMagic = !!session && !magic.loading && hasSources;
     async function save() {
@@ -20742,8 +21050,8 @@ ${suffix}`;
         tags: initial && initial.cat === form.cat ? initial.tags : [form.cat],
         time: parseInt(form.time, 10) || 20,
         serves: parseInt(form.serves, 10) || 2,
-        ings: lines(form.ings).map(parseIng),
-        steps: lines(form.steps)
+        ingredients: cleanSections("ing", form.ingredients),
+        method: cleanSections("step", form.method)
       });
     }
     function addFiles(files) {
@@ -20776,8 +21084,8 @@ ${suffix}`;
           cat: CATS.includes(data.cat) ? data.cat : "Dinner",
           time: data.time ? String(data.time) : "",
           serves: data.serves ? String(data.serves) : "",
-          ings: (data.ings || []).join("\n"),
-          steps: (data.steps || []).join("\n")
+          ingredients: magicSections("ing", data.ingredients, data.ings, (line) => ({ id: uid(), ...parseIng(line) })),
+          method: magicSections("step", data.method, data.steps, (text) => ({ id: uid(), text }))
         });
         setMagicState(EMPTY_MAGIC);
         setFromMagic(true);
@@ -20837,23 +21145,21 @@ ${suffix}`;
         onChange: (e) => setForm("name", e.target.value),
         placeholder: "e.g. Roasted veggie traybake"
       }
-    )), /* @__PURE__ */ React.createElement("div", { className: "ra-label" }, "Meal", /* @__PURE__ */ React.createElement("div", { className: "ra-chips tight" }, CATS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, className: `ra-chip sm${form.cat === c ? " on" : ""}`, onClick: () => setForm("cat", c) }, c)))), /* @__PURE__ */ React.createElement("div", { className: "ra-two" }, /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Time (min)", /* @__PURE__ */ React.createElement("input", { className: "ra-field", value: form.time, onChange: (e) => setForm("time", e.target.value), inputMode: "numeric", placeholder: "30" })), /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Serves", /* @__PURE__ */ React.createElement("input", { className: "ra-field", value: form.serves, onChange: (e) => setForm("serves", e.target.value), inputMode: "numeric", placeholder: "2" }))), /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Ingredients, one per line", /* @__PURE__ */ React.createElement(
-      "textarea",
+    )), /* @__PURE__ */ React.createElement("div", { className: "ra-label" }, "Meal", /* @__PURE__ */ React.createElement("div", { className: "ra-chips tight" }, CATS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, className: `ra-chip sm${form.cat === c ? " on" : ""}`, onClick: () => setForm("cat", c) }, c)))), /* @__PURE__ */ React.createElement("div", { className: "ra-two" }, /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Time (min)", /* @__PURE__ */ React.createElement("input", { className: "ra-field", value: form.time, onChange: (e) => setForm("time", e.target.value), inputMode: "numeric", placeholder: "30" })), /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Serves", /* @__PURE__ */ React.createElement("input", { className: "ra-field", value: form.serves, onChange: (e) => setForm("serves", e.target.value), inputMode: "numeric", placeholder: "2" }))), /* @__PURE__ */ React.createElement("div", { className: "ra-label" }, "Ingredients", /* @__PURE__ */ React.createElement(
+      SectionEditor,
       {
-        className: "ra-field",
-        value: form.ings,
-        onChange: (e) => setForm("ings", e.target.value),
-        rows: 6,
-        placeholder: "2 cups Spinach\n1 Lemon"
+        kind: "ing",
+        sections: form.ingredients,
+        setSections: (fn) => setFormState((f) => ({ ...f, ingredients: fn(f.ingredients) })),
+        disabled: saving
       }
-    )), /* @__PURE__ */ React.createElement("label", { className: "ra-label" }, "Method, one step per line", /* @__PURE__ */ React.createElement(
-      "textarea",
+    )), /* @__PURE__ */ React.createElement("div", { className: "ra-label" }, "Method", /* @__PURE__ */ React.createElement(
+      SectionEditor,
       {
-        className: "ra-field",
-        value: form.steps,
-        onChange: (e) => setForm("steps", e.target.value),
-        rows: 6,
-        placeholder: "Preheat the oven to 200\xB0C."
+        kind: "step",
+        sections: form.method,
+        setSections: (fn) => setFormState((f) => ({ ...f, method: fn(f.method) })),
+        disabled: saving
       }
     )), initial && /* @__PURE__ */ React.createElement(
       "button",
@@ -20867,7 +21173,7 @@ ${suffix}`;
   }
 
   // recipes/App.jsx
-  var { useState: useState6, useEffect: useEffect6, useRef: useRef4 } = React;
+  var { useState: useState7, useEffect: useEffect7, useRef: useRef5, useMemo } = React;
   var APP_ID = "recipes";
   var DEFAULT_LISTS = [{ id: "default", name: "Groceries", items: [] }];
   var NO_RECIPES = [];
@@ -20882,21 +21188,22 @@ ${suffix}`;
   function RecipesApp() {
     const session = useSession();
     const [lists, setLists, listsConflict] = useSyncedStorage(APP_ID, "recipes-lists", DEFAULT_LISTS);
-    const [recipes, setRecipes, recipesConflict] = useSyncedStorage(APP_ID, "recipes-recipes", NO_RECIPES);
-    const [activeId, setActiveIdState] = useState6(readActive);
-    const [tab, setTab] = useState6("list");
-    const [recipeId, setRecipeId] = useState6(null);
-    const [compose, setCompose] = useState6(null);
-    const [query, setQuery] = useState6("");
-    const [cat, setCat] = useState6("All");
-    const [servings, setServings] = useState6({});
-    const [timers, setTimers] = useState6({});
-    const [, setNow] = useState6(0);
-    const [toast, setToast] = useState6(null);
-    const toastT = useRef4(null);
-    const timersRef = useRef4(timers);
+    const [storedRecipes, setRecipes, recipesConflict] = useSyncedStorage(APP_ID, "recipes-recipes", NO_RECIPES);
+    const recipes = useMemo(() => storedRecipes.map(normRecipe), [storedRecipes]);
+    const [activeId, setActiveIdState] = useState7(readActive);
+    const [tab, setTab] = useState7("list");
+    const [recipeId, setRecipeId] = useState7(null);
+    const [compose, setCompose] = useState7(null);
+    const [query, setQuery] = useState7("");
+    const [cat, setCat] = useState7("All");
+    const [servings, setServings] = useState7({});
+    const [timers, setTimers] = useState7({});
+    const [, setNow] = useState7(0);
+    const [toast, setToast] = useState7(null);
+    const toastT = useRef5(null);
+    const timersRef = useRef5(timers);
     timersRef.current = timers;
-    useEffect6(() => {
+    useEffect7(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
     const list = lists.find((l) => l.id === activeId) || lists[0];
@@ -20936,7 +21243,7 @@ ${suffix}`;
       });
     }
     const anyRunning = Object.values(timers).some((x) => x.running);
-    useEffect6(() => {
+    useEffect7(() => {
       if (!anyRunning) return;
       const t = setInterval(() => {
         const now = Date.now();

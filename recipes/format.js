@@ -69,3 +69,23 @@ export function fmtClock(sec) {
 }
 
 export const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// Recipes keep ingredients and method as sections ("Sauce", "Main", ...),
+// each { id, name, items }. Ingredient items are { id, q, n }, method items
+// { id, text }. A recipe without sections has one section with an empty
+// name.
+//
+// Recipes saved before sections had flat `ings` and `steps` arrays; this
+// converts them on read. Ids are derived from positions so they stay the
+// same across renders (step timers are keyed by them).
+export function normRecipe(r) {
+  if (r.ingredients) return r;
+  const { ings = [], steps = [], ...rest } = r;
+  return {
+    ...rest,
+    ingredients: [{ id: "i", name: "", items: ings.map((g, i) => ({ id: `i${i}`, q: g.q, n: g.n })) }],
+    method: [{ id: "m", name: "", items: steps.map((text, i) => ({ id: `m${i}`, text })) }],
+  };
+}
+
+export const allIngs = (r) => r.ingredients.flatMap((s) => s.items);
