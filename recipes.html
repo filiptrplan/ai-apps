@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Recipes</title>
   <meta name="description" content="Shopping lists and a recipe notebook: scale servings, run step timers and add ingredients to your list.">
+  <link rel="manifest" href="./recipes/manifest.json">
+  <link rel="icon" href="./recipes/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./recipes/icon.png">
   <meta name="theme-color" content="#f5f3ec">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Recipes">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap">
@@ -213,5 +219,12 @@
 <body>
   <div id="app"></div>
   <script src="./recipes-app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./recipes-sw.js", { scope: "./recipes" });
+      });
+    }
+  </script>
 </body>
 </html>
