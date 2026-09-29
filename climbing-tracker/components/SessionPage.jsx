@@ -59,7 +59,9 @@ function useWakeLock() {
 // member runs one work phase per set, each started by a tap), and a "Next
 // round" rest (the last member's restSec) starts once every member has one
 // more set ticked. The last member's restAfterSec applies after the block.
-export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
+// Notes come from the live exercise list (notesById) rather than the
+// session's snapshot, so an edit shows on every card for that exercise.
+export function SessionPage({ session, notesById, onCancel, onLogChange, onFinish, onNotesChange }) {
   const [order, setOrder] = useState(() => groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
   const completedRef = useRef(session.exercises.map(() => false));
   const doneCountRef = useRef(session.exercises.map(() => 0));
@@ -135,11 +137,13 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
             <ExerciseCard
               key={exIdx}
               exercise={cardExercises[exIdx]}
+              notes={notesById[session.exercises[exIdx].id]}
               position={position}
               total={order.length}
               label={isSuperset ? `${position + 1}${String.fromCharCode(65 + k)}` : null}
               onChange={log => handleCardChange(exIdx, log)}
               onMove={dir => moveCard(position, dir)}
+              onNotesChange={text => onNotesChange(session.exercises[exIdx].id, text)}
             />
           ));
           return (

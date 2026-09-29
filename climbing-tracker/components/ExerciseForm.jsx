@@ -80,6 +80,17 @@ export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
         </div>
       )}
 
+      <div style={s.field}>
+        <label style={s.label}>Notes</label>
+        <textarea
+          style={s.notesArea}
+          placeholder="Grip, setup, cues, how it went…"
+          value={draft.notes || ""}
+          onChange={e => set({ notes: e.target.value })}
+          rows={3}
+        />
+      </div>
+
       <button style={{ ...s.btnPrimary, ...s.btnBlock }} onClick={onSave} disabled={!draft.name.trim()}>
         Save exercise
       </button>

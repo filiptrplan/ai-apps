@@ -5,6 +5,7 @@ import { Segmented } from "./ExerciseForm.jsx";
 import { LineChart } from "./LineChart.jsx";
 import { Header, EmptyState, useIsDesktop } from "./Layout.jsx";
 import { Icon } from "./Icons.jsx";
+import { ExerciseNotes } from "./ExerciseNotes.jsx";
 
 const { useState, useMemo } = React;
 
@@ -12,7 +13,7 @@ const shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "num
 
 // Progress over time for one exercise: PR tiles, a chart of one metric per
 // session, and every logged session - all limited to the chosen range.
-export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart }) {
+export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
   const desktop = useIsDesktop();
   const [range, setRange] = useState("all");
   const [metricId, setMetricId] = useState(null);
@@ -39,6 +40,9 @@ export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, on
         right={<button style={s.textBtn} onClick={onEdit}>Edit</button>}
       />
       <div style={{ ...s.pageWithBottomBar, ...(desktop && d.pageWithBottomBar) }}>
+        <div style={desktop ? { maxWidth: 560 } : undefined}>
+          <ExerciseNotes notes={exercise.notes} onSave={onNotesChange} />
+        </div>
         {allSessions.length === 0 ? (
           <EmptyState icon="chart" title="No sessions logged yet" text="Finish a workout with this exercise to start tracking progress." />
         ) : (

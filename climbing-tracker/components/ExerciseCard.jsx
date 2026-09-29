@@ -2,6 +2,7 @@ import { s } from "../styles.js";
 import { formatTargetSummary } from "../format.js";
 import { SetsCard } from "./SetsCard.jsx";
 import { IntervalCard } from "./IntervalCard.jsx";
+import { ExerciseNotes } from "./ExerciseNotes.jsx";
 import { Icon } from "./Icons.jsx";
 
 const { useState } = React;
@@ -14,7 +15,7 @@ function progressOf(exercise, log) {
   return { done: rows.filter(r => r.done).length, total: rows.length || exercise.sets || 1 };
 }
 
-export function ExerciseCard({ exercise, position, total, label, onChange, onMove }) {
+export function ExerciseCard({ exercise, notes, position, total, label, onChange, onMove, onNotesChange }) {
   const [collapsed, setCollapsed] = useState(false);
   const [progress, setProgress] = useState(() => progressOf(exercise, null));
   const complete = progress.total > 0 && progress.done >= progress.total;
@@ -49,6 +50,7 @@ export function ExerciseCard({ exercise, position, total, label, onChange, onMov
       </div>
       {/* Kept mounted (just hidden) so ticked sets / timer progress survive collapsing. */}
       <div style={collapsed ? s.hidden : s.exerciseCardBody}>
+        <ExerciseNotes notes={notes} onSave={onNotesChange} />
         {exercise.type === "interval"
           ? <IntervalCard exercise={exercise} superset={!!exercise.supersetGroup} onChange={handleChange} />
           : <SetsCard exercise={exercise} onChange={handleChange} />}

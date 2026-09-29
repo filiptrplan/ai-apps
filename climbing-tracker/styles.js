@@ -269,6 +269,16 @@ export const s = {
   exerciseCardName: { fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 },
   exerciseCardTarget: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.35 },
   exerciseCardBody: { padding: "4px 16px 16px" },
+  notes: {
+    display: "block", width: "100%", textAlign: "left", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
+    padding: "10px 12px", marginBottom: 12, borderRadius: 12, background: C.surface2, border: `1px solid ${C.border}`,
+    color: C.muted, fontSize: 14, lineHeight: 1.45, cursor: "pointer", font: "inherit",
+  },
+  notesArea: {
+    display: "block", width: "100%", minHeight: 84, resize: "vertical", padding: "10px 12px", marginBottom: 12,
+    borderRadius: 12, background: C.surface2, border: `1px solid ${C.border}`, color: C.text,
+    fontSize: 16, lineHeight: 1.45, fontFamily: "inherit", outline: "none",
+  },
   stepNumber: {
     minWidth: 26, height: 26, padding: "0 6px", borderRadius: 13, flexShrink: 0, background: C.surface2,
     color: C.muted, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",

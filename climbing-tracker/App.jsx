@@ -72,10 +72,11 @@ export function ClimbingTrackerApp() {
   };
   const saveExercise = () => {
     if (!draft.name.trim()) return;
+    const ex = { ...draft, notes: (draft.notes || "").trim() };
     if (editingId) {
-      setExercises(exercises.map(e => e.id === editingId ? { ...draft, id: editingId } : e));
+      setExercises(exercises.map(e => e.id === editingId ? { ...ex, id: editingId } : e));
     } else {
-      setExercises([...exercises, { ...draft, id: uid() }]);
+      setExercises([...exercises, { ...ex, id: uid() }]);
     }
     setFormOpen(false);
   };
@@ -412,7 +413,14 @@ export function ClimbingTrackerApp() {
     return (
       <div style={rootStyle}>
         <div style={desktop ? d.focus : undefined}>
-          <SessionPage session={activeSession} onCancel={requestCancelSession} onLogChange={handleLogChange} onFinish={finishSession} />
+          <SessionPage
+            session={activeSession}
+            notesById={Object.fromEntries(exercises.map(e => [e.id, e.notes || ""]))}
+            onCancel={requestCancelSession}
+            onLogChange={handleLogChange}
+            onFinish={finishSession}
+            onNotesChange={(id, notes) => updateExerciseTemplate(id, { notes })}
+          />
         </div>
         <ConfirmModal confirm={confirm} onCancel={() => setConfirm(null)} />
       </div>
@@ -484,6 +492,7 @@ export function ClimbingTrackerApp() {
           onBack={() => setStatsExerciseId(null)}
           onEdit={() => openEditExercise(statsExercise)}
           onStart={() => startExercise(statsExercise)}
+          onNotesChange={notes => updateExerciseTemplate(statsExercise.id, { notes })}
         />
       ) : (
       <>
