@@ -16,7 +16,7 @@ const toStepValue = (v) => v === "" ? null : Math.round(v);
 // (minus the done buttons), so a routine can target a heterogeneous
 // pattern like 2 sets of 12 followed by 1 set of 24.
 //
-// Adjacent reps/weighted steps can be linked into a superset (shared
+// Adjacent steps can be linked into a superset (shared
 // step.supersetGroup) with the chip between their cards. A superset is
 // bracketed as one unit: numbered 1A/1B, dragged as a whole by the grip in
 // its own header, and its rests (stored on the last member) edited at its
@@ -29,7 +29,6 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
     .filter(x => x.exercise)
     .map((x, i) => ({ ...x, i }));
   const blocks = groupSteps(resolved, x => x.step.supersetGroup || null);
-  const linkable = x => x && x.exercise.type !== "interval";
 
   // "top" orders whole blocks; each superset's members are their own list.
   const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -79,8 +78,8 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
         {ex.type === "interval" ? (
           <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
             <NumberField label="Sets" value={step.sets ?? ex.sets} onChange={v => onUpdateStep(step.id, { sets: toStepValue(v) })} min={1} />
-            <NumberField label="Rest" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} suffix="s" />
-            <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />
+            {!inSuperset && <NumberField label="Rest" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} suffix="s" />}
+            {!inSuperset && <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />}
           </div>
         ) : (
           <>
@@ -117,7 +116,7 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
           const first = block[0], last = block[block.length - 1];
           const nextFirst = blocks[b + 1]?.[0];
           const joinsSuperset = block.length > 1 || blocks[b + 1]?.length > 1;
-          const after = linkable(last) && linkable(nextFirst)
+          const after = nextFirst
             ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset")
             : null;
 

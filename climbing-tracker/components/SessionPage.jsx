@@ -55,7 +55,8 @@ function useWakeLock() {
 // between-set rests) render in a dock pinned under the header.
 //
 // Supersets (consecutive exercises sharing a supersetGroup) are one block:
-// they move together, their cards run with no per-set rest, and a "Next
+// they move together, their cards run with no per-set rest (an interval
+// member runs one work phase per set, each started by a tap), and a "Next
 // round" rest (the last member's restSec) starts once every member has one
 // more set ticked. The last member's restAfterSec applies after the block.
 export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
@@ -63,8 +64,9 @@ export function SessionPage({ session, onCancel, onLogChange, onFinish }) {
   const completedRef = useRef(session.exercises.map(() => false));
   const doneCountRef = useRef(session.exercises.map(() => 0));
   // Superset members log without their own between-set rest; the block's
-  // round rest replaces it.
-  const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
+  // round rest replaces it. Interval members keep restSec (so it isn't
+  // logged as changed) and skip their rest phase via IntervalCard's superset mode.
+  const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup && ex.type !== "interval" ? { ...ex, restSec: 0 } : ex));
   const interRestTimer = useRestTimer();
   const interRest = interRestTimer.rest; // { label, timeLeft, total, paused }
 

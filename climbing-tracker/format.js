@@ -18,7 +18,7 @@ export function formatWeightLabel(weightMode, weight) {
 
 export function formatTargetSummary(ex) {
   const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
-  if (ex.type === "interval") return `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`;
+  if (ex.type === "interval") return ex.supersetGroup ? `${ex.sets} sets · ${ex.workSec}s on` : `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`;
   // A routine step can give this exercise a heterogeneous per-set pattern
   // (e.g. 2x12 then 1x24) instead of a uniform sets x reps target.
   if (ex.targetSets) {
@@ -279,15 +279,10 @@ export function groupSteps(items, getGroup) {
   return blocks;
 }
 
-// Supersets only make sense for reps/weighted steps that sit next to at least
-// one other member of the same group. Strips supersetGroup from anything else
-// (interval steps, or a lone step left behind after a move/remove/unlink).
-export function normalizeSupersets(steps, exercises) {
-  const typeOf = step => exercises.find(e => e.id === step.exerciseId)?.type;
-  const cleaned = steps.map(step =>
-    step.supersetGroup && typeOf(step) === "interval" ? { ...step, supersetGroup: null } : step
-  );
-  return groupSteps(cleaned, step => step.supersetGroup || null).flatMap(block =>
+// A superset needs at least two adjacent members of the same group. Strips
+// supersetGroup from a lone step left behind after a move/remove/unlink.
+export function normalizeSupersets(steps) {
+  return groupSteps(steps, step => step.supersetGroup || null).flatMap(block =>
     block.length === 1 && block[0].supersetGroup ? [{ ...block[0], supersetGroup: null }] : block
   );
 }

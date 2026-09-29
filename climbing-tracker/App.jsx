@@ -136,7 +136,7 @@ export function ClimbingTrackerApp() {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
   };
   const removeFromRoutine = (routineId, idx) => {
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_, i) => i !== idx), exercises) } : r));
+    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_, i) => i !== idx)) } : r));
   };
   // Links step idx with step idx+1 into one superset (merging whatever
   // groups either already belongs to), or splits the superset between them.
@@ -164,7 +164,7 @@ export function ClimbingTrackerApp() {
         }
         if (a.supersetGroup && !old) steps[idx + 1] = { ...steps[idx + 1], ...roundRests(a) };
       }
-      return { ...r, steps: normalizeSupersets(steps, exercises) };
+      return { ...r, steps: normalizeSupersets(steps) };
     }));
   };
   // Moves step idx by delta blocks (a lone step or a whole superset each).
@@ -191,7 +191,7 @@ export function ClimbingTrackerApp() {
         if (c === b) return r;
         blocks.splice(c, 0, blocks.splice(b, 1)[0]);
       }
-      return { ...r, steps: normalizeSupersets(blocks.flat(), exercises) };
+      return { ...r, steps: normalizeSupersets(blocks.flat()) };
     }));
   };
 
@@ -205,7 +205,7 @@ export function ClimbingTrackerApp() {
     setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
   };
   const startRoutine = (r) => {
-    const exs = normalizeSupersets(r.steps, exercises).map(step => {
+    const exs = normalizeSupersets(r.steps).map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
       if (!ex) return null;
       return {

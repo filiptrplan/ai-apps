@@ -11,8 +11,12 @@ const { useState, useEffect, useRef } = React;
 // including mid-timer, when the workout is finished. Work/rest/sets are
 // editable while idle (before Start), so a routine's timer values can be
 // tweaked for this session without leaving to edit the exercise/routine.
-export function IntervalCard({ exercise, onChange }) {
-  const [phase, setPhase] = useState("idle"); // idle | work | rest | done
+//
+// With superset set, each set is a single work phase started by a tap; the
+// card's own rest is skipped (the superset's round rest replaces it) but
+// restSec is still reported unchanged so it doesn't look edited.
+export function IntervalCard({ exercise, superset, onChange }) {
+  const [phase, setPhase] = useState("idle"); // idle | work | rest | next (superset only) | done
   const [workSec, setWorkSec] = useState(exercise.workSec);
   const [restSec, setRestSec] = useState(exercise.restSec);
   const [totalSets, setTotalSets] = useState(exercise.sets);
@@ -44,28 +48,47 @@ export function IntervalCard({ exercise, onChange }) {
 
   const finishNow = () => {
     clearTick();
+    phaseRef.current = "done";
     setPhase("done");
     report();
+  };
+
+  // Ends the current work phase and counts it. In a superset there's no rest
+  // phase: the card waits for a tap to start the next set, since the other
+  // members and the round rest happen in between.
+  const endWork = (silent) => {
+    completedRef.current += 1;
+    report();
+    if (currentSetRef.current >= configRef.current.totalSets) {
+      clearTick();
+      phaseRef.current = "done";
+      setPhase("done");
+      if (!silent) sounds.finish();
+      return;
+    }
+    if (superset) {
+      clearTick();
+      currentSetRef.current += 1;
+      phaseRef.current = "next";
+      timeLeftRef.current = configRef.current.workSec;
+      setPhase("next");
+      setCurrentSet(currentSetRef.current);
+      setTimeLeft(configRef.current.workSec);
+      if (!silent) sounds.restStart();
+      return;
+    }
+    phaseRef.current = "rest";
+    timeLeftRef.current = configRef.current.restSec;
+    setPhase("rest");
+    setTimeLeft(configRef.current.restSec);
+    if (!silent) sounds.restStart();
   };
 
   const runTick = () => {
     timeLeftRef.current -= 1;
     if (timeLeftRef.current <= 0) {
       if (phaseRef.current === "work") {
-        completedRef.current += 1;
-        report();
-        if (currentSetRef.current >= configRef.current.totalSets) {
-          phaseRef.current = "done";
-          setPhase("done");
-          clearTick();
-          sounds.finish();
-          return;
-        }
-        phaseRef.current = "rest";
-        timeLeftRef.current = configRef.current.restSec;
-        setPhase("rest");
-        setTimeLeft(configRef.current.restSec);
-        sounds.restStart();
+        endWork(false);
       } else if (phaseRef.current === "rest") {
         currentSetRef.current += 1;
         phaseRef.current = "work";
@@ -81,18 +104,22 @@ export function IntervalCard({ exercise, onChange }) {
     }
   };
 
-  const start = () => {
+  const beginWork = () => {
     getAudioCtx();
     phaseRef.current = "work";
-    currentSetRef.current = 1;
     timeLeftRef.current = configRef.current.workSec;
-    completedRef.current = 0;
     setPhase("work");
-    setCurrentSet(1);
     setTimeLeft(configRef.current.workSec);
     setPaused(false);
     sounds.workStart();
     intervalRef.current = setInterval(runTick, 1000);
+  };
+
+  const start = () => {
+    currentSetRef.current = 1;
+    completedRef.current = 0;
+    setCurrentSet(1);
+    beginWork();
   };
 
   const restart = () => {
@@ -127,16 +154,7 @@ export function IntervalCard({ exercise, onChange }) {
       setCurrentSet(currentSetRef.current);
       setTimeLeft(configRef.current.workSec);
     } else if (phaseRef.current === "work") {
-      completedRef.current += 1;
-      report();
-      if (currentSetRef.current >= configRef.current.totalSets) {
-        finishNow();
-      } else {
-        phaseRef.current = "rest";
-        timeLeftRef.current = configRef.current.restSec;
-        setPhase("rest");
-        setTimeLeft(configRef.current.restSec);
-      }
+      endWork(true);
     }
   };
 
@@ -154,7 +172,7 @@ export function IntervalCard({ exercise, onChange }) {
       {phase === "idle" && (
         <div style={s.fieldGrid}>
           <NumberField label="Work" value={workSec} onChange={setWorkSec} min={1} suffix="s" />
-          <NumberField label="Rest" value={restSec} onChange={setRestSec} min={0} suffix="s" />
+          {!superset && <NumberField label="Rest" value={restSec} onChange={setRestSec} min={0} suffix="s" />}
           <NumberField label="Sets" value={totalSets} onChange={setTotalSets} min={1} />
         </div>
       )}
@@ -172,13 +190,20 @@ export function IntervalCard({ exercise, onChange }) {
               <>
                 <div style={{ ...s.phaseLabel, color: C.muted }}>READY</div>
                 <div style={s.timerDigits}>{formatTime(workSec || 0)}</div>
-                <div style={s.timerSub}>{totalSets} &times; {workSec}s / {restSec}s</div>
+                <div style={s.timerSub}>{totalSets} &times; {workSec}s{superset ? "" : ` / ${restSec}s`}</div>
               </>
             )}
             {running && (
               <>
                 <div style={{ ...s.phaseLabel, color: paused ? C.muted : phaseColor }}>{paused ? "PAUSED" : phase.toUpperCase()}</div>
                 <div style={{ ...s.timerDigits, color: phaseColor }}>{formatTime(timeLeft)}</div>
+                <div style={s.timerSub}>Set {currentSet} of {totalSets}</div>
+              </>
+            )}
+            {phase === "next" && (
+              <>
+                <div style={{ ...s.phaseLabel, color: C.muted }}>NEXT SET</div>
+                <div style={s.timerDigits}>{formatTime(workSec || 0)}</div>
                 <div style={s.timerSub}>Set {currentSet} of {totalSets}</div>
               </>
             )}
@@ -206,6 +231,16 @@ export function IntervalCard({ exercise, onChange }) {
             </button>
             <button style={{ ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }} onClick={skip} aria-label="Skip phase">
               <Icon.skip size={22} />
+            </button>
+            <button style={{ ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }} onClick={finishNow} aria-label="Finish exercise now">
+              <Icon.flag size={22} />
+            </button>
+          </>
+        )}
+        {phase === "next" && (
+          <>
+            <button style={{ ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }} onClick={beginWork}>
+              <Icon.play size={20} /> Start set {currentSet}
             </button>
             <button style={{ ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }} onClick={finishNow} aria-label="Finish exercise now">
               <Icon.flag size={22} />

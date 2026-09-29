@@ -62,10 +62,10 @@ IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise (or superset) in the routine. Use it for pauses between separate exercises, e.g. "5 exercises with 20s between each exercise" - give every step "restAfterSec": 20 (it is harmless to leave it on the very last step too, since it is simply never shown after the last card). For alternating sets of two or more exercises, use "supersetGroup" (below) instead. Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
 
 SUPERSETS - "supersetGroup" (optional, per routine step, default null) links consecutive steps into a superset that is performed in alternating rounds: one set of the first exercise, one set of the next, and so on, then a rest, then the next round (A1, B1, rest, A2, B2, rest, ...). Give every member step the same short string (e.g. "ss-1"); use a different string for each separate superset, and null for steps that aren't in one. Rules for supersets:
-- Only "reps" and "weighted" exercise steps can be in a superset - never "interval" steps.
+- Any exercise type can be in a superset. For an "interval" member, one set is ONE work phase (e.g. one hang), started by the user each round - its own rest phase is skipped, and its "sets" is the number of rounds like any other member.
 - Members must be directly next to each other in "steps", and a superset needs at least 2 members.
 - Give every member the same number of sets (same "sets", or "targetSets" arrays of the same length).
-- The rest between rounds is the LAST member's "restSec". Set "restSec" to 0 on all other members - there is no rest between exercises inside a round.
+- The rest between rounds is the LAST member's "restSec" (also when the last member is an "interval" step). Set "restSec" to 0 on all other members - there is no rest between exercises inside a round.
 - The rest after the whole superset (before the next exercise) is the LAST member's "restAfterSec". "restAfterSec" on the other members is ignored.
 Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds, then 2 min before the next exercise:
   { "id": "st-1", "exerciseId": "ex-weighted-pullups", "sets": 3, "restSec": 0, "restAfterSec": null, "targetSets": null, "supersetGroup": "ss-1" },

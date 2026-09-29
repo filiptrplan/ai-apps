@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/tslib/tslib.es6.mjs
+  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
   function __rest(s2, e) {
     var t = {};
     for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/iceberg-js/dist/index.mjs
+  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -20172,7 +20172,7 @@ ${suffix}`;
   }
   function formatTargetSummary(ex) {
     const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
-    if (ex.type === "interval") return `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
+    if (ex.type === "interval") return ex.supersetGroup ? `${ex.sets} sets \xB7 ${ex.workSec}s on` : `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
     if (ex.targetSets) {
       const isWeighted = ex.type === "weighted";
       return `${ex.targetSets.length} sets: ${formatSetsPattern(ex.targetSets, isWeighted)}${isWeighted ? "" : " reps"}${restPart}`;
@@ -20368,15 +20368,8 @@ ${suffix}`;
     });
     return blocks;
   }
-  function normalizeSupersets(steps, exercises) {
-    const typeOf = (step) => {
-      var _a;
-      return (_a = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a.type;
-    };
-    const cleaned = steps.map(
-      (step) => step.supersetGroup && typeOf(step) === "interval" ? { ...step, supersetGroup: null } : step
-    );
-    return groupSteps(cleaned, (step) => step.supersetGroup || null).flatMap(
+  function normalizeSupersets(steps) {
+    return groupSteps(steps, (step) => step.supersetGroup || null).flatMap(
       (block) => block.length === 1 && block[0].supersetGroup ? [{ ...block[0], supersetGroup: null }] : block
     );
   }
@@ -20446,10 +20439,10 @@ IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise (or superset) in the routine. Use it for pauses between separate exercises, e.g. "5 exercises with 20s between each exercise" - give every step "restAfterSec": 20 (it is harmless to leave it on the very last step too, since it is simply never shown after the last card). For alternating sets of two or more exercises, use "supersetGroup" (below) instead. Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
 
 SUPERSETS - "supersetGroup" (optional, per routine step, default null) links consecutive steps into a superset that is performed in alternating rounds: one set of the first exercise, one set of the next, and so on, then a rest, then the next round (A1, B1, rest, A2, B2, rest, ...). Give every member step the same short string (e.g. "ss-1"); use a different string for each separate superset, and null for steps that aren't in one. Rules for supersets:
-- Only "reps" and "weighted" exercise steps can be in a superset - never "interval" steps.
+- Any exercise type can be in a superset. For an "interval" member, one set is ONE work phase (e.g. one hang), started by the user each round - its own rest phase is skipped, and its "sets" is the number of rounds like any other member.
 - Members must be directly next to each other in "steps", and a superset needs at least 2 members.
 - Give every member the same number of sets (same "sets", or "targetSets" arrays of the same length).
-- The rest between rounds is the LAST member's "restSec". Set "restSec" to 0 on all other members - there is no rest between exercises inside a round.
+- The rest between rounds is the LAST member's "restSec" (also when the last member is an "interval" step). Set "restSec" to 0 on all other members - there is no rest between exercises inside a round.
 - The rest after the whole superset (before the next exercise) is the LAST member's "restAfterSec". "restAfterSec" on the other members is ignored.
 Example: weighted pull-ups superset with push-ups, 3 rounds, 90s between rounds, then 2 min before the next exercise:
   { "id": "st-1", "exerciseId": "ex-weighted-pullups", "sets": 3, "restSec": 0, "restAfterSec": null, "targetSets": null, "supersetGroup": "ss-1" },
@@ -21640,7 +21633,7 @@ Now generate the exercises and/or routines described by the user's request that 
 
   // climbing-tracker/components/IntervalCard.jsx
   var { useState: useState4, useEffect: useEffect4, useRef: useRef3 } = React;
-  function IntervalCard({ exercise, onChange }) {
+  function IntervalCard({ exercise, superset, onChange }) {
     const [phase, setPhase] = useState4("idle");
     const [workSec, setWorkSec] = useState4(exercise.workSec);
     const [restSec, setRestSec] = useState4(exercise.restSec);
@@ -21672,27 +21665,42 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const finishNow = () => {
       clearTick();
+      phaseRef.current = "done";
       setPhase("done");
       report();
+    };
+    const endWork = (silent) => {
+      completedRef.current += 1;
+      report();
+      if (currentSetRef.current >= configRef.current.totalSets) {
+        clearTick();
+        phaseRef.current = "done";
+        setPhase("done");
+        if (!silent) sounds.finish();
+        return;
+      }
+      if (superset) {
+        clearTick();
+        currentSetRef.current += 1;
+        phaseRef.current = "next";
+        timeLeftRef.current = configRef.current.workSec;
+        setPhase("next");
+        setCurrentSet(currentSetRef.current);
+        setTimeLeft(configRef.current.workSec);
+        if (!silent) sounds.restStart();
+        return;
+      }
+      phaseRef.current = "rest";
+      timeLeftRef.current = configRef.current.restSec;
+      setPhase("rest");
+      setTimeLeft(configRef.current.restSec);
+      if (!silent) sounds.restStart();
     };
     const runTick = () => {
       timeLeftRef.current -= 1;
       if (timeLeftRef.current <= 0) {
         if (phaseRef.current === "work") {
-          completedRef.current += 1;
-          report();
-          if (currentSetRef.current >= configRef.current.totalSets) {
-            phaseRef.current = "done";
-            setPhase("done");
-            clearTick();
-            sounds.finish();
-            return;
-          }
-          phaseRef.current = "rest";
-          timeLeftRef.current = configRef.current.restSec;
-          setPhase("rest");
-          setTimeLeft(configRef.current.restSec);
-          sounds.restStart();
+          endWork(false);
         } else if (phaseRef.current === "rest") {
           currentSetRef.current += 1;
           phaseRef.current = "work";
@@ -21707,18 +21715,21 @@ Now generate the exercises and/or routines described by the user's request that 
         if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
       }
     };
-    const start = () => {
+    const beginWork = () => {
       getAudioCtx();
       phaseRef.current = "work";
-      currentSetRef.current = 1;
       timeLeftRef.current = configRef.current.workSec;
-      completedRef.current = 0;
       setPhase("work");
-      setCurrentSet(1);
       setTimeLeft(configRef.current.workSec);
       setPaused(false);
       sounds.workStart();
       intervalRef.current = setInterval(runTick, 1e3);
+    };
+    const start = () => {
+      currentSetRef.current = 1;
+      completedRef.current = 0;
+      setCurrentSet(1);
+      beginWork();
     };
     const restart = () => {
       clearTick();
@@ -21750,16 +21761,7 @@ Now generate the exercises and/or routines described by the user's request that 
         setCurrentSet(currentSetRef.current);
         setTimeLeft(configRef.current.workSec);
       } else if (phaseRef.current === "work") {
-        completedRef.current += 1;
-        report();
-        if (currentSetRef.current >= configRef.current.totalSets) {
-          finishNow();
-        } else {
-          phaseRef.current = "rest";
-          timeLeftRef.current = configRef.current.restSec;
-          setPhase("rest");
-          setTimeLeft(configRef.current.restSec);
-        }
+        endWork(true);
       }
     };
     useEffect4(() => () => clearTick(), []);
@@ -21769,7 +21771,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
     const phaseTotal = phase === "rest" ? restSec : workSec;
     const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
-    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
         key: `${phase}-${currentSet}`,
@@ -21777,7 +21779,7 @@ Now generate the exercises and/or routines described by the user's request that 
         color: phaseColor,
         animate: running && !paused
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s / ", restSec, "s")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
+    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`)), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
   function Ring({ fraction, color, animate }) {
     const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
@@ -21816,7 +21818,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setProgress(progressOf(exercise, log));
       onChange(log);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
   }
 
   // climbing-tracker/components/Layout.jsx
@@ -21935,7 +21937,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const [order, setOrder] = useState7(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const completedRef = useRef4(session.exercises.map(() => false));
     const doneCountRef = useRef4(session.exercises.map(() => 0));
-    const [cardExercises] = useState7(() => session.exercises.map((ex) => ex.supersetGroup ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState7(() => session.exercises.map((ex) => ex.supersetGroup && ex.type !== "interval" ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
     const [restDock, setRestDock] = useState7(null);
@@ -22137,7 +22139,6 @@ Now generate the exercises and/or routines described by the user's request that 
     const [pickerOpen, setPickerOpen] = useState9(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
-    const linkable = (x) => x && x.exercise.type !== "interval";
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
       if (listId === "top") onMoveStep(blocks[from][0].i, to - from, true);
       else onMoveStep(blocks.find((block) => block[0].step.id === listId)[from].i, to - from, false);
@@ -22161,7 +22162,7 @@ Now generate the exercises and/or routines described by the user's request that 
     );
     const renderCard = ({ step, exercise: ex, i }, label, listId, index, inSuperset) => {
       var _a, _b, _c, _d;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         SetTargetsEditor,
         {
           sets: resolveStepTargetSets(step, ex),
@@ -22192,7 +22193,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const first = block[0], last = block[block.length - 1];
       const nextFirst = (_a = blocks[b + 1]) == null ? void 0 : _a[0];
       const joinsSuperset = block.length > 1 || ((_b = blocks[b + 1]) == null ? void 0 : _b.length) > 1;
-      const after = linkable(last) && linkable(nextFirst) ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset") : null;
+      const after = nextFirst ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset") : null;
       if (block.length === 1) {
         return /* @__PURE__ */ React.createElement(React.Fragment, { key: first.step.id }, renderCard(first, b + 1, "top", b, false), nextFirst && after);
       }
@@ -22340,7 +22341,7 @@ Now generate the exercises and/or routines described by the user's request that 
     }).filter((pr) => pr.date);
   }
 
-  // node_modules/uplot/dist/uPlot.esm.js
+  // node_modules/.pnpm/uplot@1.6.32/node_modules/uplot/dist/uPlot.esm.js
   var FEAT_TIME = true;
   var pre = "u-";
   var UPLOT = "uplot";
@@ -26853,7 +26854,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
     };
     const removeFromRoutine = (routineId, idx) => {
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_2, i) => i !== idx), exercises) } : r));
+      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_2, i) => i !== idx)) } : r));
     };
     const toggleSupersetLink = (routineId, idx) => {
       setRoutines(routines.map((r) => {
@@ -26877,7 +26878,7 @@ Now generate the exercises and/or routines described by the user's request that 
           }
           if (a.supersetGroup && !old) steps[idx + 1] = { ...steps[idx + 1], ...roundRests(a) };
         }
-        return { ...r, steps: normalizeSupersets(steps, exercises) };
+        return { ...r, steps: normalizeSupersets(steps) };
       }));
     };
     const moveInRoutine = (routineId, idx, delta, wholeBlock) => {
@@ -26900,7 +26901,7 @@ Now generate the exercises and/or routines described by the user's request that 
           if (c === b) return r;
           blocks.splice(c, 0, blocks.splice(b, 1)[0]);
         }
-        return { ...r, steps: normalizeSupersets(blocks.flat(), exercises) };
+        return { ...r, steps: normalizeSupersets(blocks.flat()) };
       }));
     };
     const sessionLogsRef = useRef7([]);
@@ -26909,7 +26910,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
     };
     const startRoutine = (r) => {
-      const exs = normalizeSupersets(r.steps, exercises).map((step) => {
+      const exs = normalizeSupersets(r.steps).map((step) => {
         var _a2, _b, _c, _d, _e;
         const ex = exercises.find((e) => e.id === step.exerciseId);
         if (!ex) return null;

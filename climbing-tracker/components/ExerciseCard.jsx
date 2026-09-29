@@ -50,7 +50,7 @@ export function ExerciseCard({ exercise, position, total, label, onChange, onMov
       {/* Kept mounted (just hidden) so ticked sets / timer progress survive collapsing. */}
       <div style={collapsed ? s.hidden : s.exerciseCardBody}>
         {exercise.type === "interval"
-          ? <IntervalCard exercise={exercise} onChange={handleChange} />
+          ? <IntervalCard exercise={exercise} superset={!!exercise.supersetGroup} onChange={handleChange} />
           : <SetsCard exercise={exercise} onChange={handleChange} />}
       </div>
     </div>
