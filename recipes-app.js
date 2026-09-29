@@ -20255,6 +20255,7 @@ ${suffix}`;
     const [editingTitle, setEditingTitle] = useState3(false);
     const [draft, setDraft] = useState3("");
     const [addDraft, setAddDraft] = useState3("");
+    const [confirmClear, setConfirmClear] = useState3(false);
     const [settle, setSettle] = useState3(null);
     const settleRef = useRef2(null);
     const settleT = useRef2(null);
@@ -20416,6 +20417,7 @@ ${suffix}`;
       finishSettle();
       setEditingId(null);
       setEditingTitle(false);
+      setConfirmClear(false);
       setActive(id);
     }
     function addItem(e) {
@@ -20431,6 +20433,17 @@ ${suffix}`;
       const n = list.items.filter((i) => i.checked).length;
       if (!n) return;
       updateItems(list.id, (items) => items.filter((i) => !i.checked));
+      showToast(`Cleared ${plural(n, "item")}`);
+    }
+    function clearAll() {
+      if (!confirmClear) {
+        setConfirmClear(true);
+        return;
+      }
+      setConfirmClear(false);
+      finishSettle();
+      const n = list.items.length;
+      updateItems(list.id, () => []);
       showToast(`Cleared ${plural(n, "item")}`);
     }
     const inCart = (i) => i.checked;
@@ -20492,7 +20505,15 @@ ${suffix}`;
     ) : /* @__PURE__ */ React.createElement("h1", { className: "ra-title editable", onClick: startTitleEdit }, list.name), /* @__PURE__ */ React.createElement("div", { className: "ra-chips" }, lists.map((l) => {
       const n = l.items.filter((i) => !i.checked).length;
       return /* @__PURE__ */ React.createElement("button", { key: l.id, className: `ra-chip${l.id === list.id ? " on" : ""}`, onClick: () => switchList(l.id) }, l.name, n > 0 && /* @__PURE__ */ React.createElement("span", { className: "ra-chip-count" }, n));
-    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set")), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
+    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set"), list.items.length > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: `ra-small-btn${confirmClear ? " confirm" : ""}`,
+        onClick: clearAll,
+        onBlur: () => setConfirmClear(false)
+      },
+      confirmClear ? "Tap again to clear" : "Clear list"
+    )), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
   }
 
   // recipes/photos.js

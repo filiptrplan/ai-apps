@@ -24,6 +24,7 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
   const [editingTitle, setEditingTitle] = useState(false);
   const [draft, setDraft] = useState("");
   const [addDraft, setAddDraft] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
   // The item just ticked: it shows its new state but stays in its old group
   // until the timer moves it, so a mis-tap is easy to undo.
   const [settle, setSettle] = useState(null);
@@ -197,6 +198,7 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
     finishSettle();
     setEditingId(null);
     setEditingTitle(false);
+    setConfirmClear(false);
     setActive(id);
   }
 
@@ -213,6 +215,17 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
     const n = list.items.filter((i) => i.checked).length;
     if (!n) return;
     updateItems(list.id, (items) => items.filter((i) => !i.checked));
+    showToast(`Cleared ${plural(n, "item")}`);
+  }
+  function clearAll() {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    setConfirmClear(false);
+    finishSettle();
+    const n = list.items.length;
+    updateItems(list.id, () => []);
     showToast(`Cleared ${plural(n, "item")}`);
   }
 
@@ -311,6 +324,15 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, showToa
 
       <div className="ra-section-head">
         <span>{todo.length ? `${todo.length} to get` : "All set"}</span>
+        {list.items.length > 0 && (
+          <button
+            className={`ra-small-btn${confirmClear ? " confirm" : ""}`}
+            onClick={clearAll}
+            onBlur={() => setConfirmClear(false)}
+          >
+            {confirmClear ? "Tap again to clear" : "Clear list"}
+          </button>
+        )}
       </div>
       <div>{todo.map((i) => renderRow(i, true))}</div>
       {todo.length === 0 && <p className="ra-empty">Nothing left to get.</p>}
