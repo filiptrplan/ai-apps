@@ -1,6 +1,7 @@
 import { uid, plural, parseIng, ingToLine } from "./format.js";
 import { runEstimate, estimateKey } from "../shared/prices.js";
 import { PriceBreakdown } from "./Prices.jsx";
+import { useDictation } from "../shared/dictation.js";
 
 const { useState, useRef, useEffect } = React;
 
@@ -17,17 +18,60 @@ const selectRef = (el) => {
 };
 const stop = (e) => e.stopPropagation();
 
+const DICTATION_CONTEXT = {
+  general: [
+    { key: "domain", value: "Groceries" },
+    { key: "topic", value: "Items for a shopping list, often with amounts" },
+  ],
+};
+
+// "2 Lemons, 1,5 l milk; eggs" -> three items. A comma before a digit is a
+// decimal comma, not a separator.
+const splitItems = (v) =>
+  v
+    .split(/[;\n]|,(?!\d)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+function MicIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
 // Shopping list tab: tick items (they sink into "In the cart" after a beat),
 // hold a row to drag it, tap a name or the list title to rename it (an empty
 // name deletes it), switch lists with the chips. Items and edits are typed
-// amount first ("2 Onions"); the amount shows after the name. A typed item
-// that's already on the list is combined with it, like recipe ingredients.
+// amount first ("2 Onions"); the amount shows after the name. Commas split
+// what's typed or dictated into several items. A typed item that's already
+// on the list is combined with it, like recipe ingredients.
 export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draft, setDraft] = useState("");
   const [addDraft, setAddDraft] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  // What was typed before dictation started; the transcript goes after it.
+  const dictBase = useRef("");
+  const dictation = useDictation({
+    context: DICTATION_CONTEXT,
+    onText: (text) => {
+      const t = text.replace(/[.!?]+$/, "");
+      setAddDraft(dictBase.current && t ? `${dictBase.current}, ${t}` : dictBase.current || t);
+    },
+  });
+  const dictating = dictation.status !== "idle";
+  const addInput = useRef(null);
+  // Keeps the newest dictated words in view.
+  useEffect(() => {
+    if (dictating && addInput.current) addInput.current.scrollLeft = addInput.current.scrollWidth;
+  }, [addDraft, dictating]);
+  useEffect(() => {
+    if (dictation.error) showToast(dictation.error);
+  }, [dictation.error]);
   // The item just ticked: it shows its new state but stays in its old group
   // until the timer moves it, so a mis-tap is easy to undo.
   const [settle, setSettle] = useState(null);
@@ -207,13 +251,20 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
 
   function addItem(e) {
     e.preventDefault();
-    const v = addDraft.trim();
-    if (!v) return;
-    const { q, n } = parseIng(v);
-    const id = uid();
-    updateItems(list.id, (items) => [{ id, name: n, q, checked: false }, ...items]);
-    queueMerge(list.id, [id]);
+    if (dictating) return;
+    const added = splitItems(addDraft).map((v) => {
+      const { q, n } = parseIng(v);
+      return { id: uid(), name: n, q, checked: false };
+    });
+    if (!added.length) return;
+    updateItems(list.id, (items) => [...added, ...items]);
+    queueMerge(list.id, added.map((i) => i.id));
     setAddDraft("");
+  }
+  function toggleDictation() {
+    if (dictating) return dictation.stop();
+    dictBase.current = addDraft.trim().replace(/[,;]$/, "");
+    dictation.start();
   }
   function clearDone() {
     finishSettle();
@@ -325,9 +376,29 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
         <button className="ra-chip dashed" onClick={addList}>+ New list</button>
       </div>
 
-      <form className="ra-add" onSubmit={addItem}>
-        <input value={addDraft} onChange={(e) => setAddDraft(e.target.value)} placeholder="Add an item, e.g. 2 Lemons" aria-label="New item" />
-        <button type="submit" aria-label="Add item">+</button>
+      <form className={`ra-add${dictating ? " dictating" : ""}`} onSubmit={addItem}>
+        <input
+          ref={addInput}
+          value={addDraft}
+          onChange={(e) => setAddDraft(e.target.value)}
+          readOnly={dictating}
+          placeholder={dictating ? "Listening…" : "Add an item, e.g. 2 Lemons"}
+          aria-label="New item"
+        />
+        {dictation.supported && (
+          <button
+            type="button"
+            className={`ra-mic${dictation.status === "listening" ? " live" : ""}`}
+            disabled={!session || dictation.status === "finishing"}
+            title={session ? undefined : "Sign in on the home page to dictate"}
+            onClick={toggleDictation}
+            aria-label={dictating ? "Stop dictation" : "Dictate items"}
+            aria-pressed={dictating}
+          >
+            {dictating ? <span className="ra-mic-stop" /> : <MicIcon />}
+          </button>
+        )}
+        <button type="submit" aria-label="Add item" disabled={dictating}>+</button>
       </form>
 
       <div className="ra-section-head">

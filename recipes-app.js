@@ -1,13 +1,13 @@
 (() => {
   // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
-  function __rest(s, e) {
+  function __rest(s2, e) {
     var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-      t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-      for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-        if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-          t[p[i]] = s[p[i]];
+    for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e.indexOf(p2) < 0)
+      t[p2] = s2[p2];
+    if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
+      for (var i = 0, p2 = Object.getOwnPropertySymbols(s2); i < p2.length; i++) {
+        if (e.indexOf(p2[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p2[i]))
+          t[p2[i]] = s2[p2[i]];
       }
     return t;
   }
@@ -608,7 +608,7 @@
             res$1 = await _fetch(_this.url.toString(), {
               method: _this.method,
               headers,
-              body: JSON.stringify(_this.body, (_, value) => typeof value === "bigint" ? value.toString() : value),
+              body: JSON.stringify(_this.body, (_3, value) => typeof value === "bigint" ? value.toString() : value),
               signal: _this.signal
             });
           } catch (fetchError) {
@@ -1925,9 +1925,9 @@ ${cause.stack}`;
     * ```
     */
     in(column, values) {
-      const cleanedValues = Array.from(new Set(values)).map((s) => {
-        if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s)) return `"${s}"`;
-        else return `${s}`;
+      const cleanedValues = Array.from(new Set(values)).map((s2) => {
+        if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+        else return `${s2}`;
       }).join(",");
       this.url.searchParams.append(column, `in.(${cleanedValues})`);
       return this;
@@ -1939,9 +1939,9 @@ ${cause.stack}`;
     * @param values - The values array to filter with
     */
     notIn(column, values) {
-      const cleanedValues = Array.from(new Set(values)).map((s) => {
-        if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s)) return `"${s}"`;
-        else return `${s}`;
+      const cleanedValues = Array.from(new Set(values)).map((s2) => {
+        if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+        else return `${s2}`;
       }).join(",");
       this.url.searchParams.append(column, `not.in.(${cleanedValues})`);
       return this;
@@ -1993,7 +1993,7 @@ ${cause.stack}`;
       return this;
     }
     match(query) {
-      Object.entries(query).filter(([_, value]) => value !== void 0).forEach(([column, value]) => {
+      Object.entries(query).filter(([_3, value]) => value !== void 0).forEach(([column, value]) => {
         this.url.searchParams.append(column, `eq.${value}`);
       });
       return this;
@@ -4112,14 +4112,14 @@ ${cause.stack}`;
       let method;
       const url = new URL(`${this.url}/rpc/${fn}`);
       let body;
-      const _isObject = (v) => v !== null && typeof v === "object" && (!Array.isArray(v) || v.some(_isObject));
+      const _isObject = (v2) => v2 !== null && typeof v2 === "object" && (!Array.isArray(v2) || v2.some(_isObject));
       const _hasObjectArg = head2 && Object.values(args).some(_isObject);
       if (_hasObjectArg) {
         method = "POST";
         body = args;
       } else if (head2 || get2) {
         method = head2 ? "HEAD" : "GET";
-        Object.entries(args).filter(([_, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
+        Object.entries(args).filter(([_3, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
           url.searchParams.append(name, value);
         });
       } else {
@@ -4555,7 +4555,7 @@ Suggested solution: ${env.workaround}`;
       const valTrim = value.slice(1, lastIdx);
       try {
         arr = JSON.parse("[" + valTrim + "]");
-      } catch (_) {
+      } catch (_3) {
         arr = valTrim ? valTrim.split(",") : [];
       }
       return arr.map((val) => convertCell(type, val));
@@ -4712,7 +4712,7 @@ Suggested solution: ${env.workaround}`;
      * @private
      */
     matchReceive({ status, response, _ref }) {
-      this.recHooks.filter((h) => h.status === status).forEach((h) => h.callback(response));
+      this.recHooks.filter((h2) => h2.status === status).forEach((h2) => h2.callback(response));
     }
     /**
      * @private
@@ -5460,10 +5460,10 @@ Suggested solution: ${env.workaround}`;
       this.map(newState, (key, newPresence) => {
         let currentPresence = state[key];
         if (currentPresence) {
-          let newRefs = newPresence.metas.map((m) => m.phx_ref);
-          let curRefs = currentPresence.metas.map((m) => m.phx_ref);
-          let joinedMetas = newPresence.metas.filter((m) => curRefs.indexOf(m.phx_ref) < 0);
-          let leftMetas = currentPresence.metas.filter((m) => newRefs.indexOf(m.phx_ref) < 0);
+          let newRefs = newPresence.metas.map((m2) => m2.phx_ref);
+          let curRefs = currentPresence.metas.map((m2) => m2.phx_ref);
+          let joinedMetas = newPresence.metas.filter((m2) => curRefs.indexOf(m2.phx_ref) < 0);
+          let leftMetas = currentPresence.metas.filter((m2) => newRefs.indexOf(m2.phx_ref) < 0);
           if (joinedMetas.length > 0) {
             joins[key] = newPresence;
             joins[key].metas = joinedMetas;
@@ -5506,8 +5506,8 @@ Suggested solution: ${env.workaround}`;
         let currentPresence = state[key];
         state[key] = this.clone(newPresence);
         if (currentPresence) {
-          let joinedRefs = state[key].metas.map((m) => m.phx_ref);
-          let curMetas = currentPresence.metas.filter((m) => joinedRefs.indexOf(m.phx_ref) < 0);
+          let joinedRefs = state[key].metas.map((m2) => m2.phx_ref);
+          let curMetas = currentPresence.metas.filter((m2) => joinedRefs.indexOf(m2.phx_ref) < 0);
           state[key].metas.unshift(...curMetas);
         }
         onJoin(key, currentPresence, newPresence);
@@ -5517,9 +5517,9 @@ Suggested solution: ${env.workaround}`;
         if (!currentPresence) {
           return;
         }
-        let refsToRemove = leftPresence.metas.map((m) => m.phx_ref);
-        currentPresence.metas = currentPresence.metas.filter((p) => {
-          return refsToRemove.indexOf(p.phx_ref) < 0;
+        let refsToRemove = leftPresence.metas.map((m2) => m2.phx_ref);
+        currentPresence.metas = currentPresence.metas.filter((p2) => {
+          return refsToRemove.indexOf(p2.phx_ref) < 0;
         });
         onLeave(key, currentPresence, leftPresence);
         if (currentPresence.metas.length === 0) {
@@ -6336,7 +6336,7 @@ Suggested solution: ${env.workaround}`;
      */
     triggerStateCallbacks(event, ...args) {
       try {
-        this.stateChangeCallbacks[event].forEach(([_, callback]) => {
+        this.stateChangeCallbacks[event].forEach(([_3, callback]) => {
           try {
             callback(...args);
           } catch (e) {
@@ -6613,7 +6613,7 @@ Suggested solution: ${env.workaround}`;
       if (values.length === 0) {
         throw new Error("Realtime `in` filter requires at least one value.");
       }
-      const items = Array.from(new Set(values)).map((v) => serializeScalar(v)).join(",");
+      const items = Array.from(new Set(values)).map((v2) => serializeScalar(v2)).join(",");
       return `in.(${items})`;
     }
     if (operator === "is") {
@@ -14110,7 +14110,7 @@ ${suffix}`;
         if (!factor) {
           await this.client.mfa.listFactors().then((factors) => {
             var _a;
-            return (_a = factors.data) === null || _a === void 0 ? void 0 : _a.all.find((v) => v.factor_type === "webauthn" && v.friendly_name === friendlyName && v.status !== "unverified");
+            return (_a = factors.data) === null || _a === void 0 ? void 0 : _a.all.find((v2) => v2.factor_type === "webauthn" && v2.friendly_name === friendlyName && v2.status !== "unverified");
           }).then((factor2) => factor2 ? this.client.mfa.unenroll({ factorId: factor2 === null || factor2 === void 0 ? void 0 : factor2.id }) : void 0);
           return { data: null, error: enrollError };
         }
@@ -19772,7 +19772,7 @@ ${suffix}`;
         this.auth = this._initSupabaseAuthClient((_settings$auth = settings.auth) !== null && _settings$auth !== void 0 ? _settings$auth : {}, this.headers, settings.global.fetch);
       } else {
         this.accessToken = settings.accessToken;
-        this.auth = new Proxy({}, { get: (_, prop) => {
+        this.auth = new Proxy({}, { get: (_3, prop) => {
           throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
         } });
       }
@@ -20017,8 +20017,8 @@ ${suffix}`;
     } catch {
     }
   }
-  function sameValue(a, b) {
-    return JSON.stringify(a) === JSON.stringify(b);
+  function sameValue(a, b2) {
+    return JSON.stringify(a) === JSON.stringify(b2);
   }
   function useSyncedStorage(appId, key, fallback) {
     const [data, setData] = useState(() => readLocal(key, fallback));
@@ -20141,9 +20141,9 @@ ${suffix}`;
     return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   }
   function cutoffStr() {
-    const d = /* @__PURE__ */ new Date();
-    d.setUTCDate(d.getUTCDate() - (RETENTION_DAYS - 1));
-    return d.toISOString().slice(0, 10);
+    const d2 = /* @__PURE__ */ new Date();
+    d2.setUTCDate(d2.getUTCDate() - (RETENTION_DAYS - 1));
+    return d2.toISOString().slice(0, 10);
   }
   async function runDailyBackupIfNeeded(supabase2, session) {
     if (!session) return;
@@ -20178,48 +20178,48 @@ ${suffix}`;
   var uid = () => Math.random().toString(36).slice(2, 9);
   var UNI = { "\xBD": 0.5, "\xBC": 0.25, "\xBE": 0.75, "\u2153": 1 / 3, "\u2154": 2 / 3 };
   function parseQty(q) {
-    const m = q.match(/^(\d+)?\s*([½¼¾⅓⅔]|\d+\/\d+)?(?:[.,](\d+))?(.*)$/);
-    if (!m || !m[1] && !m[2]) return null;
-    let v = m[1] ? parseFloat(m[1] + (m[3] ? "." + m[3] : "")) : 0;
-    if (m[2]) {
-      if (UNI[m[2]]) v += UNI[m[2]];
+    const m2 = q.match(/^(\d+)?\s*([½¼¾⅓⅔]|\d+\/\d+)?(?:[.,](\d+))?(.*)$/);
+    if (!m2 || !m2[1] && !m2[2]) return null;
+    let v2 = m2[1] ? parseFloat(m2[1] + (m2[3] ? "." + m2[3] : "")) : 0;
+    if (m2[2]) {
+      if (UNI[m2[2]]) v2 += UNI[m2[2]];
       else {
-        const [a, b] = m[2].split("/");
-        v += a / b;
+        const [a, b2] = m2[2].split("/");
+        v2 += a / b2;
       }
     }
-    return { v, rest: m[4] };
+    return { v: v2, rest: m2[4] };
   }
   var FR = [[0, ""], [0.25, "\xBC"], [1 / 3, "\u2153"], [0.5, "\xBD"], [2 / 3, "\u2154"], [0.75, "\xBE"], [1, ""]];
-  function fmtQty(v) {
-    if (v >= 10) return String(Math.round(v));
-    let w = Math.floor(v);
+  function fmtQty(v2) {
+    if (v2 >= 10) return String(Math.round(v2));
+    let w2 = Math.floor(v2);
     let best = FR[0];
-    FR.forEach((p) => {
-      if (Math.abs(p[0] - (v - w)) < Math.abs(best[0] - (v - w))) best = p;
+    FR.forEach((p2) => {
+      if (Math.abs(p2[0] - (v2 - w2)) < Math.abs(best[0] - (v2 - w2))) best = p2;
     });
     if (best[0] === 1) {
-      w += 1;
+      w2 += 1;
       best = FR[0];
     }
-    return (w ? String(w) : "") + best[1] || "0";
+    return (w2 ? String(w2) : "") + best[1] || "0";
   }
-  function scaleQty(q, k) {
-    if (k === 1) return q;
-    const p = parseQty(q);
-    if (!p) return q;
-    return fmtQty(p.v * k) + (p.rest && !/^\s/.test(p.rest) ? " " : "") + p.rest;
+  function scaleQty(q, k2) {
+    if (k2 === 1) return q;
+    const p2 = parseQty(q);
+    if (!p2) return q;
+    return fmtQty(p2.v * k2) + (p2.rest && !/^\s/.test(p2.rest) ? " " : "") + p2.rest;
   }
   var UNITS = "cups?|tbsp|tsp|cans?|g|kg|ml|dl|l|oz|lb|pcs|pinch|bunch|handful|cloves?|fillets?|heads?|ears?|slices?";
   var ING_RE = new RegExp(`^([\\d\xBD\xBC\xBE\u2153\u2154/.,\\-]+\\s*(?:${UNITS})?)\\s+(.+)$`, "i");
   function parseIng(line) {
-    const m = line.match(ING_RE);
-    return m ? { q: m[1], n: m[2] } : { q: "", n: line };
+    const m2 = line.match(ING_RE);
+    return m2 ? { q: m2[1], n: m2[2] } : { q: "", n: line };
   }
-  var ingToLine = (g) => [g.q, g.n].filter(Boolean).join(" ");
-  function stepMin(s) {
-    const m = s.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*min/i);
-    return m ? parseInt(m[2] || m[1], 10) : null;
+  var ingToLine = (g2) => [g2.q, g2.n].filter(Boolean).join(" ");
+  function stepMin(s2) {
+    const m2 = s2.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*min/i);
+    return m2 ? parseInt(m2[2] || m2[1], 10) : null;
   }
   function fmtClock(sec) {
     sec = Math.max(0, Math.ceil(sec));
@@ -20231,11 +20231,11 @@ ${suffix}`;
     const { ings = [], steps = [], ...rest } = r;
     return {
       ...rest,
-      ingredients: [{ id: "i", name: "", items: ings.map((g, i) => ({ id: `i${i}`, q: g.q, n: g.n })) }],
+      ingredients: [{ id: "i", name: "", items: ings.map((g2, i) => ({ id: `i${i}`, q: g2.q, n: g2.n })) }],
       method: [{ id: "m", name: "", items: steps.map((text, i) => ({ id: `m${i}`, text })) }]
     };
   }
-  var allIngs = (r) => r.ingredients.flatMap((s) => s.items);
+  var allIngs = (r) => r.ingredients.flatMap((s2) => s2.items);
 
   // shared/prices.js
   var estimatePrices = (items) => callAI("price-estimate", { items });
@@ -20266,9 +20266,9 @@ ${suffix}`;
     if (i.source === "produce") return `${+i.qty.toFixed(3)} ${i.unit} \xD7 ${chf(i.unitPrice)}`;
     return "";
   }
-  function monthLabel(m) {
-    if (!m) return "";
-    const [y, mo] = m.split("-").map(Number);
+  function monthLabel(m2) {
+    if (!m2) return "";
+    const [y, mo] = m2.split("-").map(Number);
     return new Date(Date.UTC(y, mo - 1, 1)).toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" });
   }
 
@@ -20284,13 +20284,321 @@ ${suffix}`;
     const t = priceTotals(est.result);
     const recipe = servings != null;
     return /* @__PURE__ */ React.createElement("div", { className: "ra-price" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-totals" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "At the till"), /* @__PURE__ */ React.createElement("strong", null, chf(t.buy))), recipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Used"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used))), recipe && servings > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Per serving"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used / servings)))), t.missing > 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm" }, t.missing === 1 ? "1 item has" : `${t.missing} items have`, " no price and ", t.missing === 1 ? "isn't" : "aren't", " counted."), stale && /* @__PURE__ */ React.createElement("p", { className: "ra-price-stale" }, recipe ? "Servings or ingredients changed." : "The list changed.", " ", /* @__PURE__ */ React.createElement("button", { className: "ra-link", onClick: onRefresh }, "Recalculate")), /* @__PURE__ */ React.createElement("ul", { className: "ra-price-rows" }, est.items.map((row) => {
-      const p = byId.get(row.id) || { source: "none" };
-      return /* @__PURE__ */ React.createElement("li", { key: row.id, className: p.source === "none" ? "none" : "" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-main" }, /* @__PURE__ */ React.createElement("span", { className: "ra-price-name" }, row.name, row.q && /* @__PURE__ */ React.createElement("span", { className: "ra-row-q" }, row.q)), /* @__PURE__ */ React.createElement("span", { className: "ra-price-sub" }, p.source === "aldi" && /* @__PURE__ */ React.createElement(React.Fragment, null, p.product, p.size ? ` \xB7 ${p.size}` : ""), p.source === "produce" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ra-price-tag" }, "Swiss avg."), p.product), p.source === "none" && "No price found", p.source !== "none" && /* @__PURE__ */ React.createElement("span", { className: "ra-price-calc" }, " \xB7 ", priceDetail(p))), p.note && /* @__PURE__ */ React.createElement("span", { className: "ra-price-note" }, p.note)), p.source !== "none" && /* @__PURE__ */ React.createElement("div", { className: "ra-price-cost" }, /* @__PURE__ */ React.createElement("span", null, chf(recipe ? p.used : p.buy)), recipe && p.buy !== p.used && /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "of ", chf(p.buy))));
+      const p2 = byId.get(row.id) || { source: "none" };
+      return /* @__PURE__ */ React.createElement("li", { key: row.id, className: p2.source === "none" ? "none" : "" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-main" }, /* @__PURE__ */ React.createElement("span", { className: "ra-price-name" }, row.name, row.q && /* @__PURE__ */ React.createElement("span", { className: "ra-row-q" }, row.q)), /* @__PURE__ */ React.createElement("span", { className: "ra-price-sub" }, p2.source === "aldi" && /* @__PURE__ */ React.createElement(React.Fragment, null, p2.product, p2.size ? ` \xB7 ${p2.size}` : ""), p2.source === "produce" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ra-price-tag" }, "Swiss avg."), p2.product), p2.source === "none" && "No price found", p2.source !== "none" && /* @__PURE__ */ React.createElement("span", { className: "ra-price-calc" }, " \xB7 ", priceDetail(p2))), p2.note && /* @__PURE__ */ React.createElement("span", { className: "ra-price-note" }, p2.note)), p2.source !== "none" && /* @__PURE__ */ React.createElement("div", { className: "ra-price-cost" }, /* @__PURE__ */ React.createElement("span", null, chf(recipe ? p2.used : p2.buy)), recipe && p2.buy !== p2.used && /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "of ", chf(p2.buy))));
     })), /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-src" }, "Prices from aldi-suisse.ch.", t.produce && ` Swiss avg.: fresh produce, Swiss retail average ${monthLabel(est.result.produceMonth)} (BLW), as Aldi doesn't list it online.`), /* @__PURE__ */ React.createElement("div", { className: "ra-price-actions" }, !stale && /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onRefresh }, "Refresh"), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onClose }, "Close")));
   }
 
-  // recipes/ListTab.jsx
+  // node_modules/.pnpm/@soniox+speech-to-text-web@1.4.0/node_modules/@soniox/speech-to-text-web/dist/speech-to-text-web.js
+  var p = Object.defineProperty;
+  var b = (n, e, t) => e in n ? p(n, e, { enumerable: true, configurable: true, writable: true, value: t }) : n[e] = t;
+  var s = (n, e, t) => b(n, typeof e != "symbol" ? e + "" : e, t);
+  var k = ["Init", "Finished", "Error", "Canceled"];
+  var g = [
+    "RequestingMedia",
+    "OpeningWebSocket",
+    "Running",
+    "FinishingProcessing"
+  ];
+  var f = ["OpeningWebSocket", "Running", "FinishingProcessing"];
+  function S(n) {
+    return k.includes(n);
+  }
+  function v(n) {
+    return g.includes(n);
+  }
+  function R(n) {
+    return f.includes(n);
+  }
+  var m = "wss://stt-rt.soniox.com/transcribe-websocket";
+  var d = 1e3;
+  var w = 120;
+  var u = '{ "type": "finalize" }';
+  var E = '{ "type": "keepalive" }';
+  var M = () => ({
+    apiKey: "",
+    bufferQueueSize: d
+  });
+  var O = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    channelCount: 1,
+    sampleRate: 44100
+  };
+  var _ = class _2 {
+    /**
+     * SonioxClient connects to the Soniox Speech-to-Text API for real-time speech-to-text transcription and translation.
+     * It provides a simple API for starting and stopping the transcription, as well as handling the transcription results.
+     *
+     * @example
+     * const sonioxClient = new SonioxClient({
+     *   apiKey: '<SONIOX_API_KEY>',
+     *   onPartialResult: (result) => {
+     *     console.log('partial result', result.text);
+     *   },
+     * });
+     * sonioxClient.start();
+     */
+    constructor(e) {
+      s(this, "_state", "Init");
+      s(this, "_options");
+      s(this, "_audioOptions");
+      s(this, "_websocket");
+      s(this, "_mediaRecorder");
+      s(this, "_queuedMessages", []);
+      s(this, "_keepAliveInterval", null);
+      s(this, "_hasCallback", (e2) => {
+        var t;
+        return this._options[e2] != null || ((t = this._audioOptions) == null ? void 0 : t[e2]) != null;
+      });
+      s(this, "_callback", (e2, ...t) => {
+        var i, c, o, a;
+        (c = (i = this._options)[e2]) == null || c.call(i, ...t), (a = (o = this._audioOptions) == null ? void 0 : o[e2]) == null || a.call(o, ...t);
+      });
+      s(this, "start", async (e2) => {
+        var _a;
+        if (v(this._state))
+          throw new Error("SonioxClient is already active");
+        this._audioOptions = { ...e2 };
+        let t;
+        if (e2.stream != null)
+          t = e2.stream.clone();
+        else {
+          this._setState("RequestingMedia");
+          try {
+            t = await navigator.mediaDevices.getUserMedia({
+              audio: this._audioOptions.audioConstraints ? this._audioOptions.audioConstraints : O
+            });
+          } catch (i) {
+            this._onError("get_user_media_failed", i == null ? void 0 : i.toString());
+          }
+        }
+        if (t == null)
+          throw new Error("Failed to create stream");
+        this._mediaRecorder = new MediaRecorder(
+          t,
+          e2.mediaRecorderOptions ? e2.mediaRecorderOptions : {}
+        ), this._queuedMessages = [], this._mediaRecorder.addEventListener("dataavailable", this._onMediaRecorderData), this._mediaRecorder.addEventListener("error", this._onMediaRecorderError), this._mediaRecorder.addEventListener("pause", this._onMediaRecorderPause), this._mediaRecorder.addEventListener("stop", this._onMediaRecorderStop), this._mediaRecorder.start(w), this._setState("OpeningWebSocket"), this._websocket = new WebSocket((_a = this._options.webSocketUri) != null ? _a : m), this._websocket.addEventListener("open", this._onWebSocketOpen), this._websocket.addEventListener("error", this._onWebSocketError), this._websocket.addEventListener("message", this._onWebSocketMessage);
+      });
+      s(this, "stop", () => {
+        var e2;
+        this._state == "RequestingMedia" || this._state == "OpeningWebSocket" ? (this._closeResources(), this._handleFinished()) : this._state == "Running" && (this._setState("FinishingProcessing"), this._closeSource(), (e2 = this._websocket) == null || e2.send(""));
+      });
+      s(this, "cancel", () => {
+        S(this._state) || (this._closeResources(), this._setState("Canceled"));
+      });
+      s(this, "finalize", () => {
+        var _a;
+        var e2;
+        this._state == "RequestingMedia" || this._state == "OpeningWebSocket" ? this._queuedMessages.length < ((_a = this._options.bufferQueueSize) != null ? _a : d) ? this._queuedMessages.push(u) : this._onError("queue_limit_exceeded", "Queue size exceeded before websocket connection was established.") : (this._state == "Running" || this._state == "FinishingProcessing") && ((e2 = this._websocket) == null || e2.send(u));
+      });
+      s(this, "_onMediaRecorderData", async (e2) => {
+        var _a;
+        var t;
+        if (this._state === "OpeningWebSocket")
+          this._queuedMessages.length < ((_a = this._options.bufferQueueSize) != null ? _a : d) ? this._queuedMessages.push(e2.data) : this._onError("queue_limit_exceeded", "Queue size exceeded before websocket connection was established.");
+        else if (this._state === "Running") {
+          const i = await e2.data.arrayBuffer();
+          (t = this._websocket) == null || t.send(i);
+        }
+      });
+      s(this, "_onMediaRecorderError", (e2) => {
+        var _a;
+        this._onError("media_recorder_error", (_a = e2.error) != null ? _a : "Unknown error");
+      });
+      s(this, "_onMediaRecorderPause", (e2) => {
+        this.stop();
+      });
+      s(this, "_onMediaRecorderStop", (e2) => {
+        this.stop();
+      });
+      s(this, "_onWebSocketOpen", (e2) => {
+        this._onWebSocketOpenAsync(e2);
+      });
+      s(this, "_onWebSocketOpenAsync", async (e2) => {
+        var _a;
+        var o, a;
+        if (this._state !== "OpeningWebSocket" || this._audioOptions == null)
+          return;
+        const t = this._audioOptions;
+        let i;
+        if (typeof this._options.apiKey == "function")
+          try {
+            i = await this._options.apiKey();
+          } catch (r) {
+            this._onError("api_key_fetch_failed", r == null ? void 0 : r.toString());
+            return;
+          }
+        else
+          i = this._options.apiKey;
+        if (this._state !== "OpeningWebSocket")
+          return;
+        const c = {
+          api_key: i,
+          model: t.model,
+          audio_format: t.audioFormat ? t.audioFormat : "auto",
+          sample_rate: t.sampleRate,
+          num_channels: t.numChannels,
+          language_hints: t.languageHints,
+          context: t.context,
+          enable_speaker_diarization: t.enableSpeakerDiarization,
+          enable_language_identification: t.enableLanguageIdentification,
+          enable_endpoint_detection: t.enableEndpointDetection,
+          translation: t.translation,
+          client_reference_id: t.clientReferenceId
+        };
+        (o = this._websocket) == null || o.send(JSON.stringify(c));
+        for (const r of this._queuedMessages)
+          (a = this._websocket) == null || a.send(r);
+        if (this._queuedMessages = [], this._setState("Running"), this._callback("onStarted"), this._options.keepAlive) {
+          const r = (_a = this._options.keepAliveInterval) != null ? _a : 5e3;
+          this._keepAliveInterval = setInterval(() => {
+            var l;
+            (this._state === "Running" || this._state === "FinishingProcessing") && ((l = this._websocket) == null || l.send(E));
+          }, r);
+        }
+      });
+      s(this, "_onWebSocketError", (e2) => {
+        R(this._state) && this._onError("websocket_error", "WebSocket error occurred.");
+      });
+      s(this, "_onWebSocketMessage", (e2) => {
+        if (this._state != "Running" && this._state != "FinishingProcessing" || this._audioOptions == null)
+          return;
+        const t = JSON.parse(e2.data);
+        if (t.error_code != null || t.error_message != null) {
+          this._onError("api_error", t.error_message, t.error_code);
+          return;
+        }
+        this._callback("onPartialResult", t), t.finished && this._handleFinished();
+      });
+      s(this, "_onError", (e2, t, i = void 0) => {
+        if (this._setState("Error"), this._closeResources(), this._hasCallback("onError"))
+          this._callback("onError", e2, t != null ? t : "Unknown error", i);
+        else
+          throw new Error(`SonioxClient error: ${e2}: ${t != null ? t : "Unknown error"}`);
+      });
+      s(this, "_closeSource", () => {
+        this._mediaRecorder != null && (this._mediaRecorder.removeEventListener("dataavailable", this._onMediaRecorderData), this._mediaRecorder.removeEventListener("error", this._onMediaRecorderError), this._mediaRecorder.removeEventListener("pause", this._onMediaRecorderPause), this._mediaRecorder.removeEventListener("stop", this._onMediaRecorderStop), this._mediaRecorder.stop(), this._mediaRecorder.stream.getTracks().forEach((e2) => e2.stop()), this._mediaRecorder = null);
+      });
+      s(this, "_closeResources", () => {
+        this._queuedMessages = [], this._keepAliveInterval != null && (clearInterval(this._keepAliveInterval), this._keepAliveInterval = null), this._websocket != null && (this._websocket.removeEventListener("open", this._onWebSocketOpen), this._websocket.removeEventListener("error", this._onWebSocketError), this._websocket.removeEventListener("message", this._onWebSocketMessage), this._websocket.close(), this._websocket = null), this._closeSource();
+      });
+      if (!_2.isSupported)
+        throw "Soniox Speech-to-Text is not supported on this browser.";
+      this._options = {
+        ...M(),
+        ...e
+      }, this._audioOptions = null, this._websocket = null, this._mediaRecorder = null;
+    }
+    _setState(e) {
+      const t = this._state;
+      this._state = e, this._callback("onStateChange", {
+        oldState: t,
+        newState: e
+      });
+    }
+    get state() {
+      return this._state;
+    }
+    _handleFinished() {
+      this._closeResources(), this._setState("Finished"), this._callback("onFinished");
+    }
+  };
+  s(_, "isSupported", !!("WebSocket" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+  var h = _;
+
+  // shared/dictation.js
   var { useState: useState3, useRef: useRef2, useEffect: useEffect3 } = React;
+  var MODEL = "stt-rt-v5";
+  var STATUS = {
+    RequestingMedia: "starting",
+    OpeningWebSocket: "starting",
+    Running: "listening",
+    FinishingProcessing: "finishing"
+  };
+  var ERRORS = {
+    get_user_media_failed: "Couldn't use the microphone - check the browser's permission.",
+    websocket_error: "Lost the connection to the dictation service.",
+    queue_limit_exceeded: "Dictation took too long to connect - try again.",
+    media_recorder_error: "The microphone stopped working."
+  };
+  var isControl = (t) => /^<\w+>$/.test(t.text);
+  function useDictation({ onText, languages = ["sl", "en"], context }) {
+    const [status, setStatus] = useState3("idle");
+    const [error, setError] = useState3(null);
+    const client = useRef2(null);
+    const keyError = useRef2(null);
+    const opts = useRef2({});
+    opts.current = { onText, languages, context };
+    useEffect3(() => () => {
+      var _a;
+      return (_a = client.current) == null ? void 0 : _a.cancel();
+    }, []);
+    function start() {
+      if (client.current) return;
+      setError(null);
+      keyError.current = null;
+      let final = "";
+      const c = new h({
+        apiKey: async () => {
+          try {
+            return (await callAI("soniox-key", {})).apiKey;
+          } catch (err) {
+            keyError.current = err.message;
+            throw err;
+          }
+        }
+      });
+      client.current = c;
+      const done = () => {
+        if (client.current === c) client.current = null;
+        setStatus("idle");
+      };
+      c.start({
+        model: MODEL,
+        languageHints: opts.current.languages,
+        enableLanguageIdentification: true,
+        context: opts.current.context,
+        onStateChange: ({ newState }) => {
+          if (STATUS[newState]) setStatus(STATUS[newState]);
+        },
+        onPartialResult: (res) => {
+          let pending = "";
+          for (const t of res.tokens) {
+            if (isControl(t)) continue;
+            if (t.is_final) final += t.text;
+            else pending += t.text;
+          }
+          opts.current.onText((final + pending).trim());
+        },
+        onFinished: done,
+        onError: (kind, message) => {
+          setError(keyError.current || ERRORS[kind] || message || "Dictation failed.");
+          done();
+        }
+      });
+    }
+    return {
+      status,
+      error,
+      supported: h.isSupported,
+      start,
+      stop: () => {
+        var _a;
+        return (_a = client.current) == null ? void 0 : _a.stop();
+      },
+      cancel: () => {
+        var _a;
+        (_a = client.current) == null ? void 0 : _a.cancel();
+        client.current = null;
+        setStatus("idle");
+      }
+    };
+  }
+
+  // recipes/ListTab.jsx
+  var { useState: useState4, useRef: useRef3, useEffect: useEffect4 } = React;
   var ROW_H = 54;
   var HOLD_MS = 300;
   var SETTLE_MS = 380;
@@ -20302,21 +20610,47 @@ ${suffix}`;
     }
   };
   var stop = (e) => e.stopPropagation();
+  var DICTATION_CONTEXT = {
+    general: [
+      { key: "domain", value: "Groceries" },
+      { key: "topic", value: "Items for a shopping list, often with amounts" }
+    ]
+  };
+  var splitItems = (v2) => v2.split(/[;\n]|,(?!\d)/).map((s2) => s2.trim()).filter(Boolean);
+  function MicIcon() {
+    return /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("rect", { x: "9", y: "3", width: "6", height: "11", rx: "3" }), /* @__PURE__ */ React.createElement("path", { d: "M5 11a7 7 0 0 0 14 0M12 18v3" }));
+  }
   function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
-    const [editingId, setEditingId] = useState3(null);
-    const [editingTitle, setEditingTitle] = useState3(false);
-    const [draft, setDraft] = useState3("");
-    const [addDraft, setAddDraft] = useState3("");
-    const [confirmClear, setConfirmClear] = useState3(false);
-    const [settle, setSettle] = useState3(null);
-    const settleRef = useRef2(null);
-    const settleT = useRef2(null);
-    const [drag, setDrag] = useState3(null);
-    const dragRef = useRef2(null);
-    const pressRef = useRef2(null);
-    const pressT = useRef2(null);
-    const justDragged = useRef2(false);
-    const latest = useRef2({});
+    const [editingId, setEditingId] = useState4(null);
+    const [editingTitle, setEditingTitle] = useState4(false);
+    const [draft, setDraft] = useState4("");
+    const [addDraft, setAddDraft] = useState4("");
+    const [confirmClear, setConfirmClear] = useState4(false);
+    const dictBase = useRef3("");
+    const dictation = useDictation({
+      context: DICTATION_CONTEXT,
+      onText: (text) => {
+        const t = text.replace(/[.!?]+$/, "");
+        setAddDraft(dictBase.current && t ? `${dictBase.current}, ${t}` : dictBase.current || t);
+      }
+    });
+    const dictating = dictation.status !== "idle";
+    const addInput = useRef3(null);
+    useEffect4(() => {
+      if (dictating && addInput.current) addInput.current.scrollLeft = addInput.current.scrollWidth;
+    }, [addDraft, dictating]);
+    useEffect4(() => {
+      if (dictation.error) showToast(dictation.error);
+    }, [dictation.error]);
+    const [settle, setSettle] = useState4(null);
+    const settleRef = useRef3(null);
+    const settleT = useRef3(null);
+    const [drag, setDrag] = useState4(null);
+    const dragRef = useRef3(null);
+    const pressRef = useRef3(null);
+    const pressT = useRef3(null);
+    const justDragged = useRef3(false);
+    const latest = useRef3({});
     latest.current = { list, updateItems };
     function finishSettle() {
       const st = settleRef.current;
@@ -20339,28 +20673,28 @@ ${suffix}`;
       setSettle(id);
       settleT.current = setTimeout(finishSettle, SETTLE_MS);
     }
-    useEffect3(() => {
+    useEffect4(() => {
       function onMove(e) {
-        const d = dragRef.current;
-        if (d) {
+        const d2 = dragRef.current;
+        if (d2) {
           e.preventDefault();
-          let off = e.clientY - d.y;
+          let off = e.clientY - d2.y;
           const steps = Math.round(off / ROW_H);
           if (steps) {
-            const idx = d.order.indexOf(d.id);
-            const ni = Math.max(0, Math.min(d.order.length - 1, idx + steps));
+            const idx = d2.order.indexOf(d2.id);
+            const ni = Math.max(0, Math.min(d2.order.length - 1, idx + steps));
             if (ni !== idx) {
-              const order = d.order.filter((x) => x !== d.id);
-              order.splice(ni, 0, d.id);
-              d.order = order;
-              d.y += (ni - idx) * ROW_H;
+              const order = d2.order.filter((x) => x !== d2.id);
+              order.splice(ni, 0, d2.id);
+              d2.order = order;
+              d2.y += (ni - idx) * ROW_H;
               off -= (ni - idx) * ROW_H;
             }
           }
-          setDrag({ id: d.id, order: d.order, off });
+          setDrag({ id: d2.id, order: d2.order, off });
         } else if (pressRef.current) {
-          const p = pressRef.current;
-          if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8) {
+          const p2 = pressRef.current;
+          if (Math.hypot(e.clientX - p2.x, e.clientY - p2.y) > 8) {
             clearTimeout(pressT.current);
             pressRef.current = null;
           }
@@ -20369,15 +20703,15 @@ ${suffix}`;
       function onUp() {
         clearTimeout(pressT.current);
         pressRef.current = null;
-        const d = dragRef.current;
-        if (!d) return;
+        const d2 = dragRef.current;
+        if (!d2) return;
         dragRef.current = null;
         justDragged.current = true;
         setTimeout(() => justDragged.current = false, 60);
         setDrag(null);
-        latest.current.updateItems(d.listId, (items) => {
+        latest.current.updateItems(d2.listId, (items) => {
           const byId = new Map(items.map((i) => [i.id, i]));
-          const todo2 = d.order.map((id) => byId.get(id)).filter((i) => i && !i.checked);
+          const todo2 = d2.order.map((id) => byId.get(id)).filter((i) => i && !i.checked);
           const seen = new Set(todo2.map((i) => i.id));
           return [...todo2, ...items.filter((i) => !seen.has(i.id))];
         });
@@ -20421,11 +20755,11 @@ ${suffix}`;
     }
     function commitItem() {
       if (!editingId) return;
-      const v = draft.trim();
-      const { q, n } = parseIng(v);
+      const v2 = draft.trim();
+      const { q, n } = parseIng(v2);
       updateItems(
         list.id,
-        (items) => v ? items.map((i) => i.id === editingId ? { ...i, name: n, q } : i) : items.filter((i) => i.id !== editingId)
+        (items) => v2 ? items.map((i) => i.id === editingId ? { ...i, name: n, q } : i) : items.filter((i) => i.id !== editingId)
       );
       setEditingId(null);
     }
@@ -20441,9 +20775,9 @@ ${suffix}`;
     function commitTitle() {
       if (!editingTitle) return;
       setEditingTitle(false);
-      const v = draft.trim();
-      if (v) {
-        setLists((ls) => ls.map((l) => l.id === list.id ? { ...l, name: v } : l));
+      const v2 = draft.trim();
+      if (v2) {
+        setLists((ls) => ls.map((l) => l.id === list.id ? { ...l, name: v2 } : l));
       } else if (lists.length > 1) {
         const rest = lists.filter((l) => l.id !== list.id);
         setLists(rest);
@@ -20474,13 +20808,20 @@ ${suffix}`;
     }
     function addItem(e) {
       e.preventDefault();
-      const v = addDraft.trim();
-      if (!v) return;
-      const { q, n } = parseIng(v);
-      const id = uid();
-      updateItems(list.id, (items) => [{ id, name: n, q, checked: false }, ...items]);
-      queueMerge(list.id, [id]);
+      if (dictating) return;
+      const added = splitItems(addDraft).map((v2) => {
+        const { q, n } = parseIng(v2);
+        return { id: uid(), name: n, q, checked: false };
+      });
+      if (!added.length) return;
+      updateItems(list.id, (items) => [...added, ...items]);
+      queueMerge(list.id, added.map((i) => i.id));
       setAddDraft("");
+    }
+    function toggleDictation() {
+      if (dictating) return dictation.stop();
+      dictBase.current = addDraft.trim().replace(/[,;]$/, "");
+      dictation.start();
     }
     function clearDone() {
       finishSettle();
@@ -20561,7 +20902,29 @@ ${suffix}`;
     ) : /* @__PURE__ */ React.createElement("h1", { className: "ra-title editable", onClick: startTitleEdit }, list.name), /* @__PURE__ */ React.createElement("div", { className: "ra-chips" }, lists.map((l) => {
       const n = l.items.filter((i) => !i.checked).length;
       return /* @__PURE__ */ React.createElement("button", { key: l.id, className: `ra-chip${l.id === list.id ? " on" : ""}`, onClick: () => switchList(l.id) }, l.name, n > 0 && /* @__PURE__ */ React.createElement("span", { className: "ra-chip-count" }, n));
-    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: "ra-add", onSubmit: addItem }, /* @__PURE__ */ React.createElement("input", { value: addDraft, onChange: (e) => setAddDraft(e.target.value), placeholder: "Add an item, e.g. 2 Lemons", "aria-label": "New item" }), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item" }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set"), /* @__PURE__ */ React.createElement("span", { className: "ra-section-btns" }, todo.length > 0 && !price && /* @__PURE__ */ React.createElement(
+    }), /* @__PURE__ */ React.createElement("button", { className: "ra-chip dashed", onClick: addList }, "+ New list")), /* @__PURE__ */ React.createElement("form", { className: `ra-add${dictating ? " dictating" : ""}`, onSubmit: addItem }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        ref: addInput,
+        value: addDraft,
+        onChange: (e) => setAddDraft(e.target.value),
+        readOnly: dictating,
+        placeholder: dictating ? "Listening\u2026" : "Add an item, e.g. 2 Lemons",
+        "aria-label": "New item"
+      }
+    ), dictation.supported && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: `ra-mic${dictation.status === "listening" ? " live" : ""}`,
+        disabled: !session || dictation.status === "finishing",
+        title: session ? void 0 : "Sign in on the home page to dictate",
+        onClick: toggleDictation,
+        "aria-label": dictating ? "Stop dictation" : "Dictate items",
+        "aria-pressed": dictating
+      },
+      dictating ? /* @__PURE__ */ React.createElement("span", { className: "ra-mic-stop" }) : /* @__PURE__ */ React.createElement(MicIcon, null)
+    ), /* @__PURE__ */ React.createElement("button", { type: "submit", "aria-label": "Add item", disabled: dictating }, "+")), /* @__PURE__ */ React.createElement("div", { className: "ra-section-head" }, /* @__PURE__ */ React.createElement("span", null, todo.length ? `${todo.length} to get` : "All set"), /* @__PURE__ */ React.createElement("span", { className: "ra-section-btns" }, todo.length > 0 && !price && /* @__PURE__ */ React.createElement(
       "button",
       {
         className: "ra-small-btn",
@@ -20590,7 +20953,7 @@ ${suffix}`;
   }
 
   // recipes/photos.js
-  var { useState: useState4, useEffect: useEffect4 } = React;
+  var { useState: useState5, useEffect: useEffect5 } = React;
   var BUCKET = "recipe-photos";
   var PHOTO_MAX_SIDE = 1280;
   var PHOTO_QUALITY = 0.8;
@@ -20657,7 +21020,7 @@ ${suffix}`;
     const hit = cachedUrl(path);
     if (hit) return Promise.resolve(hit);
     if (!inflight.has(path)) {
-      const p = supabase.storage.from(BUCKET).createSignedUrl(path, URL_TTL_S).then(({ data, error }) => {
+      const p2 = supabase.storage.from(BUCKET).createSignedUrl(path, URL_TTL_S).then(({ data, error }) => {
         if (error || !data) return null;
         try {
           localStorage.setItem(URL_CACHE_PREFIX + path, JSON.stringify({ url: data.signedUrl, exp: Date.now() + URL_TTL_S * 1e3 }));
@@ -20665,19 +21028,19 @@ ${suffix}`;
         }
         return data.signedUrl;
       }).finally(() => inflight.delete(path));
-      inflight.set(path, p);
+      inflight.set(path, p2);
     }
     return inflight.get(path);
   }
   function usePhotoUrl(path, session) {
-    const [url, setUrl] = useState4(() => path && session ? cachedUrl(path) : null);
-    useEffect4(() => {
+    const [url, setUrl] = useState5(() => path && session ? cachedUrl(path) : null);
+    useEffect5(() => {
       if (!path || !session) {
         setUrl(null);
         return;
       }
       let cancelled = false;
-      signedUrl(path).then((u) => !cancelled && setUrl(u));
+      signedUrl(path).then((u2) => !cancelled && setUrl(u2));
       return () => {
         cancelled = true;
       };
@@ -20699,7 +21062,7 @@ ${suffix}`;
   function Notebook({ recipes, session, query, setQuery, cat, setCat, openRecipe, openCompose }) {
     const q = query.trim().toLowerCase();
     const filtered = recipes.filter(
-      (r) => (cat === "All" || r.cat === cat) && (!q || r.name.toLowerCase().includes(q) || allIngs(r).some((g) => g.n.toLowerCase().includes(q)))
+      (r) => (cat === "All" || r.cat === cat) && (!q || r.name.toLowerCase().includes(q) || allIngs(r).some((g2) => g2.n.toLowerCase().includes(q)))
     );
     const [featured, ...rest] = filtered;
     return /* @__PURE__ */ React.createElement("main", { className: "ra-screen" }, /* @__PURE__ */ React.createElement("div", { className: "ra-eyebrow" }, /* @__PURE__ */ React.createElement("a", { href: "./", "aria-label": "All apps" }, "\u2039"), "Notebook"), /* @__PURE__ */ React.createElement("div", { className: "ra-title-row" }, /* @__PURE__ */ React.createElement("h1", { className: "ra-title" }, "Recipes"), /* @__PURE__ */ React.createElement("button", { className: "ra-accent-btn", onClick: openCompose }, /* @__PURE__ */ React.createElement("span", null, "+"), "Add recipe")), recipes.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ra-empty big" }, /* @__PURE__ */ React.createElement("p", null, "No recipes yet."), /* @__PURE__ */ React.createElement("p", { className: "ra-muted" }, "Add one by hand, or let \u2726 Magic read it from a screenshot, text or link.")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
@@ -20738,12 +21101,12 @@ ${suffix}`;
   }
   function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, onBack, onEdit, addToList }) {
     const sv = servings != null ? servings : recipe.serves;
-    const k = sv > 0 ? sv / recipe.serves : 1;
+    const k2 = sv > 0 ? sv / recipe.serves : 1;
     const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
-    const src = (g) => `${recipe.id}:${g.id}`;
-    const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
-    const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
-    const priceItems = allIngs(recipe).map((g) => ({ id: g.id, q: scaleQty(g.q, k), name: g.n }));
+    const src = (g2) => `${recipe.id}:${g2.id}`;
+    const toAdd = (g2) => ({ q: scaleQty(g2.q, k2), n: g2.n, src: src(g2) });
+    const missing = allIngs(recipe).filter((g2) => !have.has(src(g2)));
+    const priceItems = allIngs(recipe).map((g2) => ({ id: g2.id, q: scaleQty(g2.q, k2), name: g2.n }));
     const estimate = () => runEstimate(priceItems, setPrice);
     return /* @__PURE__ */ React.createElement("main", { className: "ra-detail" }, /* @__PURE__ */ React.createElement(Photo, { path: recipe.photo, session, className: `ra-detail-ph${recipe.photo ? " has-photo" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn", onClick: onBack, "aria-label": "Back" }, "\u2190"), /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn text", onClick: onEdit }, "Edit")), /* @__PURE__ */ React.createElement("div", { className: "ra-detail-body" }, /* @__PURE__ */ React.createElement(Tags, { tags: recipe.tags }), /* @__PURE__ */ React.createElement("h1", { className: "ra-title detail" }, recipe.name), /* @__PURE__ */ React.createElement("div", { className: "ra-servings" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Servings"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted" }, recipe.time, " min")), /* @__PURE__ */ React.createElement("div", { className: "ra-stepper" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setServings(Math.max(1, (sv || 1) - 1)), "aria-label": "Fewer servings" }, "\u2212"), /* @__PURE__ */ React.createElement(
       "input",
@@ -20752,8 +21115,8 @@ ${suffix}`;
         inputMode: "numeric",
         "aria-label": "Servings",
         onChange: (e) => {
-          const v = e.target.value.replace(/\D/g, "").slice(0, 2);
-          setServings(v ? parseInt(v, 10) : 0);
+          const v2 = e.target.value.replace(/\D/g, "").slice(0, 2);
+          setServings(v2 ? parseInt(v2, 10) : 0);
         }
       }
     ), /* @__PURE__ */ React.createElement("button", { className: "plus", onClick: () => setServings(Math.min(99, (sv || 0) + 1)), "aria-label": "More servings" }, "+"))), /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Ingredients"), /* @__PURE__ */ React.createElement(
@@ -20764,7 +21127,7 @@ ${suffix}`;
         onClick: () => addToList(missing.map(toAdd))
       },
       missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`
-    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), priceItems.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Cost"), !price && /* @__PURE__ */ React.createElement("button", { className: "ra-pill-btn", disabled: !session, onClick: estimate }, "Estimate at Aldi")), !price && session === null && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to estimate prices."), price && /* @__PURE__ */ React.createElement(
+    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g2) => /* @__PURE__ */ React.createElement("div", { key: g2.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g2.q, k2)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g2.n), have.has(src(g2)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g2)]), "aria-label": `Add ${g2.n} to shopping list` }, "+"))))), priceItems.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Cost"), !price && /* @__PURE__ */ React.createElement("button", { className: "ra-pill-btn", disabled: !session, onClick: estimate }, "Estimate at Aldi")), !price && session === null && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to estimate prices."), price && /* @__PURE__ */ React.createElement(
       PriceBreakdown,
       {
         est: price,
@@ -20791,30 +21154,30 @@ ${suffix}`;
   }
 
   // recipes/SectionEditor.jsx
-  var { useState: useState5, useRef: useRef3, useEffect: useEffect5 } = React;
+  var { useState: useState6, useRef: useRef4, useEffect: useEffect6 } = React;
   var EDGE_PX = 80;
   var SCROLL_PX = 12;
   var KINDS = {
     ing: {
       blank: () => ({ id: uid(), q: "", n: "" }),
       fromLine: (line) => ({ id: uid(), ...parseIng(line) }),
-      isEmpty: (g) => !g.q.trim() && !g.n.trim(),
+      isEmpty: (g2) => !g2.q.trim() && !g2.n.trim(),
       add: "Add ingredient"
     },
     step: {
       blank: () => ({ id: uid(), text: "" }),
       fromLine: (text) => ({ id: uid(), text }),
-      isEmpty: (s) => !s.text.trim(),
+      isEmpty: (s2) => !s2.text.trim(),
       add: "Add step"
     }
   };
   var blankSection = (kind) => ({ id: uid(), name: "", items: [KINDS[kind].blank()] });
   function cleanSections(kind, sections) {
-    const k = KINDS[kind];
+    const k2 = KINDS[kind];
     return sections.map((sec) => ({
       id: sec.id,
       name: sec.name.trim(),
-      items: sec.items.filter((it) => !k.isEmpty(it)).map((it) => kind === "ing" ? { id: it.id, q: it.q.trim(), n: it.n.trim() } : { id: it.id, text: it.text.trim() })
+      items: sec.items.filter((it) => !k2.isEmpty(it)).map((it) => kind === "ing" ? { id: it.id, q: it.q.trim(), n: it.n.trim() } : { id: it.id, text: it.text.trim() })
     })).filter((sec) => sec.items.length);
   }
   function autosize(el) {
@@ -20824,24 +21187,24 @@ ${suffix}`;
   }
   function nearestGap(gaps, y) {
     let best = gaps[0];
-    gaps.forEach((g) => {
-      if (Math.abs(g.y - y) < Math.abs(best.y - y)) best = g;
+    gaps.forEach((g2) => {
+      if (Math.abs(g2.y - y) < Math.abs(best.y - y)) best = g2;
     });
     return best;
   }
   function SectionEditor({ kind, sections, setSections, disabled }) {
     var _a;
-    const k = KINDS[kind];
-    const [focusId, setFocusId] = useState5(null);
-    const [confirmSec, setConfirmSec] = useState5(null);
-    const [drag, setDrag] = useState5(null);
-    const rootRef = useRef3(null);
-    const rowEls = useRef3(/* @__PURE__ */ new Map());
-    const listEls = useRef3(/* @__PURE__ */ new Map());
-    const sectionsRef = useRef3(sections);
+    const k2 = KINDS[kind];
+    const [focusId, setFocusId] = useState6(null);
+    const [confirmSec, setConfirmSec] = useState6(null);
+    const [drag, setDrag] = useState6(null);
+    const rootRef = useRef4(null);
+    const rowEls = useRef4(/* @__PURE__ */ new Map());
+    const listEls = useRef4(/* @__PURE__ */ new Map());
+    const sectionsRef = useRef4(sections);
     sectionsRef.current = sections;
     const showHeads = sections.length > 1 || !!((_a = sections[0]) == null ? void 0 : _a.name);
-    useEffect5(() => {
+    useEffect6(() => {
       if (!focusId) return;
       const el = rootRef.current && rootRef.current.querySelector(`[data-focus="${focusId}"]`);
       if (el) {
@@ -20851,19 +21214,19 @@ ${suffix}`;
       }
       setFocusId(null);
     }, [focusId]);
-    const updateSec = (secId, fn) => setSections((ss) => ss.map((s) => s.id === secId ? fn(s) : s));
-    const updateItem = (secId, id, patch) => updateSec(secId, (s) => ({ ...s, items: s.items.map((it) => it.id === id ? { ...it, ...patch } : it) }));
+    const updateSec = (secId, fn) => setSections((ss) => ss.map((s2) => s2.id === secId ? fn(s2) : s2));
+    const updateItem = (secId, id, patch) => updateSec(secId, (s2) => ({ ...s2, items: s2.items.map((it) => it.id === id ? { ...it, ...patch } : it) }));
     function insertAfter(secId, afterId, items) {
-      updateSec(secId, (s) => {
-        const at = afterId ? s.items.findIndex((it) => it.id === afterId) + 1 : s.items.length;
-        return { ...s, items: [...s.items.slice(0, at), ...items, ...s.items.slice(at)] };
+      updateSec(secId, (s2) => {
+        const at = afterId ? s2.items.findIndex((it) => it.id === afterId) + 1 : s2.items.length;
+        return { ...s2, items: [...s2.items.slice(0, at), ...items, ...s2.items.slice(at)] };
       });
       setFocusId(items[items.length - 1].id);
     }
     function removeItem(secId, id) {
-      const sec = sections.find((s) => s.id === secId);
+      const sec = sections.find((s2) => s2.id === secId);
       const i = sec.items.findIndex((it) => it.id === id);
-      updateSec(secId, (s) => ({ ...s, items: s.items.filter((it) => it.id !== id) }));
+      updateSec(secId, (s2) => ({ ...s2, items: s2.items.filter((it) => it.id !== id) }));
       return sec.items[i - 1] || sec.items[i + 1];
     }
     function addSection() {
@@ -20872,18 +21235,18 @@ ${suffix}`;
       setFocusId(sec.id);
     }
     function removeSection(sec) {
-      if (sec.items.some((it) => !k.isEmpty(it)) && confirmSec !== sec.id) {
+      if (sec.items.some((it) => !k2.isEmpty(it)) && confirmSec !== sec.id) {
         setConfirmSec(sec.id);
         return;
       }
       setConfirmSec(null);
-      setSections((ss) => ss.filter((s) => s.id !== sec.id));
+      setSections((ss) => ss.filter((s2) => s2.id !== sec.id));
     }
     function onKeyDown(e, sec, it) {
       if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
         e.preventDefault();
-        insertAfter(sec.id, it.id, [k.blank()]);
-      } else if (e.key === "Backspace" && k.isEmpty(it) && sec.items.length > 1) {
+        insertAfter(sec.id, it.id, [k2.blank()]);
+      } else if (e.key === "Backspace" && k2.isEmpty(it) && sec.items.length > 1) {
         e.preventDefault();
         const next = removeItem(sec.id, it.id);
         if (next) setFocusId(next.id);
@@ -20891,10 +21254,10 @@ ${suffix}`;
     }
     function onPaste(e, sec, it) {
       const lines = e.clipboardData.getData("text").split("\n").map((x) => x.trim()).filter(Boolean);
-      const empty = k.isEmpty(it);
+      const empty = k2.isEmpty(it);
       if (!lines.length || lines.length === 1 && !(empty && kind === "ing")) return;
       e.preventDefault();
-      const rows = lines.map(k.fromLine);
+      const rows = lines.map(k2.fromLine);
       if (empty) {
         const [first, ...rest] = rows;
         updateItem(sec.id, it.id, { ...first, id: it.id });
@@ -20926,16 +21289,16 @@ ${suffix}`;
           gaps.push({ secId: sec.id, index: j, y });
         }
       });
-      const home = { secId, index: sectionsRef.current.find((s) => s.id === secId).items.findIndex((it) => it.id === id) };
-      const d = { id, secId, startY: e.clientY + window.scrollY, centre: (dragged.top + dragged.bottom) / 2, clientY: e.clientY, target: home };
+      const home = { secId, index: sectionsRef.current.find((s2) => s2.id === secId).items.findIndex((it) => it.id === id) };
+      const d2 = { id, secId, startY: e.clientY + window.scrollY, centre: (dragged.top + dragged.bottom) / 2, clientY: e.clientY, target: home };
       let raf = 0;
       function update() {
-        const off = d.clientY + window.scrollY - d.startY;
-        d.target = nearestGap(gaps, d.centre + off);
-        setDrag({ id, secId, off, target: d.target, home });
+        const off = d2.clientY + window.scrollY - d2.startY;
+        d2.target = nearestGap(gaps, d2.centre + off);
+        setDrag({ id, secId, off, target: d2.target, home });
       }
       function tick() {
-        const dir = d.clientY < EDGE_PX ? -1 : d.clientY > window.innerHeight - EDGE_PX ? 1 : 0;
+        const dir = d2.clientY < EDGE_PX ? -1 : d2.clientY > window.innerHeight - EDGE_PX ? 1 : 0;
         if (dir) {
           window.scrollBy(0, dir * SCROLL_PX);
           update();
@@ -20943,7 +21306,7 @@ ${suffix}`;
         raf = requestAnimationFrame(tick);
       }
       function onMove(ev) {
-        d.clientY = ev.clientY;
+        d2.clientY = ev.clientY;
         update();
       }
       function onTouchMove(ev) {
@@ -20956,12 +21319,12 @@ ${suffix}`;
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("touchmove", onTouchMove);
         setDrag(null);
-        const t = d.target;
+        const t = d2.target;
         if (t.secId === home.secId && t.index === home.index) return;
         setSections((ss) => {
-          const item = ss.find((s) => s.id === secId).items.find((it) => it.id === id);
-          const out = ss.map((s) => ({ ...s, items: s.items.filter((it) => it.id !== id) }));
-          return out.map((s) => s.id === t.secId ? { ...s, items: [...s.items.slice(0, t.index), item, ...s.items.slice(t.index)] } : s);
+          const item = ss.find((s2) => s2.id === secId).items.find((it) => it.id === id);
+          const out = ss.map((s2) => ({ ...s2, items: s2.items.filter((it) => it.id !== id) }));
+          return out.map((s2) => s2.id === t.secId ? { ...s2, items: [...s2.items.slice(0, t.index), item, ...s2.items.slice(t.index)] } : s2);
         });
       }
       window.addEventListener("pointermove", onMove);
@@ -21049,11 +21412,11 @@ ${suffix}`;
           className: "ra-ed-name",
           "data-focus": sec.id,
           value: sec.name,
-          onChange: (e) => updateSec(sec.id, (s) => ({ ...s, name: e.target.value })),
+          onChange: (e) => updateSec(sec.id, (s2) => ({ ...s2, name: e.target.value })),
           onKeyDown: (e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              insertAfter(sec.id, null, [k.blank()]);
+              insertAfter(sec.id, null, [k2.blank()]);
             }
           },
           placeholder: "Section name, e.g. Sauce",
@@ -21069,12 +21432,12 @@ ${suffix}`;
           disabled
         },
         confirmSec === sec.id ? "Remove section?" : "Remove"
-      )), /* @__PURE__ */ React.createElement("div", { className: "ra-ed-list", ref: (el) => el ? listEls.current.set(sec.id, el) : listEls.current.delete(sec.id) }, sec.items.map((it, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: it.id }, dropBefore === it.id && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" }), renderRow(sec, it, i + 1))), dropAt >= 0 && !dropBefore && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" })), /* @__PURE__ */ React.createElement("button", { className: "ra-ed-add", onClick: () => insertAfter(sec.id, null, [k.blank()]), disabled }, "+ ", k.add));
+      )), /* @__PURE__ */ React.createElement("div", { className: "ra-ed-list", ref: (el) => el ? listEls.current.set(sec.id, el) : listEls.current.delete(sec.id) }, sec.items.map((it, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: it.id }, dropBefore === it.id && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" }), renderRow(sec, it, i + 1))), dropAt >= 0 && !dropBefore && /* @__PURE__ */ React.createElement("div", { className: "ra-ed-drop" })), /* @__PURE__ */ React.createElement("button", { className: "ra-ed-add", onClick: () => insertAfter(sec.id, null, [k2.blank()]), disabled }, "+ ", k2.add));
     }), /* @__PURE__ */ React.createElement("button", { className: "ra-ed-add-sec", onClick: addSection, disabled }, "+ Add section"));
   }
 
   // recipes/Compose.jsx
-  var { useState: useState6, useRef: useRef4, useEffect: useEffect6 } = React;
+  var { useState: useState7, useRef: useRef5, useEffect: useEffect7 } = React;
   var MAX_IMAGES = 8;
   var MAX_IMAGE_SIDE = 1600;
   var emptyForm = () => ({
@@ -21111,7 +21474,7 @@ ${suffix}`;
   }
   function PhotoField({ photo, setPhoto, session, disabled }) {
     const savedUrl = usePhotoUrl(photo && photo.path, session);
-    const [error, setError] = useState6("");
+    const [error, setError] = useState7("");
     const url = photo ? photo.preview || savedUrl : null;
     if (!session) {
       return /* @__PURE__ */ React.createElement("div", { className: "ra-ph ra-photo-field" }, session === null && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in"), " to add photos"));
@@ -21130,20 +21493,20 @@ ${suffix}`;
     return /* @__PURE__ */ React.createElement("div", { className: "ra-photo-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `ra-ph ra-photo-field${disabled ? " disabled" : ""}` }, /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: pick, disabled }), url ? /* @__PURE__ */ React.createElement("img", { className: "ra-photo", src: url, alt: "" }) : !photo && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-hint" }, "+ add photo"), photo && /* @__PURE__ */ React.createElement("span", { className: "ra-photo-change" }, "Change")), photo && !disabled && /* @__PURE__ */ React.createElement("button", { className: "ra-photo-remove", onClick: () => setPhoto(null), "aria-label": "Remove photo" }, "\u2715"), error && /* @__PURE__ */ React.createElement("p", { className: "ra-error" }, error));
   }
   function Compose({ initial, session, onCancel, onSave, onDelete }) {
-    const [form, setFormState] = useState6(() => initial ? toForm(initial) : emptyForm());
-    const [mode, setMode] = useState6("manual");
-    const [magic, setMagicState] = useState6(EMPTY_MAGIC);
-    const [fromMagic, setFromMagic] = useState6(false);
-    const [confirmDelete, setConfirmDelete] = useState6(false);
-    const [photo, setPhoto] = useState6(() => initial && initial.photo ? { path: initial.photo } : null);
-    const [saving, setSaving] = useState6(false);
-    const [saveError, setSaveError] = useState6("");
-    const magicRef = useRef4(magic);
+    const [form, setFormState] = useState7(() => initial ? toForm(initial) : emptyForm());
+    const [mode, setMode] = useState7("manual");
+    const [magic, setMagicState] = useState7(EMPTY_MAGIC);
+    const [fromMagic, setFromMagic] = useState7(false);
+    const [confirmDelete, setConfirmDelete] = useState7(false);
+    const [photo, setPhoto] = useState7(() => initial && initial.photo ? { path: initial.photo } : null);
+    const [saving, setSaving] = useState7(false);
+    const [saveError, setSaveError] = useState7("");
+    const magicRef = useRef5(magic);
     magicRef.current = magic;
-    const setForm = (k, v) => setFormState((f) => ({ ...f, [k]: v }));
-    const setMagic = (p) => setMagicState((m) => ({ ...m, ...p }));
+    const setForm = (k2, v2) => setFormState((f2) => ({ ...f2, [k2]: v2 }));
+    const setMagic = (p2) => setMagicState((m2) => ({ ...m2, ...p2 }));
     const canSave = !!form.name.trim() && !saving;
-    useEffect6(() => () => photo && photo.preview && URL.revokeObjectURL(photo.preview), [photo]);
+    useEffect7(() => () => photo && photo.preview && URL.revokeObjectURL(photo.preview), [photo]);
     const hasSources = magic.images.length > 0 || !!magic.link.trim() || !!magic.text.trim();
     const canRunMagic = !!session && !magic.loading && hasSources;
     async function save() {
@@ -21176,9 +21539,9 @@ ${suffix}`;
     }
     function addFiles(files) {
       const room = MAX_IMAGES - magicRef.current.images.length;
-      [...files].filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room)).forEach(
+      [...files].filter((f2) => f2.type.startsWith("image/")).slice(0, Math.max(0, room)).forEach(
         (file) => readImage(file).then(
-          (im) => setMagicState((m) => ({ ...m, images: [...m.images, im].slice(0, MAX_IMAGES) })),
+          (im) => setMagicState((m2) => ({ ...m2, images: [...m2.images, im].slice(0, MAX_IMAGES) })),
           (err) => setMagic({ error: err.message })
         )
       );
@@ -21228,7 +21591,7 @@ ${suffix}`;
     ), /* @__PURE__ */ React.createElement("span", { className: "ra-drop-plus" }, "+"), /* @__PURE__ */ React.createElement("strong", null, "Add screenshots or photos"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Or paste images into the text box")), magic.images.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "ra-thumbs" }, magic.images.map((im) => /* @__PURE__ */ React.createElement("div", { key: im.id, className: "ra-thumb" }, /* @__PURE__ */ React.createElement("img", { src: im.url, alt: "" }), /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setMagicState((m) => ({ ...m, images: m.images.filter((x) => x.id !== im.id) })),
+        onClick: () => setMagicState((m2) => ({ ...m2, images: m2.images.filter((x) => x.id !== im.id) })),
         "aria-label": "Remove image"
       },
       "\u2715"
@@ -21270,7 +21633,7 @@ ${suffix}`;
       {
         kind: "ing",
         sections: form.ingredients,
-        setSections: (fn) => setFormState((f) => ({ ...f, ingredients: fn(f.ingredients) })),
+        setSections: (fn) => setFormState((f2) => ({ ...f2, ingredients: fn(f2.ingredients) })),
         disabled: saving
       }
     )), /* @__PURE__ */ React.createElement("div", { className: "ra-label" }, "Method", /* @__PURE__ */ React.createElement(
@@ -21278,7 +21641,7 @@ ${suffix}`;
       {
         kind: "step",
         sections: form.method,
-        setSections: (fn) => setFormState((f) => ({ ...f, method: fn(f.method) })),
+        setSections: (fn) => setFormState((f2) => ({ ...f2, method: fn(f2.method) })),
         disabled: saving
       }
     )), initial && /* @__PURE__ */ React.createElement(
@@ -21314,15 +21677,15 @@ ${suffix}`;
     const drop = /* @__PURE__ */ new Set();
     const update = /* @__PURE__ */ new Map();
     const merged = [];
-    for (const g of groups || []) {
-      const ids = [...new Set((g.merge || []).filter((id) => id !== g.keep))];
-      if (!ids.length || !unchanged(g.keep) || drop.has(g.keep) || update.has(g.keep)) continue;
+    for (const g2 of groups || []) {
+      const ids = [...new Set((g2.merge || []).filter((id) => id !== g2.keep))];
+      if (!ids.length || !unchanged(g2.keep) || drop.has(g2.keep) || update.has(g2.keep)) continue;
       if (!ids.every((id) => addIds.has(id) && unchanged(id) && !drop.has(id) && !update.has(id))) continue;
-      const keep = byId.get(g.keep);
+      const keep = byId.get(g2.keep);
       const src = [...new Set([keep, ...ids.map((id) => byId.get(id))].flatMap((i) => i.src || []))];
-      update.set(g.keep, { ...keep, q: typeof g.q === "string" ? g.q.trim() : keep.q, src });
+      update.set(g2.keep, { ...keep, q: typeof g2.q === "string" ? g2.q.trim() : keep.q, src });
       ids.forEach((id) => drop.add(id));
-      merged.push({ name: keep.name, q: update.get(g.keep).q });
+      merged.push({ name: keep.name, q: update.get(g2.keep).q });
     }
     return {
       items: items.filter((i) => !drop.has(i.id)).map((i) => update.get(i.id) || i),
@@ -21331,7 +21694,7 @@ ${suffix}`;
   }
 
   // recipes/App.jsx
-  var { useState: useState7, useEffect: useEffect7, useRef: useRef5, useMemo } = React;
+  var { useState: useState8, useEffect: useEffect8, useRef: useRef6, useMemo } = React;
   var APP_ID = "recipes";
   var DEFAULT_LISTS = [{ id: "default", name: "Groceries", items: [] }];
   var NO_RECIPES = [];
@@ -21348,25 +21711,25 @@ ${suffix}`;
     const [lists, setLists, listsConflict] = useSyncedStorage(APP_ID, "recipes-lists", DEFAULT_LISTS);
     const [storedRecipes, setRecipes, recipesConflict] = useSyncedStorage(APP_ID, "recipes-recipes", NO_RECIPES);
     const recipes = useMemo(() => storedRecipes.map(normRecipe), [storedRecipes]);
-    const [activeId, setActiveIdState] = useState7(readActive);
-    const [tab, setTab] = useState7("list");
-    const [recipeId, setRecipeId] = useState7(null);
-    const [compose, setCompose] = useState7(null);
-    const [query, setQuery] = useState7("");
-    const [cat, setCat] = useState7("All");
-    const [servings, setServings] = useState7({});
-    const [prices, setPrices] = useState7({});
-    const [timers, setTimers] = useState7({});
-    const [, setNow] = useState7(0);
-    const [toast, setToast] = useState7(null);
-    const toastT = useRef5(null);
-    const timersRef = useRef5(timers);
+    const [activeId, setActiveIdState] = useState8(readActive);
+    const [tab, setTab] = useState8("list");
+    const [recipeId, setRecipeId] = useState8(null);
+    const [compose, setCompose] = useState8(null);
+    const [query, setQuery] = useState8("");
+    const [cat, setCat] = useState8("All");
+    const [servings, setServings] = useState8({});
+    const [prices, setPrices] = useState8({});
+    const [timers, setTimers] = useState8({});
+    const [, setNow] = useState8(0);
+    const [toast, setToast] = useState8(null);
+    const toastT = useRef6(null);
+    const timersRef = useRef6(timers);
     timersRef.current = timers;
-    const [mergeJobs, setMergeJobs] = useState7([]);
-    const merging = useRef5(false);
-    const listsRef = useRef5(lists);
+    const [mergeJobs, setMergeJobs] = useState8([]);
+    const merging = useRef6(false);
+    const listsRef = useRef6(lists);
     listsRef.current = lists;
-    useEffect7(() => {
+    useEffect8(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
     const list = lists.find((l) => l.id === activeId) || lists[0];
@@ -21389,10 +21752,10 @@ ${suffix}`;
     };
     function addToList(ings) {
       const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
-      const add = ings.filter((g) => !have.has(g.src));
+      const add = ings.filter((g2) => !have.has(g2.src));
       if (!add.length) return;
-      const rows = add.map((g) => ({ id: uid(), name: g.n, q: g.q, checked: false, src: [g.src] }));
-      const names = new Set(add.map((g) => g.n.toLowerCase()));
+      const rows = add.map((g2) => ({ id: uid(), name: g2.n, q: g2.q, checked: false, src: [g2.src] }));
+      const names = new Set(add.map((g2) => g2.n.toLowerCase()));
       updateItems(list.id, (items) => [
         ...items.filter((i) => !i.checked),
         ...rows,
@@ -21401,7 +21764,7 @@ ${suffix}`;
       queueMerge(list.id, rows.map((r) => r.id));
       showToast(add.length === 1 ? `Added ${add[0].n} to ${list.name}` : `Added ${plural(add.length, "item")} to ${list.name}`);
     }
-    useEffect7(() => {
+    useEffect8(() => {
       if (merging.current || !mergeJobs.length) return;
       const job = mergeJobs[0];
       const target = lists.find((l) => l.id === job.listId);
@@ -21418,9 +21781,9 @@ ${suffix}`;
         const { merged } = applyMerges(cur.items, groups, sent);
         if (!merged.length) return;
         updateItems(job.listId, (items) => applyMerges(items, groups, sent).items);
-        const [m] = merged;
+        const [m2] = merged;
         showToast(
-          merged.length === 1 ? `${m.name} was already on ${cur.name}${m.q ? ` \xB7 now ${m.q}` : ""}` : `Combined ${plural(merged.length, "item")} already on ${cur.name}`
+          merged.length === 1 ? `${m2.name} was already on ${cur.name}${m2.q ? ` \xB7 now ${m2.q}` : ""}` : `Combined ${plural(merged.length, "item")} already on ${cur.name}`
         );
       }).catch(() => {
       }).finally(next);
@@ -21428,22 +21791,22 @@ ${suffix}`;
     function setTimer(key, fn) {
       setTimers((ts) => {
         const next = { ...ts };
-        const v = fn(next[key]);
-        if (v) next[key] = v;
+        const v2 = fn(next[key]);
+        if (v2) next[key] = v2;
         else delete next[key];
         return next;
       });
     }
     const anyRunning = Object.values(timers).some((x) => x.running);
-    useEffect7(() => {
+    useEffect8(() => {
       if (!anyRunning) return;
       const t = setInterval(() => {
         const now = Date.now();
         setNow(now);
         const ts = timersRef.current;
-        const finished = Object.keys(ts).filter((k) => ts[k].running && ts[k].endAt <= now);
+        const finished = Object.keys(ts).filter((k2) => ts[k2].running && ts[k2].endAt <= now);
         if (!finished.length) return;
-        finished.forEach((k) => setTimer(k, (o) => o && { ...o, running: false, left: 0, done: true }));
+        finished.forEach((k2) => setTimer(k2, (o) => o && { ...o, running: false, left: 0, done: true }));
         showToast(`Timer done \xB7 ${ts[finished[0]].label}`);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }, 500);
@@ -21464,17 +21827,17 @@ ${suffix}`;
       const r = recipes.find((x) => x.id === id);
       if (r && r.photo) removePhoto(r.photo);
       setRecipes((rs) => rs.filter((x) => x.id !== id));
-      setTimers((ts) => Object.fromEntries(Object.entries(ts).filter(([k]) => !k.startsWith(id + ":"))));
+      setTimers((ts) => Object.fromEntries(Object.entries(ts).filter(([k2]) => !k2.startsWith(id + ":"))));
       setCompose(null);
       setRecipeId(null);
       showToast("Recipe deleted");
     }
-    function switchTab(k) {
-      if (k === "book" && tab === "book") {
+    function switchTab(k2) {
+      if (k2 === "book" && tab === "book") {
         setRecipeId(null);
         setCompose(null);
       }
-      setTab(k);
+      setTab(k2);
     }
     const conflict = listsConflict || recipesConflict;
     let screen;
@@ -21515,7 +21878,7 @@ ${suffix}`;
           session,
           list,
           servings: servings[recipe.id],
-          setServings: (n) => setServings((s) => ({ ...s, [recipe.id]: n })),
+          setServings: (n) => setServings((s2) => ({ ...s2, [recipe.id]: n })),
           price: prices[recipe.id],
           setPrice: (fn) => setPrices((ps) => ({ ...ps, [recipe.id]: fn(ps[recipe.id]) })),
           timers,
@@ -21540,7 +21903,7 @@ ${suffix}`;
         }
       );
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "ra" }, conflict && /* @__PURE__ */ React.createElement("div", { className: "ra-conflict", role: "alert" }, /* @__PURE__ */ React.createElement("span", null, "Your ", listsConflict ? "lists" : "recipes", " changed on another device."), /* @__PURE__ */ React.createElement("button", { onClick: conflict.keepRemote }, "Use theirs"), /* @__PURE__ */ React.createElement("button", { onClick: conflict.keepLocal }, "Keep mine")), screen, toast && /* @__PURE__ */ React.createElement("div", { className: "ra-toast", role: "status" }, toast), /* @__PURE__ */ React.createElement("nav", { className: "ra-nav" }, [["list", "List"], ["book", "Notebook"]].map(([k, label]) => /* @__PURE__ */ React.createElement("button", { key: k, className: tab === k ? "on" : "", onClick: () => switchTab(k), "aria-current": tab === k ? "page" : void 0 }, /* @__PURE__ */ React.createElement("span", { className: "ra-nav-dot" }), label))));
+    return /* @__PURE__ */ React.createElement("div", { className: "ra" }, conflict && /* @__PURE__ */ React.createElement("div", { className: "ra-conflict", role: "alert" }, /* @__PURE__ */ React.createElement("span", null, "Your ", listsConflict ? "lists" : "recipes", " changed on another device."), /* @__PURE__ */ React.createElement("button", { onClick: conflict.keepRemote }, "Use theirs"), /* @__PURE__ */ React.createElement("button", { onClick: conflict.keepLocal }, "Keep mine")), screen, toast && /* @__PURE__ */ React.createElement("div", { className: "ra-toast", role: "status" }, toast), /* @__PURE__ */ React.createElement("nav", { className: "ra-nav" }, [["list", "List"], ["book", "Notebook"]].map(([k2, label]) => /* @__PURE__ */ React.createElement("button", { key: k2, className: tab === k2 ? "on" : "", onClick: () => switchTab(k2), "aria-current": tab === k2 ? "page" : void 0 }, /* @__PURE__ */ React.createElement("span", { className: "ra-nav-dot" }), label))));
   }
 
   // recipes-app.jsx
