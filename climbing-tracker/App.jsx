@@ -15,6 +15,7 @@ import {
   groupSteps,
   normalizeSupersets,
   applyRoutineStep,
+  isIntervalType,
 } from "./format.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
@@ -219,7 +220,7 @@ export function ClimbingTrackerApp() {
   const requestCancelSession = () => {
     const hasProgress = sessionLogsRef.current.some(log => {
       if (!log) return false;
-      if (log.type === "interval") return (log.completedSets || 0) > 0;
+      if (isIntervalType(log.type)) return (log.completedSets || 0) > 0;
       return (log.rows || []).some(r => r.done);
     });
     if (hasProgress) {

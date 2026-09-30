@@ -1,5 +1,5 @@
 import { s, C } from "../styles.js";
-import { formatTime } from "../format.js";
+import { formatTime, formatWeightLabel } from "../format.js";
 import { sounds, getAudioCtx } from "../sounds.js";
 import { NumberField } from "./NumberField.jsx";
 import { Icon } from "./Icons.jsx";
@@ -13,6 +13,7 @@ const PREP_SEC = 5; // "get ready" countdown before each tapped start
 // including mid-timer, when the workout is finished. Work/rest/sets are
 // editable while idle (before Start), so a routine's timer values can be
 // tweaked for this session without leaving to edit the exercise/routine.
+// A "weightedInterval" exercise also gets an editable weight.
 //
 // With superset set, each set is a single work phase started by a tap; the
 // card's own rest is skipped (the superset's round rest replaces it) but
@@ -25,6 +26,8 @@ export function IntervalCard({ exercise, superset, onChange }) {
   const [workSec, setWorkSec] = useState(exercise.workSec);
   const [restSec, setRestSec] = useState(exercise.restSec);
   const [totalSets, setTotalSets] = useState(exercise.sets);
+  const [weight, setWeight] = useState(exercise.weight);
+  const weighted = exercise.type === "weightedInterval";
   const [currentSet, setCurrentSet] = useState(1);
   const [timeLeft, setTimeLeft] = useState(exercise.workSec);
   const [paused, setPaused] = useState(false);
@@ -33,18 +36,19 @@ export function IntervalCard({ exercise, superset, onChange }) {
   const currentSetRef = useRef(1);
   const timeLeftRef = useRef(exercise.workSec);
   const completedRef = useRef(0);
-  const configRef = useRef({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets });
+  const configRef = useRef({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
 
   useEffect(() => {
-    configRef.current = { workSec, restSec, totalSets };
-  }, [workSec, restSec, totalSets]);
+    configRef.current = { workSec, restSec, totalSets, weight };
+  }, [workSec, restSec, totalSets, weight]);
 
   const report = () => onChange({
-    type: "interval",
+    type: exercise.type,
     completedSets: completedRef.current,
     workSec: configRef.current.workSec,
     restSec: configRef.current.restSec,
     targetSets: configRef.current.totalSets,
+    ...(weighted && { weight: configRef.current.weight }),
   });
 
   const clearTick = () => {
@@ -191,6 +195,7 @@ export function IntervalCard({ exercise, superset, onChange }) {
           <NumberField label="Work" value={workSec} onChange={setWorkSec} min={1} suffix="s" />
           {!superset && <NumberField label="Rest" value={restSec} onChange={setRestSec} min={0} suffix="s" />}
           <NumberField label="Sets" value={totalSets} onChange={setTotalSets} min={1} />
+          {weighted && <NumberField label="Weight" value={weight} onChange={setWeight} min={0} step={0.5} inc={2.5} suffix="kg" />}
         </div>
       )}
 
@@ -207,7 +212,7 @@ export function IntervalCard({ exercise, superset, onChange }) {
               <>
                 <div style={{ ...s.phaseLabel, color: C.muted }}>READY</div>
                 <div style={s.timerDigits}>{formatTime(workSec || 0)}</div>
-                <div style={s.timerSub}>{totalSets} &times; {workSec}s{superset ? "" : ` / ${restSec}s`}</div>
+                <div style={s.timerSub}>{totalSets} &times; {workSec}s{superset ? "" : ` / ${restSec}s`}{weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : ""}</div>
               </>
             )}
             {running && (

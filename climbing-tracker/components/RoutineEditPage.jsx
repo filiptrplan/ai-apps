@@ -1,5 +1,5 @@
 import { s, d, C } from "../styles.js";
-import { resolveStepTargetSets, formatTargetSummary, groupSteps } from "../format.js";
+import { resolveStepTargetSets, formatTargetSummary, groupSteps, isIntervalType } from "../format.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
 import { NumberField } from "./NumberField.jsx";
 import { Header, Sheet, useIsDesktop } from "./Layout.jsx";
@@ -75,7 +75,7 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
       </div>
 
       <div style={s.exerciseCardBody}>
-        {ex.type === "interval" ? (
+        {isIntervalType(ex.type) ? (
           <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
             <NumberField label="Work" value={step.workSec ?? ex.workSec} onChange={v => onUpdateStep(step.id, { workSec: toStepValue(v) })} min={1} suffix="s" />
             <NumberField label="Sets" value={step.sets ?? ex.sets} onChange={v => onUpdateStep(step.id, { sets: toStepValue(v) })} min={1} />

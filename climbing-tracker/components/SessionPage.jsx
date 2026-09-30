@@ -1,5 +1,5 @@
 import { s, d, C } from "../styles.js";
-import { formatTime, isStepComplete, groupSteps } from "../format.js";
+import { formatTime, isStepComplete, groupSteps, isIntervalType } from "../format.js";
 import { ExerciseCard } from "./ExerciseCard.jsx";
 import { Header, useIsDesktop } from "./Layout.jsx";
 import { RestBar, RestDockContext } from "./RestBar.jsx";
@@ -68,7 +68,7 @@ export function SessionPage({ session, notesById, onCancel, onLogChange, onFinis
   // Superset members log without their own between-set rest; the block's
   // round rest replaces it. Interval members keep restSec (so it isn't
   // logged as changed) and skip their rest phase via IntervalCard's superset mode.
-  const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup && ex.type !== "interval" ? { ...ex, restSec: 0 } : ex));
+  const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
   const interRestTimer = useRestTimer();
   const interRest = interRestTimer.rest; // { label, timeLeft, total, paused }
 
@@ -106,7 +106,7 @@ export function SessionPage({ session, notesById, onCancel, onLogChange, onFinis
     const wasBlockComplete = block.every(i => completedRef.current[i]);
     const prevRound = Math.min(...block.map(i => doneCountRef.current[i]));
     completedRef.current[exIdx] = isStepComplete(exercise, log);
-    doneCountRef.current[exIdx] = exercise.type === "interval"
+    doneCountRef.current[exIdx] = isIntervalType(exercise.type)
       ? (log?.completedSets || 0)
       : (log?.rows || []).filter(r => r.done).length;
     const blockComplete = block.every(i => completedRef.current[i]);

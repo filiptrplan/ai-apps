@@ -19,6 +19,8 @@ export function Segmented({ options, value, onChange }) {
   );
 }
 
+const WEIGHT_MODES = [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }];
+
 // Rendered inside a bottom sheet; onDelete is only passed when editing.
 export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
   const set = (patch) => onChange({ ...draft, ...patch });
@@ -58,7 +60,7 @@ export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
         <>
           <div style={s.field}>
             <Segmented
-              options={[{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }]}
+              options={WEIGHT_MODES}
               value={draft.weightMode}
               onChange={weightMode => set({ weightMode })}
             />
@@ -72,12 +74,26 @@ export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
         </>
       )}
 
-      {draft.type === "interval" && (
-        <div style={s.fieldGrid}>
-          <NumberField label="Work" value={draft.workSec} onChange={v => set({ workSec: v })} min={1} suffix="s" />
-          <NumberField label="Rest" value={draft.restSec} onChange={v => set({ restSec: v })} min={0} suffix="s" />
-          <NumberField label="Sets" value={draft.sets} onChange={v => set({ sets: v })} min={1} />
-        </div>
+      {(draft.type === "interval" || draft.type === "weightedInterval") && (
+        <>
+          {draft.type === "weightedInterval" && (
+            <div style={s.field}>
+              <Segmented
+                options={WEIGHT_MODES}
+                value={draft.weightMode}
+                onChange={weightMode => set({ weightMode })}
+              />
+            </div>
+          )}
+          <div style={s.fieldGrid}>
+            <NumberField label="Work" value={draft.workSec} onChange={v => set({ workSec: v })} min={1} suffix="s" />
+            <NumberField label="Rest" value={draft.restSec} onChange={v => set({ restSec: v })} min={0} suffix="s" />
+            <NumberField label="Sets" value={draft.sets} onChange={v => set({ sets: v })} min={1} />
+            {draft.type === "weightedInterval" && (
+              <NumberField label="Weight" value={draft.weight} onChange={v => set({ weight: v })} min={0} step={0.5} inc={2.5} suffix="kg" />
+            )}
+          </div>
+        </>
       )}
 
       <div style={s.field}>

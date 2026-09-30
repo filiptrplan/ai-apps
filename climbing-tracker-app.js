@@ -20163,19 +20163,27 @@ ${suffix}`;
   var EXERCISE_TYPES = [
     { value: "reps", label: "Reps" },
     { value: "weighted", label: "Weighted" },
-    { value: "interval", label: "Interval" }
+    { value: "interval", label: "Interval" },
+    { value: "weightedInterval", label: "Interval +kg" }
   ];
+  function isIntervalType(type) {
+    return type === "interval" || type === "weightedInterval";
+  }
   function defaultFieldsForType(type) {
     if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
     if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
+    if (type === "weightedInterval") return { workSec: 10, restSec: 5, sets: 6, weight: 5, weightMode: "added" };
     return { sets: 3, reps: 10, restSec: 0 };
   }
   function formatWeightLabel(weightMode, weight) {
     return weightMode === "added" ? `BW +${weight}kg` : `${weight}kg`;
   }
   function formatTargetSummary(ex) {
-    const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
-    if (ex.type === "interval") return ex.supersetGroup ? `${ex.sets} sets \xB7 ${ex.workSec}s on` : `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`;
+    const restPart = !isIntervalType(ex.type) && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
+    if (isIntervalType(ex.type)) {
+      const weightPart = ex.type === "weightedInterval" ? ` @ ${formatWeightLabel(ex.weightMode, ex.weight)}` : "";
+      return (ex.supersetGroup ? `${ex.sets} sets \xB7 ${ex.workSec}s on` : `${ex.sets} sets \xB7 ${ex.workSec}s on / ${ex.restSec}s off`) + weightPart;
+    }
     if (ex.targetSets) {
       const isWeighted = ex.type === "weighted";
       return `${ex.targetSets.length} sets: ${formatSetsPattern(ex.targetSets, isWeighted)}${isWeighted ? "" : " reps"}${restPart}`;
@@ -20219,7 +20227,7 @@ ${suffix}`;
   function isStepComplete(exercise, log) {
     var _a, _b;
     if (!log) return false;
-    if (exercise.type === "interval") {
+    if (isIntervalType(exercise.type)) {
       const target = (_b = (_a = log.targetSets) != null ? _a : exercise.sets) != null ? _b : 1;
       return (log.completedSets || 0) >= target;
     }
@@ -20227,16 +20235,20 @@ ${suffix}`;
     return rows.length > 0 && rows.every((r) => r.done);
   }
   function buildPerformedFromLog(exercise, log) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     if (!log) return null;
-    if (exercise.type === "interval") {
+    if (isIntervalType(exercise.type)) {
       if (!log.completedSets) return null;
       return {
-        type: "interval",
+        type: exercise.type,
         workSec: (_a = log.workSec) != null ? _a : exercise.workSec,
         restSec: (_b = log.restSec) != null ? _b : exercise.restSec,
         targetSets: (_c = log.targetSets) != null ? _c : exercise.sets,
-        completedSets: log.completedSets
+        completedSets: log.completedSets,
+        ...exercise.type === "weightedInterval" && {
+          weight: Number((_d = log.weight) != null ? _d : exercise.weight) || 0,
+          weightMode: exercise.weightMode
+        }
       };
     }
     const doneRows = (log.rows || []).filter((r) => r.done);
@@ -20263,8 +20275,9 @@ ${suffix}`;
     if (p.type === "weighted") {
       return `${p.sets.length} sets: ` + p.sets.map((s2) => `${s2.reps}\xD7${formatWeightLabel(p.weightMode, s2.weight)}`).join(", ");
     }
-    if (p.type === "interval") {
-      return `${p.completedSets}/${p.targetSets} sets \xB7 ${p.workSec}s on / ${p.restSec}s off`;
+    if (isIntervalType(p.type)) {
+      const weightPart = p.type === "weightedInterval" ? ` @ ${formatWeightLabel(p.weightMode, p.weight)}` : "";
+      return `${p.completedSets}/${p.targetSets} sets \xB7 ${p.workSec}s on / ${p.restSec}s off${weightPart}`;
     }
     return `${p.sets.length} sets: ` + p.sets.map((s2) => s2.reps).join(", ") + " reps";
   }
@@ -20291,7 +20304,7 @@ ${suffix}`;
       routineStep = routine && step.routineStepId ? routine.steps.find((s2) => s2.id === step.routineStepId) || null : null;
     }
     const p = step.performed;
-    if (routineStep && routineStep.targetSets && p.type !== "interval") {
+    if (routineStep && routineStep.targetSets && !isIntervalType(p.type)) {
       const isWeighted = p.type === "weighted";
       const previous = routineStep.targetSets;
       const changed = previous.length !== p.sets.length || p.sets.some((row, i) => {
@@ -20314,10 +20327,11 @@ ${suffix}`;
       restSec: routineStep ? (_d = routineStep.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0 : ex.restSec
     };
     const patch = {};
-    if (p.type === "interval") {
+    if (isIntervalType(p.type)) {
       if (p.targetSets !== target.sets) patch.sets = p.targetSets;
       if (p.workSec !== target.workSec) patch.workSec = p.workSec;
       if (p.restSec !== target.restSec) patch.restSec = p.restSec;
+      if (p.type === "weightedInterval" && p.weight !== target.weight) patch.weight = p.weight;
     } else {
       const isWeighted = p.type === "weighted";
       if (p.sets.length !== target.sets) patch.sets = p.sets.length;
@@ -20365,7 +20379,7 @@ ${suffix}`;
     var _a, _b, _c, _d, _e, _f;
     return {
       ...ex,
-      ...ex.type === "interval" && { workSec: (_a = step.workSec) != null ? _a : ex.workSec },
+      ...isIntervalType(ex.type) && { workSec: (_a = step.workSec) != null ? _a : ex.workSec },
       sets: step.targetSets ? step.targetSets.length : (_b = step.sets) != null ? _b : ex.sets,
       targetSets: (_c = step.targetSets) != null ? _c : null,
       restSec: (_e = step.restSec) != null ? _e : (_d = ex.restSec) != null ? _d : 0,
@@ -20391,7 +20405,7 @@ ${suffix}`;
   }
 
   // climbing-tracker/llmGuidance.js
-  var EXERCISE_GUIDANCE = `Exercise objects use one of three "type" values:
+  var EXERCISE_GUIDANCE = `Exercise objects use one of four "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -20424,13 +20438,26 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "workSec": <integer, seconds of work per set>,
   "restSec": <integer, seconds of rest between sets>,
   "sets": <integer, number of work/rest cycles>
-}`;
-  var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+}
+
+4) "weightedInterval" - the same timed work/rest sets as "interval", but with a weight, e.g. weighted hangs (weight on a harness/belt), one-arm block lifts, weighted plank holds:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "weightedInterval",
+  "workSec": <integer, seconds of work per set>,
+  "restSec": <integer, seconds of rest between sets>,
+  "sets": <integer, number of work/rest cycles>,
+  "weight": <number, kg>,
+  "weightMode": "added" | "total"
+}
+Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.`;
+  var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval"/"weightedInterval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval/weightedInterval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
     ...
   ]
 }
@@ -20438,7 +20465,7 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
 For "reps" and "weighted" exercise steps only, "targetSets" can specify a heterogeneous per-set pattern instead of a uniform "sets" count - e.g. a pyramid of 2 sets of 12 reps then 1 set of 24 reps. When present it fully replaces "sets" (and "reps"/"weight") for that step. Leave it null for a plain uniform sets x reps target. Format: an array with one entry per set, in order:
 - "reps" type: [ { "reps": <integer> }, ... ]
 - "weighted" type: [ { "reps": <integer>, "weight": <number, kg> }, ... ]
-Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default.
+Do not use "targetSets" for "interval" or "weightedInterval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default. A "weightedInterval" exercise's weight can't be overridden per step; it always comes from the exercise.
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
@@ -21394,6 +21421,7 @@ Now generate the exercises and/or routines described by the user's request that 
       o.label
     )));
   }
+  var WEIGHT_MODES = [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }];
   function ExerciseForm({ draft, onChange, onSave, onDelete }) {
     const set = (patch) => onChange({ ...draft, ...patch });
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Name"), /* @__PURE__ */ React.createElement(
@@ -21416,11 +21444,18 @@ Now generate the exercises and/or routines described by the user's request that 
     )), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
       Segmented,
       {
-        options: [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }],
+        options: WEIGHT_MODES,
         value: draft.weightMode,
         onChange: (weightMode) => set({ weightMode })
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" }))), draft.type === "interval" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Notes"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" }))), (draft.type === "interval" || draft.type === "weightedInterval") && /* @__PURE__ */ React.createElement(React.Fragment, null, draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
+      Segmented,
+      {
+        options: WEIGHT_MODES,
+        value: draft.weightMode,
+        onChange: (weightMode) => set({ weightMode })
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }))), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Notes"), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         style: s.notesArea,
@@ -21699,6 +21734,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const [workSec, setWorkSec] = useState4(exercise.workSec);
     const [restSec, setRestSec] = useState4(exercise.restSec);
     const [totalSets, setTotalSets] = useState4(exercise.sets);
+    const [weight, setWeight] = useState4(exercise.weight);
+    const weighted = exercise.type === "weightedInterval";
     const [currentSet, setCurrentSet] = useState4(1);
     const [timeLeft, setTimeLeft] = useState4(exercise.workSec);
     const [paused, setPaused] = useState4(false);
@@ -21707,16 +21744,17 @@ Now generate the exercises and/or routines described by the user's request that 
     const currentSetRef = useRef3(1);
     const timeLeftRef = useRef3(exercise.workSec);
     const completedRef = useRef3(0);
-    const configRef = useRef3({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets });
+    const configRef = useRef3({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
     useEffect4(() => {
-      configRef.current = { workSec, restSec, totalSets };
-    }, [workSec, restSec, totalSets]);
+      configRef.current = { workSec, restSec, totalSets, weight };
+    }, [workSec, restSec, totalSets, weight]);
     const report = () => onChange({
-      type: "interval",
+      type: exercise.type,
       completedSets: completedRef.current,
       workSec: configRef.current.workSec,
       restSec: configRef.current.restSec,
-      targetSets: configRef.current.totalSets
+      targetSets: configRef.current.totalSets,
+      ...weighted && { weight: configRef.current.weight }
     });
     const clearTick = () => {
       if (intervalRef.current) {
@@ -21843,7 +21881,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
     const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
     const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
-    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 }), weighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: weight, onChange: setWeight, min: 0, step: 0.5, inc: 2.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
         key: `${phase}-${currentSet}`,
@@ -21851,7 +21889,7 @@ Now generate the exercises and/or routines described by the user's request that 
         color: phaseColor,
         animate: running && !paused
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`)), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
+    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
   function Ring({ fraction, color, animate }) {
     const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
@@ -21902,7 +21940,7 @@ Now generate the exercises and/or routines described by the user's request that 
   var { useState: useState6 } = React;
   function progressOf(exercise, log) {
     var _a, _b;
-    if (exercise.type === "interval") {
+    if (isIntervalType(exercise.type)) {
       return { done: (log == null ? void 0 : log.completedSets) || 0, total: (_b = (_a = log == null ? void 0 : log.targetSets) != null ? _a : exercise.sets) != null ? _b : 1 };
     }
     const rows = (log == null ? void 0 : log.rows) || [];
@@ -21916,7 +21954,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setProgress(progressOf(exercise, log));
       onChange(log);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), exercise.type === "interval" ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
   }
 
   // climbing-tracker/components/Layout.jsx
@@ -22035,7 +22073,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const [order, setOrder] = useState8(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const completedRef = useRef4(session.exercises.map(() => false));
     const doneCountRef = useRef4(session.exercises.map(() => 0));
-    const [cardExercises] = useState8(() => session.exercises.map((ex) => ex.supersetGroup && ex.type !== "interval" ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState8(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
     const [restDock, setRestDock] = useState8(null);
@@ -22067,7 +22105,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const wasBlockComplete = block.every((i) => completedRef.current[i]);
       const prevRound = Math.min(...block.map((i) => doneCountRef.current[i]));
       completedRef.current[exIdx] = isStepComplete(exercise, log);
-      doneCountRef.current[exIdx] = exercise.type === "interval" ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+      doneCountRef.current[exIdx] = isIntervalType(exercise.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
       const blockComplete = block.every((i) => completedRef.current[i]);
       const round2 = Math.min(...block.map((i) => doneCountRef.current[i]));
       if (blockComplete && !wasBlockComplete) {
@@ -22262,7 +22300,7 @@ Now generate the exercises and/or routines described by the user's request that 
     );
     const renderCard = ({ step, exercise: ex, i }, label, listId, index, inSuperset) => {
       var _a, _b, _c, _d, _e;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: (_a = step.workSec) != null ? _a : ex.workSec, onChange: (v) => onUpdateStep(step.id, { workSec: toStepValue(v) }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_b = step.sets) != null ? _b : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_e = step.restAfterSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, isIntervalType(ex.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: (_a = step.workSec) != null ? _a : ex.workSec, onChange: (v) => onUpdateStep(step.id, { workSec: toStepValue(v) }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_b = step.sets) != null ? _b : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_e = step.restAfterSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         SetTargetsEditor,
         {
           sets: resolveStepTargetSets(step, ex),
@@ -22388,8 +22426,32 @@ Now generate the exercises and/or routines described by the user's request that 
         }
       ];
     }
-    if (exercise.type === "interval") {
+    if (isIntervalType(exercise.type)) {
+      const weighted = exercise.type === "weightedInterval";
+      const withBw = weighted && exercise.weightMode === "added" && bodyweight > 0;
+      const bwOf = (x) => {
+        var _a, _b;
+        return (_b = (_a = x.performed.find((p) => p.bodyweight > 0)) == null ? void 0 : _a.bodyweight) != null ? _b : bodyweight;
+      };
+      const topWeight = (x) => Math.max(...x.performed.map((p) => {
+        var _a;
+        return (_a = p.weight) != null ? _a : 0;
+      }));
       return [
+        ...weighted ? [{
+          id: "topWeight",
+          label: "Top weight",
+          value: topWeight,
+          format: (v) => formatWeightLabel(exercise.weightMode, v),
+          axis: (v) => `${v}kg`
+        }] : [],
+        ...withBw ? [{
+          id: "totalLoad",
+          label: "Total load",
+          value: (x) => round1(bwOf(x) + topWeight(x)),
+          format: (v) => `${v}kg`,
+          axis: (v) => `${v}kg`
+        }] : [],
         {
           id: "timeOn",
           label: "Time on",
@@ -27023,7 +27085,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const requestCancelSession = () => {
       const hasProgress = sessionLogsRef.current.some((log) => {
         if (!log) return false;
-        if (log.type === "interval") return (log.completedSets || 0) > 0;
+        if (isIntervalType(log.type)) return (log.completedSets || 0) > 0;
         return (log.rows || []).some((r) => r.done);
       });
       if (hasProgress) {
