@@ -20281,7 +20281,7 @@ ${suffix}`;
     return sets.map((row) => isWeighted ? `${row.reps}\xD7${row.weight}kg` : `${row.reps}`).join(", ");
   }
   function computeTemplateDrift(entry, step, exercises, routines) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const ex = exercises.find((e) => e.id === step.exerciseId);
     if (!ex) return null;
     let routine = null;
@@ -20310,8 +20310,8 @@ ${suffix}`;
       sets: routineStep ? (_a = routineStep.sets) != null ? _a : ex.sets : ex.sets,
       reps: ex.reps,
       weight: ex.weight,
-      workSec: ex.workSec,
-      restSec: routineStep ? (_c = routineStep.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0 : ex.restSec
+      workSec: routineStep ? (_b = routineStep.workSec) != null ? _b : ex.workSec : ex.workSec,
+      restSec: routineStep ? (_d = routineStep.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0 : ex.restSec
     };
     const patch = {};
     if (p.type === "interval") {
@@ -20343,7 +20343,7 @@ ${suffix}`;
     const routinePatch = {};
     const exercisePatch = {};
     for (const [key, value] of Object.entries(patch)) {
-      if (routineStep && (key === "sets" || key === "restSec")) routinePatch[key] = value;
+      if (routineStep && (key === "sets" || key === "restSec" || key === "workSec")) routinePatch[key] = value;
       else exercisePatch[key] = value;
     }
     return { exercise: ex, routine, routineStep, target, patch, routinePatch, exercisePatch };
@@ -20362,13 +20362,14 @@ ${suffix}`;
     return parts.join(" \xB7 ");
   }
   function applyRoutineStep(ex, step) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     return {
       ...ex,
-      sets: step.targetSets ? step.targetSets.length : (_a = step.sets) != null ? _a : ex.sets,
-      targetSets: (_b = step.targetSets) != null ? _b : null,
-      restSec: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0,
-      restAfterSec: (_e = step.restAfterSec) != null ? _e : 0,
+      ...ex.type === "interval" && { workSec: (_a = step.workSec) != null ? _a : ex.workSec },
+      sets: step.targetSets ? step.targetSets.length : (_b = step.sets) != null ? _b : ex.sets,
+      targetSets: (_c = step.targetSets) != null ? _c : null,
+      restSec: (_e = step.restSec) != null ? _e : (_d = ex.restSec) != null ? _d : 0,
+      restAfterSec: (_f = step.restAfterSec) != null ? _f : 0,
       routineStepId: step.id,
       supersetGroup: step.supersetGroup || null
     };
@@ -20424,12 +20425,12 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "restSec": <integer, seconds of rest between sets>,
   "sets": <integer, number of work/rest cycles>
 }`;
-  var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+  var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
     ...
   ]
 }
@@ -20437,7 +20438,7 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
 For "reps" and "weighted" exercise steps only, "targetSets" can specify a heterogeneous per-set pattern instead of a uniform "sets" count - e.g. a pyramid of 2 sets of 12 reps then 1 set of 24 reps. When present it fully replaces "sets" (and "reps"/"weight") for that step. Leave it null for a plain uniform sets x reps target. Format: an array with one entry per set, in order:
 - "reps" type: [ { "reps": <integer> }, ... ]
 - "weighted" type: [ { "reps": <integer>, "weight": <number, kg> }, ... ]
-Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"restSec" overrides above.
+Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default.
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
@@ -20479,7 +20480,7 @@ Rules:
     return `EXISTING EXERCISES - the user already has these exercises in the app:
 ${lines}
 
-Do NOT create duplicates of these. If an exercise you need is the same as (or essentially the same as) one of the above, even under a slightly different name, reference its existing "id" from routine steps and leave it out of the "exercises" array; use per-step "sets"/"restSec"/"targetSets" overrides if the routine needs different targets. Only add genuinely new exercises to the "exercises" array, with ids that don't clash with the ones above. Only include an existing exercise in the "exercises" array (with its same "id") if the user explicitly asks to change it - that overwrites it.`;
+Do NOT create duplicates of these. If an exercise you need is the same as (or essentially the same as) one of the above, even under a slightly different name, reference its existing "id" from routine steps and leave it out of the "exercises" array; use per-step "sets"/"workSec"/"restSec"/"targetSets" overrides if the routine needs different targets. Only add genuinely new exercises to the "exercises" array, with ids that don't clash with the ones above. Only include an existing exercise in the "exercises" array (with its same "id") if the user explicitly asks to change it - that overwrites it.`;
   }
   function buildLlmGuidance(exercises) {
     return `${BASE_GUIDANCE}
@@ -22260,8 +22261,8 @@ Now generate the exercises and/or routines described by the user's request that 
       label
     );
     const renderCard = ({ step, exercise: ex, i }, label, listId, index, inSuperset) => {
-      var _a, _b, _c, _d;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_a = step.sets) != null ? _a : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_c = step.restSec) != null ? _c : (_b = ex.restSec) != null ? _b : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_d = step.restAfterSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      var _a, _b, _c, _d, _e;
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "interval" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: (_a = step.workSec) != null ? _a : ex.workSec, onChange: (v) => onUpdateStep(step.id, { workSec: toStepValue(v) }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_b = step.sets) != null ? _b : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_e = step.restAfterSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         SetTargetsEditor,
         {
           sets: resolveStepTargetSets(step, ex),
@@ -26947,7 +26948,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const renameRoutine = (id, name) => setRoutines(routines.map((r) => r.id === id ? { ...r, name } : r));
     const addStepToRoutine = (routineId, exerciseId) => {
       if (!exerciseId) return;
-      const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null, targetSets: null };
+      const step = { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
     };
     const updateRoutineStepById = (routineId, stepId, patch) => {

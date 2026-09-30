@@ -214,6 +214,7 @@ function buildRoutineSteps(inputs, exercises, existing) {
     const id = input.id ?? uid();
     seen.add(id);
     let targetSets = null;
+    if (input.workSec != null && ex.type !== "interval") fail(`${where}: workSec only applies to interval exercises.`);
     if (input.targetSets) {
       if (ex.type === "interval") fail(`${where}: targetSets isn't supported for interval exercises, use sets.`);
       if (ex.type === "weighted" && input.targetSets.some(t => t.weight == null)) fail(`${where}: every targetSets entry needs a weight for a weighted exercise.`);
@@ -223,6 +224,7 @@ function buildRoutineSteps(inputs, exercises, existing) {
       id,
       exerciseId: ex.id,
       sets: targetSets ? null : (input.sets ?? null),
+      workSec: ex.type === "interval" ? (input.workSec ?? null) : null,
       restSec: input.restSec ?? null,
       restAfterSec: input.restAfterSec ?? null,
       targetSets,
@@ -530,6 +532,7 @@ ${ROUTINE_GUIDANCE}`,
         id: z.string().optional().describe("Existing step id, to keep that step. Leave out for new steps."),
         exerciseId: z.string(),
         sets: z.number().int().min(1).nullable().optional(),
+        workSec: z.number().int().min(1).nullable().optional().describe("interval only"),
         restSec: z.number().int().min(0).nullable().optional(),
         restAfterSec: z.number().int().min(0).nullable().optional(),
         targetSets: z.array(z.object({

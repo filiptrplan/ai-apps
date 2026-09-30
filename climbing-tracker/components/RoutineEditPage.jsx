@@ -77,6 +77,7 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
       <div style={s.exerciseCardBody}>
         {ex.type === "interval" ? (
           <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+            <NumberField label="Work" value={step.workSec ?? ex.workSec} onChange={v => onUpdateStep(step.id, { workSec: toStepValue(v) })} min={1} suffix="s" />
             <NumberField label="Sets" value={step.sets ?? ex.sets} onChange={v => onUpdateStep(step.id, { sets: toStepValue(v) })} min={1} />
             {!inSuperset && <NumberField label="Rest" value={step.restSec ?? (ex.restSec ?? 0)} onChange={v => onUpdateStep(step.id, { restSec: toStepValue(v) })} min={0} suffix="s" />}
             {!inSuperset && <NumberField label="Rest after" value={step.restAfterSec ?? 0} onChange={v => onUpdateStep(step.id, { restAfterSec: toStepValue(v) })} min={0} inc={15} suffix="s" />}
