@@ -1,5 +1,5 @@
 import { s } from "../styles.js";
-import { formatTargetSummary } from "../format.js";
+import { formatTargetSummary, isIntervalType } from "../format.js";
 import { SetsCard } from "./SetsCard.jsx";
 import { IntervalCard } from "./IntervalCard.jsx";
 import { ExerciseNotes } from "./ExerciseNotes.jsx";
@@ -8,7 +8,7 @@ import { Icon } from "./Icons.jsx";
 const { useState } = React;
 
 function progressOf(exercise, log) {
-  if (exercise.type === "interval") {
+  if (isIntervalType(exercise.type)) {
     return { done: log?.completedSets || 0, total: log?.targetSets ?? exercise.sets ?? 1 };
   }
   const rows = log?.rows || [];
@@ -51,7 +51,7 @@ export function ExerciseCard({ exercise, notes, position, total, label, onChange
       {/* Kept mounted (just hidden) so ticked sets / timer progress survive collapsing. */}
       <div style={collapsed ? s.hidden : s.exerciseCardBody}>
         <ExerciseNotes notes={notes} onSave={onNotesChange} />
-        {exercise.type === "interval"
+        {isIntervalType(exercise.type)
           ? <IntervalCard exercise={exercise} superset={!!exercise.supersetGroup} onChange={handleChange} />
           : <SetsCard exercise={exercise} onChange={handleChange} />}
       </div>

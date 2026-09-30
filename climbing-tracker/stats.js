@@ -1,4 +1,4 @@
-import { formatWeightLabel } from "./format.js";
+import { formatWeightLabel, isIntervalType } from "./format.js";
 
 const DAY_MS = 24 * 3600 * 1000;
 
@@ -81,8 +81,24 @@ export function metricsFor(exercise, bodyweight) {
       },
     ];
   }
-  if (exercise.type === "interval") {
+  if (isIntervalType(exercise.type)) {
+    const weighted = exercise.type === "weightedInterval";
+    const withBw = weighted && exercise.weightMode === "added" && bodyweight > 0;
+    const bwOf = x => x.performed.find(p => p.bodyweight > 0)?.bodyweight ?? bodyweight;
+    const topWeight = x => Math.max(...x.performed.map(p => p.weight ?? 0));
     return [
+      ...(weighted ? [{
+        id: "topWeight", label: "Top weight",
+        value: topWeight,
+        format: v => formatWeightLabel(exercise.weightMode, v),
+        axis: v => `${v}kg`,
+      }] : []),
+      ...(withBw ? [{
+        id: "totalLoad", label: "Total load",
+        value: x => round1(bwOf(x) + topWeight(x)),
+        format: v => `${v}kg`,
+        axis: v => `${v}kg`,
+      }] : []),
       {
         id: "timeOn", label: "Time on",
         value: x => sum(x.performed.map(p => p.completedSets * p.workSec)),

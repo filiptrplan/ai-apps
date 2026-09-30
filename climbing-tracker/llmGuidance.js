@@ -1,7 +1,7 @@
 // The exercise and routine data model, shared by the app's LLM import prompt
 // (below) and the MCP server's tool descriptions (mcp/apps/climbing.js), so
 // both describe the same rules.
-export const EXERCISE_GUIDANCE = `Exercise objects use one of three "type" values:
+export const EXERCISE_GUIDANCE = `Exercise objects use one of four "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -34,14 +34,27 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "workSec": <integer, seconds of work per set>,
   "restSec": <integer, seconds of rest between sets>,
   "sets": <integer, number of work/rest cycles>
-}`;
+}
 
-export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+4) "weightedInterval" - the same timed work/rest sets as "interval", but with a weight, e.g. weighted hangs (weight on a harness/belt), one-arm block lifts, weighted plank holds:
+{
+  "id": "<unique string>",
+  "name": "<exercise name>",
+  "type": "weightedInterval",
+  "workSec": <integer, seconds of work per set>,
+  "restSec": <integer, seconds of rest between sets>,
+  "sets": <integer, number of work/rest cycles>,
+  "weight": <number, kg>,
+  "weightMode": "added" | "total"
+}
+Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.`;
+
+export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval"/"weightedInterval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval/weightedInterval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
     ...
   ]
 }
@@ -49,7 +62,7 @@ export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered
 For "reps" and "weighted" exercise steps only, "targetSets" can specify a heterogeneous per-set pattern instead of a uniform "sets" count - e.g. a pyramid of 2 sets of 12 reps then 1 set of 24 reps. When present it fully replaces "sets" (and "reps"/"weight") for that step. Leave it null for a plain uniform sets x reps target. Format: an array with one entry per set, in order:
 - "reps" type: [ { "reps": <integer> }, ... ]
 - "weighted" type: [ { "reps": <integer>, "weight": <number, kg> }, ... ]
-Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default.
+Do not use "targetSets" for "interval" or "weightedInterval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default. A "weightedInterval" exercise's weight can't be overridden per step; it always comes from the exercise.
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.

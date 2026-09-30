@@ -4,11 +4,19 @@ export const EXERCISE_TYPES = [
   { value: "reps", label: "Reps" },
   { value: "weighted", label: "Weighted" },
   { value: "interval", label: "Interval" },
+  { value: "weightedInterval", label: "Interval +kg" },
 ];
+
+// "weightedInterval" is an interval (work/rest timer) with a weight on top,
+// e.g. weighted hangs; everything timer-related treats both types alike.
+export function isIntervalType(type) {
+  return type === "interval" || type === "weightedInterval";
+}
 
 export function defaultFieldsForType(type) {
   if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
   if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
+  if (type === "weightedInterval") return { workSec: 10, restSec: 5, sets: 6, weight: 5, weightMode: "added" };
   return { sets: 3, reps: 10, restSec: 0 };
 }
 
@@ -17,8 +25,11 @@ export function formatWeightLabel(weightMode, weight) {
 }
 
 export function formatTargetSummary(ex) {
-  const restPart = ex.type !== "interval" && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
-  if (ex.type === "interval") return ex.supersetGroup ? `${ex.sets} sets · ${ex.workSec}s on` : `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`;
+  const restPart = !isIntervalType(ex.type) && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
+  if (isIntervalType(ex.type)) {
+    const weightPart = ex.type === "weightedInterval" ? ` @ ${formatWeightLabel(ex.weightMode, ex.weight)}` : "";
+    return (ex.supersetGroup ? `${ex.sets} sets · ${ex.workSec}s on` : `${ex.sets} sets · ${ex.workSec}s on / ${ex.restSec}s off`) + weightPart;
+  }
   // A routine step can give this exercise a heterogeneous per-set pattern
   // (e.g. 2x12 then 1x24) instead of a uniform sets x reps target.
   if (ex.targetSets) {
@@ -71,7 +82,7 @@ export function mergeById(existing, incoming) {
 // trigger the "rest before the next exercise" countdown in a session.
 export function isStepComplete(exercise, log) {
   if (!log) return false;
-  if (exercise.type === "interval") {
+  if (isIntervalType(exercise.type)) {
     const target = log.targetSets ?? exercise.sets ?? 1;
     return (log.completedSets || 0) >= target;
   }
@@ -82,17 +93,22 @@ export function isStepComplete(exercise, log) {
 // Turns a card's live log into a history "performed" record, or null if
 // nothing was actually logged (so untouched cards are dropped silently).
 // For interval exercises, work/rest/sets are read from the log (not the
-// exercise prop) since IntervalCard lets those be edited before starting.
+// exercise prop) since IntervalCard lets those be edited before starting
+// (and, for weighted intervals, the weight too).
 export function buildPerformedFromLog(exercise, log) {
   if (!log) return null;
-  if (exercise.type === "interval") {
+  if (isIntervalType(exercise.type)) {
     if (!log.completedSets) return null;
     return {
-      type: "interval",
+      type: exercise.type,
       workSec: log.workSec ?? exercise.workSec,
       restSec: log.restSec ?? exercise.restSec,
       targetSets: log.targetSets ?? exercise.sets,
       completedSets: log.completedSets,
+      ...(exercise.type === "weightedInterval" && {
+        weight: Number(log.weight ?? exercise.weight) || 0,
+        weightMode: exercise.weightMode,
+      }),
     };
   }
   const doneRows = (log.rows || []).filter(r => r.done);
@@ -120,8 +136,9 @@ export function formatPerformedSummary(step) {
   if (p.type === "weighted") {
     return `${p.sets.length} sets: ` + p.sets.map(s => `${s.reps}×${formatWeightLabel(p.weightMode, s.weight)}`).join(", ");
   }
-  if (p.type === "interval") {
-    return `${p.completedSets}/${p.targetSets} sets · ${p.workSec}s on / ${p.restSec}s off`;
+  if (isIntervalType(p.type)) {
+    const weightPart = p.type === "weightedInterval" ? ` @ ${formatWeightLabel(p.weightMode, p.weight)}` : "";
+    return `${p.completedSets}/${p.targetSets} sets · ${p.workSec}s on / ${p.restSec}s off${weightPart}`;
   }
   return `${p.sets.length} sets: ` + p.sets.map(s => s.reps).join(", ") + " reps";
 }
@@ -176,7 +193,7 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
   // position - no "uniform value" heuristic needed since there's a specific
   // target for every set. Any difference just becomes "make the pattern
   // match what was actually performed."
-  if (routineStep && routineStep.targetSets && p.type !== "interval") {
+  if (routineStep && routineStep.targetSets && !isIntervalType(p.type)) {
     const isWeighted = p.type === "weighted";
     const previous = routineStep.targetSets;
     const changed = previous.length !== p.sets.length || p.sets.some((row, i) => {
@@ -206,10 +223,11 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
 
   const patch = {};
 
-  if (p.type === "interval") {
+  if (isIntervalType(p.type)) {
     if (p.targetSets !== target.sets) patch.sets = p.targetSets;
     if (p.workSec !== target.workSec) patch.workSec = p.workSec;
     if (p.restSec !== target.restSec) patch.restSec = p.restSec;
+    if (p.type === "weightedInterval" && p.weight !== target.weight) patch.weight = p.weight;
   } else {
     const isWeighted = p.type === "weighted";
     if (p.sets.length !== target.sets) patch.sets = p.sets.length;
@@ -270,7 +288,7 @@ export function formatDriftSummary(drift) {
 export function applyRoutineStep(ex, step) {
   return {
     ...ex,
-    ...(ex.type === "interval" && { workSec: step.workSec ?? ex.workSec }),
+    ...(isIntervalType(ex.type) && { workSec: step.workSec ?? ex.workSec }),
     sets: step.targetSets ? step.targetSets.length : (step.sets ?? ex.sets),
     targetSets: step.targetSets ?? null,
     restSec: step.restSec ?? (ex.restSec ?? 0),

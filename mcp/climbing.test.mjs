@@ -281,3 +281,34 @@ test("reports exercise progress with the app's metrics", async () => {
   assert.equal(p.metrics.find(m => m.id === "totalLoad").best.value, "85kg");
   assert.deepEqual(p.sessions.map(s => s.topWeight), [10, 15, 12.5]);
 });
+
+test("weighted intervals: create, log with a weight, drift and progress", async () => {
+  const { call, appData } = await connect(seed());
+  const { created } = await call("climbing_save_exercise", { name: "Weighted hangs", type: "weightedInterval", weight: 10 });
+  assert.equal(created.weightMode, "added");
+  assert.equal(created.workSec, 10);
+  assert.equal(created.target, "6 sets · 10s on / 5s off @ BW +10kg");
+  assert.match((await call("climbing_save_exercise", { name: "Hangs 2", type: "interval", weight: 5 })).error, /weight doesn't apply/);
+
+  const res = await call("climbing_log_workout", { date: "2026-09-28", steps: [{ exerciseId: created.id, completedSets: 6, weight: 12.5 }] });
+  const [entry] = appData.rows.get(K.history);
+  assert.deepEqual(entry.steps[0].performed, {
+    type: "weightedInterval", workSec: 10, restSec: 5, targetSets: 6, completedSets: 6, weight: 12.5, weightMode: "added", bodyweight: 70,
+  });
+  assert.equal(res.logged.steps[0].summary, "6/6 sets · 10s on / 5s off @ BW +12.5kg");
+  assert.deepEqual(res.templateChanges[0].exerciseChanges, { weight: 12.5 });
+
+  // Without a weight it falls back to the target; a plain interval rejects one.
+  await call("climbing_log_workout", { steps: [{ exerciseId: created.id, completedSets: 4 }] });
+  assert.equal(appData.rows.get(K.history)[0].steps[0].performed.weight, 10);
+  assert.match((await call("climbing_log_workout", { steps: [{ exerciseId: "ex-hang", completedSets: 6, weight: 5 }] })).error, /has no weight/);
+
+  // Routine steps can override work time but not use targetSets.
+  assert.match((await call("climbing_save_routine", { name: "Fingers", steps: [{ exerciseId: created.id, targetSets: [{ reps: 1 }] }] })).error, /targetSets isn't supported/);
+  await call("climbing_save_routine", { name: "Fingers", steps: [{ exerciseId: created.id, workSec: 7 }] });
+
+  const progress = await call("climbing_get_exercise_progress", { exerciseId: created.id, range: "all" });
+  assert.deepEqual(progress.metrics.map(m => m.id), ["topWeight", "totalLoad", "timeOn", "completedSets", "workSec"]);
+  assert.equal(progress.metrics[0].best.value, "BW +12.5kg");
+  assert.equal(progress.metrics[1].best.value, "82.5kg");
+});

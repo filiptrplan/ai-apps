@@ -7,6 +7,7 @@ import { APP_ID, STORAGE_KEYS, uid } from "../../climbing-tracker/data.js";
 import {
   applyRoutineStep,
   buildPerformedFromLog,
+  isIntervalType,
   computeTemplateDrift,
   defaultFieldsForType,
   formatDriftSummary,
@@ -26,7 +27,9 @@ const TYPE_FIELDS = {
   reps: ["sets", "reps", "restSec"],
   weighted: ["sets", "reps", "weight", "weightMode", "restSec"],
   interval: ["workSec", "restSec", "sets"],
+  weightedInterval: ["workSec", "restSec", "sets", "weight", "weightMode"],
 };
+const TYPES = Object.keys(TYPE_FIELDS);
 const ALL_TYPE_FIELDS = ["sets", "reps", "weight", "weightMode", "workSec", "restSec"];
 
 export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets) and a history of logged workouts. Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
@@ -148,12 +151,14 @@ function templateChanges(entry, exercises, routines) {
 // targets (already merged with any routine step overrides).
 function performedFromInput(ex, input, bodyweight) {
   let log;
-  if (ex.type === "interval") {
-    if (input.sets) fail(`"${ex.name}" is an interval exercise: give completedSets (plus workSec/restSec if they differed), not sets.`);
-    if (input.completedSets == null) fail(`"${ex.name}" is an interval exercise: give completedSets.`);
-    log = { completedSets: input.completedSets, workSec: input.workSec, restSec: input.restSec };
+  if (isIntervalType(ex.type)) {
+    if (input.sets) fail(`"${ex.name}" is an ${ex.type} exercise: give completedSets (plus workSec/restSec if they differed), not sets.`);
+    if (input.completedSets == null) fail(`"${ex.name}" is an ${ex.type} exercise: give completedSets.`);
+    if (input.weight != null && ex.type !== "weightedInterval") fail(`"${ex.name}" is an interval exercise and has no weight.`);
+    log = { completedSets: input.completedSets, workSec: input.workSec, restSec: input.restSec, weight: input.weight };
   } else {
     if (input.completedSets != null) fail(`"${ex.name}" is a ${ex.type} exercise: give sets (one entry per set), not completedSets.`);
+    if (input.weight != null) fail(`"${ex.name}" is a ${ex.type} exercise: give the weight per set in sets, not weight.`);
     if (!input.sets || input.sets.length === 0) fail(`"${ex.name}" is a ${ex.type} exercise: give the performed sets.`);
     if (ex.type === "reps" && input.sets.some(s => s.weight != null)) fail(`"${ex.name}" is a reps exercise and has no weight.`);
     log = { rows: input.sets.map(s => ({ reps: s.reps, weight: s.weight ?? ex.weight, done: true })) };
@@ -167,7 +172,7 @@ function performedFromInput(ex, input, bodyweight) {
 // The targets as they were recorded with an earlier log, so correcting a
 // workout doesn't reset them to today's template.
 function targetsFromPerformed(ex, p) {
-  if (p.type === "interval") return { ...ex, type: p.type, sets: p.targetSets, workSec: p.workSec, restSec: p.restSec };
+  if (isIntervalType(p.type)) return { ...ex, type: p.type, sets: p.targetSets, workSec: p.workSec, restSec: p.restSec, weight: p.weight, weightMode: p.weightMode };
   return { ...ex, type: p.type, sets: p.targetSets, reps: p.targetReps, weight: p.targetWeight, weightMode: p.weightMode };
 }
 
@@ -214,9 +219,9 @@ function buildRoutineSteps(inputs, exercises, existing) {
     const id = input.id ?? uid();
     seen.add(id);
     let targetSets = null;
-    if (input.workSec != null && ex.type !== "interval") fail(`${where}: workSec only applies to interval exercises.`);
+    if (input.workSec != null && !isIntervalType(ex.type)) fail(`${where}: workSec only applies to interval exercises.`);
     if (input.targetSets) {
-      if (ex.type === "interval") fail(`${where}: targetSets isn't supported for interval exercises, use sets.`);
+      if (isIntervalType(ex.type)) fail(`${where}: targetSets isn't supported for ${ex.type} exercises, use sets.`);
       if (ex.type === "weighted" && input.targetSets.some(t => t.weight == null)) fail(`${where}: every targetSets entry needs a weight for a weighted exercise.`);
       targetSets = input.targetSets.map(t => ex.type === "weighted" ? { reps: t.reps, weight: t.weight } : { reps: t.reps });
     }
@@ -224,7 +229,7 @@ function buildRoutineSteps(inputs, exercises, existing) {
       id,
       exerciseId: ex.id,
       sets: targetSets ? null : (input.sets ?? null),
-      workSec: ex.type === "interval" ? (input.workSec ?? null) : null,
+      workSec: isIntervalType(ex.type) ? (input.workSec ?? null) : null,
       restSec: input.restSec ?? null,
       restAfterSec: input.restAfterSec ?? null,
       targetSets,
@@ -256,9 +261,11 @@ const performedStep = z.object({
     weight: z.number().min(0).optional()
       .describe("kg. For weightMode \"added\", the weight on top of bodyweight. Defaults to the target weight."),
   })).optional().describe("reps/weighted exercises: one entry per completed set, in order."),
-  completedSets: z.number().int().min(1).optional().describe("interval exercises: number of work phases completed."),
-  workSec: z.number().int().min(1).optional().describe("interval exercises: only if it differed from the target."),
-  restSec: z.number().int().min(0).optional().describe("interval exercises: only if it differed from the target."),
+  completedSets: z.number().int().min(1).optional().describe("interval/weightedInterval exercises: number of work phases completed."),
+  workSec: z.number().int().min(1).optional().describe("interval/weightedInterval exercises: only if it differed from the target."),
+  restSec: z.number().int().min(0).optional().describe("interval/weightedInterval exercises: only if it differed from the target."),
+  weight: z.number().min(0).optional()
+    .describe("weightedInterval exercises: kg used (on top of bodyweight for weightMode \"added\"), only if it differed from the target."),
 });
 
 export function register(server, { appData }) {
@@ -476,12 +483,12 @@ ${EXERCISE_GUIDANCE}`,
     inputSchema: {
       id: z.string().optional().describe("Existing exercise to change. Leave out to create one."),
       name: z.string().min(1).optional(),
-      type: z.enum(["reps", "weighted", "interval"]).optional(),
+      type: z.enum(TYPES).optional(),
       sets: z.number().int().min(1).optional(),
       reps: z.number().int().min(1).optional().describe("reps/weighted only"),
-      weight: z.number().min(0).optional().describe("weighted only, kg"),
-      weightMode: z.enum(["added", "total"]).optional().describe("weighted only"),
-      workSec: z.number().int().min(1).optional().describe("interval only"),
+      weight: z.number().min(0).optional().describe("weighted/weightedInterval only, kg"),
+      weightMode: z.enum(["added", "total"]).optional().describe("weighted/weightedInterval only"),
+      workSec: z.number().int().min(1).optional().describe("interval/weightedInterval only"),
       restSec: z.number().int().min(0).optional(),
       notes: z.string().optional().describe("Free-form notes shown with the exercise. Replaces the existing notes."),
     },
@@ -532,7 +539,7 @@ ${ROUTINE_GUIDANCE}`,
         id: z.string().optional().describe("Existing step id, to keep that step. Leave out for new steps."),
         exerciseId: z.string(),
         sets: z.number().int().min(1).nullable().optional(),
-        workSec: z.number().int().min(1).nullable().optional().describe("interval only"),
+        workSec: z.number().int().min(1).nullable().optional().describe("interval/weightedInterval only"),
         restSec: z.number().int().min(0).nullable().optional(),
         restAfterSec: z.number().int().min(0).nullable().optional(),
         targetSets: z.array(z.object({
