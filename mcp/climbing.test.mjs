@@ -128,6 +128,23 @@ test("logs an interval single-exercise workout", async () => {
   assert.equal(res.templateChanges, undefined);
 });
 
+test("a routine step can override an interval's work time", async () => {
+  const { call, appData } = await connect(seed());
+  const err = (await call("climbing_save_routine", { id: "r-1", steps: [{ exerciseId: "ex-push", workSec: 10 }] })).error;
+  assert.match(err, /only applies to interval/);
+  await call("climbing_save_routine", { id: "r-1", steps: [{ id: "st-1", exerciseId: "ex-hang", workSec: 10, restSec: 5 }] });
+  const [step] = appData.rows.get(K.routines)[0].steps;
+  assert.equal(step.workSec, 10);
+
+  // Doing the routine's 10s is no drift; changing it patches the step, not the exercise.
+  const same = await call("climbing_log_workout", { routineId: "r-1", steps: [{ exerciseId: "ex-hang", completedSets: 6 }] });
+  assert.equal(same.templateChanges, undefined);
+  assert.equal(appData.rows.get(K.history)[0].steps[0].performed.workSec, 10);
+  const longer = await call("climbing_log_workout", { routineId: "r-1", steps: [{ exerciseId: "ex-hang", completedSets: 6, workSec: 12 }] });
+  assert.deepEqual(longer.templateChanges[0].routineStepChanges, { workSec: 12 });
+  assert.deepEqual(longer.templateChanges[0].exerciseChanges, {});
+});
+
 test("rejects workouts that don't fit", async () => {
   const { call, appData } = await connect(seed());
   assert.match((await call("climbing_log_workout", { steps: [{ exerciseId: "ex-hang", completedSets: 1 }, { exerciseId: "ex-push", sets: [{ reps: 3 }] }] })).error, /exactly one step/);

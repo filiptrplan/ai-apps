@@ -36,12 +36,12 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "sets": <integer, number of work/rest cycles>
 }`;
 
-export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
+export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
   "name": "<routine name>",
   "steps": [
-    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
+    { "id": "<unique string>", "exerciseId": "<id of an exercise in the exercises array>", "sets": <integer or null>, "workSec": <integer or null, interval exercises only>, "restSec": <integer or null>, "restAfterSec": <integer or null>, "targetSets": <array or null>, "supersetGroup": <string or null> },
     ...
   ]
 }
@@ -49,7 +49,7 @@ export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered
 For "reps" and "weighted" exercise steps only, "targetSets" can specify a heterogeneous per-set pattern instead of a uniform "sets" count - e.g. a pyramid of 2 sets of 12 reps then 1 set of 24 reps. When present it fully replaces "sets" (and "reps"/"weight") for that step. Leave it null for a plain uniform sets x reps target. Format: an array with one entry per set, in order:
 - "reps" type: [ { "reps": <integer> }, ... ]
 - "weighted" type: [ { "reps": <integer>, "weight": <number, kg> }, ... ]
-Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"restSec" overrides above.
+Do not use "targetSets" for "interval" exercises - they only support the uniform "sets"/"workSec"/"restSec" overrides above, e.g. "workSec": 10 to hang longer in this routine than the exercise's default.
 
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
@@ -95,7 +95,7 @@ function existingExercisesSection(exercises) {
   return `EXISTING EXERCISES - the user already has these exercises in the app:
 ${lines}
 
-Do NOT create duplicates of these. If an exercise you need is the same as (or essentially the same as) one of the above, even under a slightly different name, reference its existing "id" from routine steps and leave it out of the "exercises" array; use per-step "sets"/"restSec"/"targetSets" overrides if the routine needs different targets. Only add genuinely new exercises to the "exercises" array, with ids that don't clash with the ones above. Only include an existing exercise in the "exercises" array (with its same "id") if the user explicitly asks to change it - that overwrites it.`;
+Do NOT create duplicates of these. If an exercise you need is the same as (or essentially the same as) one of the above, even under a slightly different name, reference its existing "id" from routine steps and leave it out of the "exercises" array; use per-step "sets"/"workSec"/"restSec"/"targetSets" overrides if the routine needs different targets. Only add genuinely new exercises to the "exercises" array, with ids that don't clash with the ones above. Only include an existing exercise in the "exercises" array (with its same "id") if the user explicitly asks to change it - that overwrites it.`;
 }
 
 export function buildLlmGuidance(exercises) {

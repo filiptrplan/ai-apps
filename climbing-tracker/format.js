@@ -193,14 +193,14 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
 
   // Legacy comparison: a single uniform sets-count + reps/weight default,
   // resolved from the routine step's override (if any) or the exercise's
-  // own saved values. sets/restSec can be overridden per routine step;
-  // reps/weight/workSec have no routine-level override and always come
-  // from the exercise.
+  // own saved values. sets/restSec/workSec can be overridden per routine
+  // step; reps/weight have no routine-level override and always come from
+  // the exercise.
   const target = {
     sets: routineStep ? (routineStep.sets ?? ex.sets) : ex.sets,
     reps: ex.reps,
     weight: ex.weight,
-    workSec: ex.workSec,
+    workSec: routineStep ? (routineStep.workSec ?? ex.workSec) : ex.workSec,
     restSec: routineStep ? (routineStep.restSec ?? (ex.restSec ?? 0)) : ex.restSec,
   };
 
@@ -243,7 +243,7 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
   const routinePatch = {};
   const exercisePatch = {};
   for (const [key, value] of Object.entries(patch)) {
-    if (routineStep && (key === "sets" || key === "restSec")) routinePatch[key] = value;
+    if (routineStep && (key === "sets" || key === "restSec" || key === "workSec")) routinePatch[key] = value;
     else exercisePatch[key] = value;
   }
 
@@ -264,11 +264,13 @@ export function formatDriftSummary(drift) {
   return parts.join(" · ");
 }
 
-// The exercise as performed in a routine: the step's sets/rest overrides
-// (or per-set targetSets pattern) applied over the exercise's own defaults.
+// The exercise as performed in a routine: the step's sets/rest (and, for
+// intervals, work) overrides (or per-set targetSets pattern) applied over
+// the exercise's own defaults.
 export function applyRoutineStep(ex, step) {
   return {
     ...ex,
+    ...(ex.type === "interval" && { workSec: step.workSec ?? ex.workSec }),
     sets: step.targetSets ? step.targetSets.length : (step.sets ?? ex.sets),
     targetSets: step.targetSets ?? null,
     restSec: step.restSec ?? (ex.restSec ?? 0),

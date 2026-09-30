@@ -131,7 +131,7 @@ export function ClimbingTrackerApp() {
   const renameRoutine = (id, name) => setRoutines(routines.map(r => r.id === id ? { ...r, name } : r));
   const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
-    const step = { id: uid(), exerciseId, sets: null, restSec: null, restAfterSec: null, targetSets: null };
+    const step = { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
   };
   const updateRoutineStepById = (routineId, stepId, patch) => {
