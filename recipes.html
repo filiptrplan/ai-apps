@@ -73,6 +73,14 @@
     .ra-add{display:flex;gap:8px;align-items:center;margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 6px 6px 16px}
     .ra-add input{flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:16px}
     .ra-add button{flex:none;width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-ink);font-size:22px;line-height:1}
+    .ra-add button:disabled{opacity:.45}
+    .ra-add.dictating{border-color:var(--dot)}
+    .ra-add .ra-mic{display:grid;place-items:center;background:var(--soft);color:var(--soft-ink)}
+    .ra-add .ra-mic[aria-pressed="true"]{background:var(--ink);color:var(--bg);opacity:1}
+    .ra-add .ra-mic.live{animation:raPulse 1.4s ease-out infinite}
+    .ra-mic-stop{width:12px;height:12px;border-radius:3px;background:currentColor}
+    @keyframes raPulse{0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--dot) 55%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+    @media (prefers-reduced-motion:reduce){.ra-add .ra-mic.live{animation:none}}
     .ra-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:26px 0 6px;font-size:13px;color:var(--muted)}
     .ra-section-head.cart{margin-bottom:2px}
     .ra-small-btn{height:30px;padding:0 12px;border-radius:var(--pill);border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500}

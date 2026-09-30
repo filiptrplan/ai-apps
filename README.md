@@ -59,3 +59,14 @@ online, from the Federal Office for Agriculture's monthly Swiss retail prices
 ```sh
 supabase functions deploy price-estimate
 ```
+
+`supabase/functions/soniox-key` powers dictation on the Recipes app's
+shopping list. The browser streams mic audio straight to Soniox real-time
+speech-to-text (Slovenian and English, detected automatically); this
+function only hands signed-in users a key that expires after a minute. It
+needs a Soniox API key:
+
+```sh
+supabase secrets set SONIOX_API_KEY=...
+supabase functions deploy soniox-key
+```

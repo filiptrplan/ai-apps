@@ -11,6 +11,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@soniox/speech-to-text-web':
+        specifier: ^1.4.0
+        version: 1.4.0
       '@supabase/supabase-js':
         specifier: ^2.110.0
         version: 2.110.0
@@ -505,6 +508,9 @@ packages:
     resolution: {integrity: sha512-/gDJaRs4gl0NPIwqCz+6PkpmhhjRAD2j6P4rSNHBzUkO3naEx2mIU0pRle1vUNRQ7mE/+8OOeXLTv/J56FKiQg==}
     cpu: [x64]
     os: [win32]
+
+  '@soniox/speech-to-text-web@1.4.0':
+    resolution: {integrity: sha512-ZtwL3yQsPEn7Cf3uYYSa6c4PnD19ohv7/wpZweLfJlNvI5NwoCeQEvENxIMFXGEatG65GvisVkPTl/1MV2WswA==}
 
   '@supabase/auth-js@2.110.0':
     resolution: {integrity: sha512-Mi288WCTp6wxMFCOu/UgzgHEXODjdl2uVTLqK11eanzGZaldU3RyP8Am+ZbNuVzFP+5+iOvppxzv7N5Ym84xTg==}
@@ -1268,6 +1274,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.62.5':
     optional: true
+
+  '@soniox/speech-to-text-web@1.4.0': {}
 
   '@supabase/auth-js@2.110.0':
     dependencies:
