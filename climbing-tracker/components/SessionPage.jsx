@@ -175,6 +175,7 @@ export function SessionPage({ session, initialLogs = [], initialOrder, notesById
           label={interRest.label}
           tone="accent"
           timeLeft={interRest.timeLeft}
+          remainingMs={interRest.remainingMs}
           total={interRest.total}
           paused={interRest.paused}
           onTogglePause={interRestTimer.togglePause}

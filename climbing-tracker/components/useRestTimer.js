@@ -10,7 +10,8 @@ const { useState, useEffect, useRef } = React;
 // which browsers throttle far less than a repeating interval. While the page
 // is hidden, restAlert keeps a countdown notification in sync with it.
 //
-// rest is null when idle, else { total, timeLeft, paused, ...meta } where
+// rest is null when idle, else { total, timeLeft, remainingMs, paused, ...meta }
+// (remainingMs being the exact time left when timeLeft last changed) where
 // meta is whatever the caller passed to start (e.g. a label).
 export function useRestTimer() {
   const [rest, setRest] = useState(null);
@@ -40,7 +41,7 @@ export function useRestTimer() {
     if (sec <= 0) { finish(); return; }
     if (sec === lastSecRef.current) return;
     lastSecRef.current = sec;
-    setRest(r => r && { ...r, timeLeft: sec });
+    setRest(r => r && { ...r, timeLeft: sec, remainingMs: endsAtRef.current - Date.now() });
     if (sec <= 3) sounds.countdown();
   };
 
@@ -56,7 +57,7 @@ export function useRestTimer() {
   const start = (sec, { notice = "", ...meta } = {}) => {
     clearTimers();
     noticeRef.current = notice;
-    setRest({ ...meta, total: sec, timeLeft: sec, paused: false });
+    setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1000, paused: false });
     sounds.restStart();
     run(sec * 1000);
   };
@@ -67,12 +68,12 @@ export function useRestTimer() {
     if (!rest) return;
     if (rest.paused) {
       run(remainingMsRef.current);
-      setRest({ ...rest, paused: false });
+      setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
     } else {
       remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
       clearTimers();
       trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
-      setRest({ ...rest, paused: true });
+      setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
     }
   };
 

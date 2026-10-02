@@ -21211,7 +21211,7 @@ Now generate the exercises and/or routines described by the user's request that 
       backdropFilter: "blur(14px)",
       WebkitBackdropFilter: "blur(14px)"
     },
-    restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
+    restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0 },
     restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
     restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
     restBarBtn: {
@@ -21467,19 +21467,52 @@ Now generate the exercises and/or routines described by the user's request that 
     )), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, onClick: onSave, disabled: !draft.name.trim() }, "Save exercise"), onDelete && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 8 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete exercise"));
   }
 
+  // climbing-tracker/components/useDrain.js
+  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  function useDrain(from, to, ms, running) {
+    const [shown, setShown] = useState2({ value: from, ms: 0 });
+    const primedRef = useRef2(false);
+    useEffect2(() => {
+      if (!running) {
+        primedRef.current = false;
+        setShown({ value: from, ms: 0 });
+        return;
+      }
+      if (primedRef.current) {
+        setShown({ value: to, ms });
+        return;
+      }
+      setShown({ value: from, ms: 0 });
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => {
+          primedRef.current = true;
+          setShown({ value: to, ms });
+        });
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
+    }, [from, to, ms, running]);
+    return shown;
+  }
+
   // climbing-tracker/components/RestBar.jsx
   var { createContext, useContext } = React;
   var RestDockContext = createContext(null);
-  function RestBar({ label, timeLeft, total, paused, onTogglePause, onSkip, tone = "green" }) {
+  function RestBar({ label, timeLeft, remainingMs, total, paused, onTogglePause, onSkip, tone = "green" }) {
     const dock = useContext(RestDockContext);
     const color = tone === "green" ? C.green : C.accent;
     const soft = tone === "green" ? "rgba(76,195,138,0.18)" : "rgba(232,176,75,0.18)";
-    const pct = total > 0 ? Math.max(0, Math.min(100, timeLeft / total * 100)) : 0;
+    const pctOf = (sec) => total > 0 ? Math.max(0, Math.min(100, sec / total * 100)) : 0;
+    const exactSec = remainingMs != null ? remainingMs / 1e3 : timeLeft;
+    const drain = useDrain(pctOf(exactSec), pctOf(timeLeft - 1), Math.round((exactSec - (timeLeft - 1)) * 1e3), !paused);
     const bar = /* @__PURE__ */ React.createElement("div", { style: {
       ...s.restBar,
       ...tone === "green" ? {} : { background: "rgba(232,176,75,0.08)", borderColor: "rgba(232,176,75,0.35)" },
       ...dock && s.restBarDocked
-    } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${pct}%`, background: soft } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
+    } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${drain.value}%`, background: soft, transition: drain.ms ? `width ${drain.ms}ms linear` : "none" } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
     return dock ? ReactDOM.createPortal(bar, dock) : bar;
   }
 
@@ -21630,16 +21663,16 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useRestTimer.js
-  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  var { useState: useState3, useEffect: useEffect3, useRef: useRef3 } = React;
   function useRestTimer() {
-    const [rest, setRest] = useState2(null);
-    const endsAtRef = useRef2(0);
-    const remainingMsRef = useRef2(0);
-    const tickRef = useRef2(null);
-    const endRef = useRef2(null);
-    const noticeRef = useRef2("");
-    const lastSecRef = useRef2(0);
-    const idRef = useRef2({});
+    const [rest, setRest] = useState3(null);
+    const endsAtRef = useRef3(0);
+    const remainingMsRef = useRef3(0);
+    const tickRef = useRef3(null);
+    const endRef = useRef3(null);
+    const noticeRef = useRef3("");
+    const lastSecRef = useRef3(0);
+    const idRef = useRef3({});
     const clearTimers = () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
@@ -21665,7 +21698,7 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       if (sec === lastSecRef.current) return;
       lastSecRef.current = sec;
-      setRest((r) => r && { ...r, timeLeft: sec });
+      setRest((r) => r && { ...r, timeLeft: sec, remainingMs: endsAtRef.current - Date.now() });
       if (sec <= 3) sounds.countdown();
     };
     const run = (ms) => {
@@ -21678,7 +21711,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const start = (sec, { notice = "", ...meta } = {}) => {
       clearTimers();
       noticeRef.current = notice;
-      setRest({ ...meta, total: sec, timeLeft: sec, paused: false });
+      setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1e3, paused: false });
       sounds.restStart();
       run(sec * 1e3);
     };
@@ -21691,15 +21724,15 @@ Now generate the exercises and/or routines described by the user's request that 
       if (!rest) return;
       if (rest.paused) {
         run(remainingMsRef.current);
-        setRest({ ...rest, paused: false });
+        setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
       } else {
         remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
         clearTimers();
         trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
-        setRest({ ...rest, paused: true });
+        setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
       }
     };
-    useEffect2(() => () => {
+    useEffect3(() => () => {
       clearTimers();
       untrackRest(idRef.current);
     }, []);
@@ -21707,7 +21740,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/SetsCard.jsx
-  var { useState: useState3, useEffect: useEffect3 } = React;
+  var { useState: useState4, useEffect: useEffect4 } = React;
   function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
     return /* @__PURE__ */ React.createElement("div", { style: { ...s.setInputWrap, ...dim ? s.setDone : {} } }, /* @__PURE__ */ React.createElement(
       "input",
@@ -21733,13 +21766,13 @@ Now generate the exercises and/or routines described by the user's request that 
       const t = exercise.targetSets && exercise.targetSets[i];
       return { reps: t ? t.reps : exercise.reps || 0, weight: t ? (_b = (_a = t.weight) != null ? _a : exercise.weight) != null ? _b : 0 : exercise.weight || 0, done: false };
     };
-    const [rows, setRows] = useState3(() => {
+    const [rows, setRows] = useState4(() => {
       var _a;
       return ((_a = initialLog == null ? void 0 : initialLog.rows) == null ? void 0 : _a.length) ? initialLog.rows : Array.from({ length: targetSets }, (_2, i) => makeRow(i));
     });
     const restTimer = useRestTimer();
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
-    useEffect3(() => {
+    useEffect4(() => {
       onChange({ rows });
     }, [rows]);
     const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
@@ -21791,6 +21824,7 @@ Now generate the exercises and/or routines described by the user's request that 
       {
         label: `Rest \xB7 ${exercise.name}`,
         timeLeft: restTimer.rest.timeLeft,
+        remainingMs: restTimer.rest.remainingMs,
         total: restTimer.rest.total,
         paused: restTimer.rest.paused,
         onTogglePause: restTimer.togglePause,
@@ -21800,10 +21834,10 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/IntervalCard.jsx
-  var { useState: useState4, useEffect: useEffect4, useRef: useRef3 } = React;
+  var { useState: useState5, useEffect: useEffect5, useRef: useRef4 } = React;
   var PREP_SEC = 5;
   function IntervalCard({ exercise, initialLog, superset, onChange }) {
-    const [init] = useState4(() => {
+    const [init] = useState5(() => {
       var _a, _b, _c, _d;
       const cfg = {
         workSec: (_a = initialLog == null ? void 0 : initialLog.workSec) != null ? _a : exercise.workSec,
@@ -21815,22 +21849,22 @@ Now generate the exercises and/or routines described by the user's request that 
       const phase2 = completed2 === 0 ? "idle" : completed2 >= cfg.totalSets ? "done" : "next";
       return { cfg, completed: completed2, phase: phase2, currentSet: phase2 === "next" ? completed2 + 1 : 1 };
     });
-    const [phase, setPhase] = useState4(init.phase);
-    const [workSec, setWorkSec] = useState4(init.cfg.workSec);
-    const [restSec, setRestSec] = useState4(init.cfg.restSec);
-    const [totalSets, setTotalSets] = useState4(init.cfg.totalSets);
-    const [weight, setWeight] = useState4(init.cfg.weight);
+    const [phase, setPhase] = useState5(init.phase);
+    const [workSec, setWorkSec] = useState5(init.cfg.workSec);
+    const [restSec, setRestSec] = useState5(init.cfg.restSec);
+    const [totalSets, setTotalSets] = useState5(init.cfg.totalSets);
+    const [weight, setWeight] = useState5(init.cfg.weight);
     const weighted = exercise.type === "weightedInterval";
-    const [currentSet, setCurrentSet] = useState4(init.currentSet);
-    const [timeLeft, setTimeLeft] = useState4(init.cfg.workSec);
-    const [paused, setPaused] = useState4(false);
-    const intervalRef = useRef3(null);
-    const phaseRef = useRef3(init.phase);
-    const currentSetRef = useRef3(init.currentSet);
-    const timeLeftRef = useRef3(init.cfg.workSec);
-    const completedRef = useRef3(init.completed);
-    const configRef = useRef3(init.cfg);
-    useEffect4(() => {
+    const [currentSet, setCurrentSet] = useState5(init.currentSet);
+    const [timeLeft, setTimeLeft] = useState5(init.cfg.workSec);
+    const [paused, setPaused] = useState5(false);
+    const intervalRef = useRef4(null);
+    const phaseRef = useRef4(init.phase);
+    const currentSetRef = useRef4(init.currentSet);
+    const timeLeftRef = useRef4(init.cfg.workSec);
+    const completedRef = useRef4(init.completed);
+    const configRef = useRef4(init.cfg);
+    useEffect5(() => {
       configRef.current = { workSec, restSec, totalSets, weight };
       if (phaseRef.current === "idle") report();
     }, [workSec, restSec, totalSets, weight]);
@@ -21960,24 +21994,27 @@ Now generate the exercises and/or routines described by the user's request that 
         endWork(true);
       }
     };
-    useEffect4(() => () => clearTick(), []);
+    useEffect5(() => () => clearTick(), []);
     const running = phase === "prep" || phase === "work" || phase === "rest";
     const phaseColor = phase === "prep" ? C.text : phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
     const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
     const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
     const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
     const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
+    const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
     return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 }), weighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: weight, onChange: setWeight, min: 0, step: 0.5, inc: 2.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
         key: `${phase}-${currentSet}`,
         fraction,
+        nextFraction,
         color: phaseColor,
         animate: running && !paused
       }
     ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
-  function Ring({ fraction, color, animate }) {
+  function Ring({ fraction, nextFraction, color, animate }) {
+    const drain = useDrain(fraction, nextFraction, 1e3, animate);
     const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
     return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: `0 0 ${size} ${size}`, style: { transform: "rotate(-90deg)" }, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("circle", { cx: size / 2, cy: size / 2, r, fill: "none", stroke: C.surface2, strokeWidth: stroke }), /* @__PURE__ */ React.createElement(
       "circle",
@@ -21990,16 +22027,16 @@ Now generate the exercises and/or routines described by the user's request that 
         strokeWidth: stroke,
         strokeLinecap: "round",
         strokeDasharray: circ,
-        strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, fraction))),
-        style: { transition: animate ? "stroke-dashoffset 1s linear" : "none" }
+        strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, drain.value))),
+        style: { transition: drain.ms ? `stroke-dashoffset ${drain.ms}ms linear` : "none" }
       }
     ));
   }
 
   // climbing-tracker/components/ExerciseNotes.jsx
-  var { useState: useState5 } = React;
+  var { useState: useState6 } = React;
   function ExerciseNotes({ notes, onSave }) {
-    const [draft, setDraft] = useState5(null);
+    const [draft, setDraft] = useState6(null);
     if (draft !== null) {
       const commit = () => {
         const text = draft.trim();
@@ -22023,7 +22060,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseCard.jsx
-  var { useState: useState6 } = React;
+  var { useState: useState7 } = React;
   function progressOf(exercise, log) {
     var _a, _b;
     if (isIntervalType(exercise.type)) {
@@ -22033,8 +22070,8 @@ Now generate the exercises and/or routines described by the user's request that 
     return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
   }
   function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
-    const [collapsed, setCollapsed] = useState6(false);
-    const [progress, setProgress] = useState6(() => progressOf(exercise, initialLog));
+    const [collapsed, setCollapsed] = useState7(false);
+    const [progress, setProgress] = useState7(() => progressOf(exercise, initialLog));
     const complete = progress.total > 0 && progress.done >= progress.total;
     const handleChange = (log) => {
       setProgress(progressOf(exercise, log));
@@ -22044,10 +22081,10 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/Layout.jsx
-  var { useEffect: useEffect5, useState: useState7 } = React;
+  var { useEffect: useEffect6, useState: useState8 } = React;
   function useIsDesktop() {
-    const [matches, setMatches] = useState7(() => window.matchMedia(DESKTOP_QUERY).matches);
-    useEffect5(() => {
+    const [matches, setMatches] = useState8(() => window.matchMedia(DESKTOP_QUERY).matches);
+    useEffect6(() => {
       const mq = window.matchMedia(DESKTOP_QUERY);
       const onChange = () => setMatches(mq.matches);
       mq.addEventListener("change", onChange);
@@ -22095,14 +22132,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function Sheet({ title, onClose, children }) {
     const desktop = useIsDesktop();
-    useEffect5(() => {
+    useEffect6(() => {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = prev;
       };
     }, []);
-    useEffect5(() => {
+    useEffect6(() => {
       const onKey = (e) => {
         if (e.key === "Escape") onClose();
       };
@@ -22117,7 +22154,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/NotificationPrompt.jsx
-  var { useState: useState8, useEffect: useEffect6 } = React;
+  var { useState: useState9, useEffect: useEffect7 } = React;
   var DISMISS_KEY = "climbing-tracker:notif-prompt-dismissed";
   function readDismissed() {
     try {
@@ -22130,8 +22167,8 @@ Now generate the exercises and/or routines described by the user's request that 
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
   }
   function useNotificationState() {
-    const [state, setState] = useState8(notificationState);
-    useEffect6(() => {
+    const [state, setState] = useState9(notificationState);
+    useEffect7(() => {
       var _a;
       const refresh = () => setState(notificationState());
       document.addEventListener("visibilitychange", refresh);
@@ -22150,7 +22187,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function NotificationPrompt({ style }) {
     const [state, setState] = useNotificationState();
-    const [dismissed, setDismissed] = useState8(readDismissed);
+    const [dismissed, setDismissed] = useState9(readDismissed);
     const kind = state === "unsupported" ? isIOS() && !isInstalled() ? "install" : null : state === "granted" ? null : state;
     if (!kind || dismissed === kind) return null;
     const dismiss = () => {
@@ -22170,17 +22207,17 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState9, useEffect: useEffect7, useRef: useRef4 } = React;
+  var { useState: useState10, useEffect: useEffect8, useRef: useRef5 } = React;
   function ElapsedTime({ since }) {
-    const [now, setNow] = useState9(Date.now());
-    useEffect7(() => {
+    const [now, setNow] = useState10(Date.now());
+    useEffect8(() => {
       const id = setInterval(() => setNow(Date.now()), 1e3);
       return () => clearInterval(id);
     }, []);
     return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
   }
   function useWakeLock() {
-    useEffect7(() => {
+    useEffect8(() => {
       if (!("wakeLock" in navigator)) return;
       let lock = null;
       let active = true;
@@ -22209,22 +22246,22 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
     var _a;
-    const [order, setOrder] = useState9(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+    const [order, setOrder] = useState10(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
-    const completedRef = useRef4(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
-    const doneCountRef = useRef4(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
-    const firstOrderRef = useRef4(true);
-    useEffect7(() => {
+    const completedRef = useRef5(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
+    const doneCountRef = useRef5(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
+    const firstOrderRef = useRef5(true);
+    useEffect8(() => {
       if (firstOrderRef.current) {
         firstOrderRef.current = false;
         return;
       }
       onOrderChange && onOrderChange(order);
     }, [order]);
-    const [cardExercises] = useState9(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState10(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
-    const [restDock, setRestDock] = useState9(null);
+    const [restDock, setRestDock] = useState10(null);
     const desktop = useIsDesktop();
     useWakeLock();
     const startInterRest = (restAfterSec, label = "Next exercise in") => {
@@ -22294,6 +22331,7 @@ Now generate the exercises and/or routines described by the user's request that 
         label: interRest.label,
         tone: "accent",
         timeLeft: interRest.timeLeft,
+        remainingMs: interRest.remainingMs,
         total: interRest.total,
         paused: interRest.paused,
         onTogglePause: interRestTimer.togglePause,
@@ -22328,11 +22366,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useDragReorder.js
-  var { useRef: useRef5, useState: useState10 } = React;
+  var { useRef: useRef6, useState: useState11 } = React;
   var EDGE = 80;
   function useDragReorder(onDrop) {
-    const drag = useRef5(null);
-    const [draggingList, setDraggingList] = useState10(null);
+    const drag = useRef6(null);
+    const [draggingList, setDraggingList] = useState11(null);
     const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
     const layout = (st) => {
       const { els, rects, from, pointerY, startY } = st;
@@ -22419,11 +22457,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState11 } = React;
+  var { useState: useState12 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
   function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState11(false);
+    const [pickerOpen, setPickerOpen] = useState12(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -26962,14 +27000,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/LineChart.jsx
-  var { useEffect: useEffect8, useRef: useRef6 } = React;
+  var { useEffect: useEffect9, useRef: useRef7 } = React;
   var HEIGHT2 = 220;
   var FONT = "12px -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif";
   function LineChart({ times, values, formatAxis, onCursor }) {
-    const ref = useRef6(null);
-    const onCursorRef = useRef6(onCursor);
+    const ref = useRef7(null);
+    const onCursorRef = useRef7(onCursor);
     onCursorRef.current = onCursor;
-    useEffect8(() => {
+    useEffect9(() => {
       const el = ref.current;
       const axis = {
         stroke: C.muted,
@@ -27018,13 +27056,13 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseStatsPage.jsx
-  var { useState: useState12, useMemo } = React;
+  var { useState: useState13, useMemo } = React;
   var shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
     const desktop = useIsDesktop();
-    const [range, setRange] = useState12("all");
-    const [metricId, setMetricId] = useState12(null);
-    const [cursorIdx, setCursorIdx] = useState12(null);
+    const [range, setRange] = useState13("all");
+    const [metricId, setMetricId] = useState13(null);
+    const [cursorIdx, setCursorIdx] = useState13(null);
     const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
     const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
     const metrics = useMemo(() => metricsFor(exercise, bodyweight), [exercise, bodyweight]);
@@ -27076,7 +27114,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState13, useEffect: useEffect9, useRef: useRef7 } = React;
+  var { useState: useState14, useEffect: useEffect10, useRef: useRef8 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
   function readActiveSession() {
@@ -27103,21 +27141,21 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState13("Exercises");
+    const [tab, setTab] = useState14("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [restored] = useState13(readActiveSession);
-    const [activeSession, setActiveSessionState] = useState13(() => (restored == null ? void 0 : restored.session) || null);
-    const [confirm, setConfirm] = useState13(null);
+    const [restored] = useState14(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState14(() => (restored == null ? void 0 : restored.session) || null);
+    const [confirm, setConfirm] = useState14(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
     };
-    const [formOpen, setFormOpen] = useState13(false);
-    const [editingId, setEditingId] = useState13(null);
-    const [draft, setDraft] = useState13({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState14(false);
+    const [editingId, setEditingId] = useState14(null);
+    const [draft, setDraft] = useState14({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -27142,13 +27180,13 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState13(null);
-    const [statsExerciseId, setStatsExerciseId] = useState13(null);
+    const [editingRoutineId, setEditingRoutineId] = useState14(null);
+    const [statsExerciseId, setStatsExerciseId] = useState14(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
     };
-    useEffect9(() => {
+    useEffect10(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
@@ -27157,7 +27195,7 @@ Now generate the exercises and/or routines described by the user's request that 
         }));
       }
     }, []);
-    useEffect9(() => {
+    useEffect10(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         runDailyBackupIfNeeded(supabase, session);
       });
@@ -27233,8 +27271,8 @@ Now generate the exercises and/or routines described by the user's request that 
         return { ...r, steps: normalizeSupersets(blocks.flat()) };
       }));
     };
-    const sessionLogsRef = useRef7((restored == null ? void 0 : restored.logs) || []);
-    const sessionOrderRef = useRef7((restored == null ? void 0 : restored.order) || null);
+    const sessionLogsRef = useRef8((restored == null ? void 0 : restored.logs) || []);
+    const sessionOrderRef = useRef8((restored == null ? void 0 : restored.order) || null);
     const persistSession = (session = activeSession) => writeActiveSession(session && {
       session,
       logs: sessionLogsRef.current,
@@ -27308,8 +27346,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState13([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState13(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState14([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState14(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
@@ -27342,13 +27380,13 @@ Now generate the exercises and/or routines described by the user's request that 
       applyDrift(drift);
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
-    const fileInputRef = useRef7(null);
-    const [transferMode, setTransferMode] = useState13(null);
-    const [transferScope, setTransferScope] = useState13("all");
-    const [transferText, setTransferText] = useState13("");
-    const [copied, setCopied] = useState13(false);
-    const [importError, setImportError] = useState13("");
-    const [llmCopied, setLlmCopied] = useState13(false);
+    const fileInputRef = useRef8(null);
+    const [transferMode, setTransferMode] = useState14(null);
+    const [transferScope, setTransferScope] = useState14("all");
+    const [transferText, setTransferText] = useState14("");
+    const [copied, setCopied] = useState14(false);
+    const [importError, setImportError] = useState14("");
+    const [llmCopied, setLlmCopied] = useState14(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));

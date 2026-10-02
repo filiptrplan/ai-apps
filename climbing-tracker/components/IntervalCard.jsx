@@ -3,6 +3,7 @@ import { formatTime, formatWeightLabel } from "../format.js";
 import { sounds, getAudioCtx } from "../sounds.js";
 import { NumberField } from "./NumberField.jsx";
 import { Icon } from "./Icons.jsx";
+import { useDrain } from "./useDrain.js";
 
 const { useState, useEffect, useRef } = React;
 
@@ -203,7 +204,10 @@ export function IntervalCard({ exercise, initialLog, superset, onChange }) {
   const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
   const completed = phase === "done" ? (completedRef.current >= totalSets ? totalSets : completedRef.current) : completedRef.current;
   const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
+  // Each tick is 1s after the last (a resume restarts the interval), so
+  // while running the ring drains toward timeLeft - 1 over that second.
   const fraction = running ? (phaseTotal > 0 ? timeLeft / phaseTotal : 0) : phase === "done" ? 0 : 1;
+  const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
 
   return (
     <div>
@@ -221,6 +225,7 @@ export function IntervalCard({ exercise, initialLog, superset, onChange }) {
           <Ring
             key={`${phase}-${currentSet}`}
             fraction={fraction}
+            nextFraction={nextFraction}
             color={phaseColor}
             animate={running && !paused}
           />
@@ -298,15 +303,16 @@ export function IntervalCard({ exercise, initialLog, superset, onChange }) {
 
 // Circular countdown. Remounted (via key) at each phase change so it snaps to
 // full instead of animating backwards.
-function Ring({ fraction, color, animate }) {
+function Ring({ fraction, nextFraction, color, animate }) {
+  const drain = useDrain(fraction, nextFraction, 1000, animate);
   const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.surface2} strokeWidth={stroke} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, fraction)))}
-        style={{ transition: animate ? "stroke-dashoffset 1s linear" : "none" }}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, drain.value)))}
+        style={{ transition: drain.ms ? `stroke-dashoffset ${drain.ms}ms linear` : "none" }}
       />
     </svg>
   );

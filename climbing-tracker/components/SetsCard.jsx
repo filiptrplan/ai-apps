@@ -101,6 +101,7 @@ export function SetsCard({ exercise, initialLog, onChange }) {
             <RestBar
               label={`Rest · ${exercise.name}`}
               timeLeft={restTimer.rest.timeLeft}
+              remainingMs={restTimer.rest.remainingMs}
               total={restTimer.rest.total}
               paused={restTimer.rest.paused}
               onTogglePause={restTimer.togglePause}
