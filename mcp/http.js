@@ -70,6 +70,17 @@ async function authenticate(request) {
   return { token, supabase, userId };
 }
 
+// Calls one of the edge functions in supabase/functions as the user, like
+// shared/ai.js does in the apps.
+async function callFunction(supabase, name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    const details = await error.context?.json?.().catch(() => null);
+    throw new Error(details?.error ?? error.message);
+  }
+  return data;
+}
+
 export async function handleMcp(request) {
   if (request.method === "OPTIONS") return withCors(new Response(null, { status: 204 }));
 
@@ -90,7 +101,11 @@ export async function handleMcp(request) {
     return withCors(new Response("Method not allowed", { status: 405, headers: { Allow: "POST, OPTIONS" } }));
   }
 
-  const server = createMcpServer({ appData: createAppData(auth.supabase, auth.userId) });
+  const server = createMcpServer({
+    appData: createAppData(auth.supabase, auth.userId),
+    removePhoto: path => auth.supabase.storage.from("recipe-photos").remove([path]),
+    callFunction: (name, body) => callFunction(auth.supabase, name, body),
+  });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

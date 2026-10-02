@@ -73,7 +73,7 @@ const seed = () => ({
 test("lists every climbing tool", async () => {
   const { client } = await connect(seed());
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map(t => t.name).sort(), [
+  assert.deepEqual(tools.map(t => t.name).filter(n => n.startsWith("climbing_")).sort(), [
     "climbing_delete", "climbing_get_exercise_progress", "climbing_get_history", "climbing_get_overview",
     "climbing_log_workout", "climbing_save_exercise", "climbing_save_routine", "climbing_set_bodyweight",
     "climbing_update_workout",
