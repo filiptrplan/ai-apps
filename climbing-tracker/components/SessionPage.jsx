@@ -62,10 +62,21 @@ function useWakeLock() {
 // more set ticked. The last member's restAfterSec applies after the block.
 // Notes come from the live exercise list (notesById) rather than the
 // session's snapshot, so an edit shows on every card for that exercise.
-export function SessionPage({ session, notesById, onCancel, onLogChange, onFinish, onNotesChange }) {
-  const [order, setOrder] = useState(() => groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
-  const completedRef = useRef(session.exercises.map(() => false));
-  const doneCountRef = useRef(session.exercises.map(() => 0));
+//
+// initialLogs/initialOrder resume a workout restored after a reload; order
+// changes are reported via onOrderChange so they can be saved too.
+export function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
+  const [order, setOrder] = useState(() => initialOrder || groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
+  const doneCountOf = (ex, log) => isIntervalType(ex.type)
+    ? (log?.completedSets || 0)
+    : (log?.rows || []).filter(r => r.done).length;
+  const completedRef = useRef(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
+  const doneCountRef = useRef(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
+  const firstOrderRef = useRef(true);
+  useEffect(() => {
+    if (firstOrderRef.current) { firstOrderRef.current = false; return; }
+    onOrderChange && onOrderChange(order);
+  }, [order]);
   // Superset members log without their own between-set rest; the block's
   // round rest replaces it. Interval members keep restSec (so it isn't
   // logged as changed) and skip their rest phase via IntervalCard's superset mode.
@@ -107,9 +118,7 @@ export function SessionPage({ session, notesById, onCancel, onLogChange, onFinis
     const wasBlockComplete = block.every(i => completedRef.current[i]);
     const prevRound = Math.min(...block.map(i => doneCountRef.current[i]));
     completedRef.current[exIdx] = isStepComplete(exercise, log);
-    doneCountRef.current[exIdx] = isIntervalType(exercise.type)
-      ? (log?.completedSets || 0)
-      : (log?.rows || []).filter(r => r.done).length;
+    doneCountRef.current[exIdx] = doneCountOf(exercise, log);
     const blockComplete = block.every(i => completedRef.current[i]);
     const round = Math.min(...block.map(i => doneCountRef.current[i]));
 
@@ -139,6 +148,7 @@ export function SessionPage({ session, notesById, onCancel, onLogChange, onFinis
             <ExerciseCard
               key={exIdx}
               exercise={cardExercises[exIdx]}
+              initialLog={initialLogs[exIdx]}
               notes={notesById[session.exercises[exIdx].id]}
               position={position}
               total={order.length}

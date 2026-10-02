@@ -21724,7 +21724,7 @@ Now generate the exercises and/or routines described by the user's request that 
       }
     ), /* @__PURE__ */ React.createElement("span", { style: s.setInputSuffix }, suffix));
   }
-  function SetsCard({ exercise, onChange }) {
+  function SetsCard({ exercise, initialLog, onChange }) {
     const targetSets = exercise.sets || 1;
     const restSec = exercise.restSec || 0;
     const isWeighted = exercise.type === "weighted";
@@ -21733,7 +21733,10 @@ Now generate the exercises and/or routines described by the user's request that 
       const t = exercise.targetSets && exercise.targetSets[i];
       return { reps: t ? t.reps : exercise.reps || 0, weight: t ? (_b = (_a = t.weight) != null ? _a : exercise.weight) != null ? _b : 0 : exercise.weight || 0, done: false };
     };
-    const [rows, setRows] = useState3(() => Array.from({ length: targetSets }, (_2, i) => makeRow(i)));
+    const [rows, setRows] = useState3(() => {
+      var _a;
+      return ((_a = initialLog == null ? void 0 : initialLog.rows) == null ? void 0 : _a.length) ? initialLog.rows : Array.from({ length: targetSets }, (_2, i) => makeRow(i));
+    });
     const restTimer = useRestTimer();
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
     useEffect3(() => {
@@ -21799,24 +21802,37 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/IntervalCard.jsx
   var { useState: useState4, useEffect: useEffect4, useRef: useRef3 } = React;
   var PREP_SEC = 5;
-  function IntervalCard({ exercise, superset, onChange }) {
-    const [phase, setPhase] = useState4("idle");
-    const [workSec, setWorkSec] = useState4(exercise.workSec);
-    const [restSec, setRestSec] = useState4(exercise.restSec);
-    const [totalSets, setTotalSets] = useState4(exercise.sets);
-    const [weight, setWeight] = useState4(exercise.weight);
+  function IntervalCard({ exercise, initialLog, superset, onChange }) {
+    const [init] = useState4(() => {
+      var _a, _b, _c, _d;
+      const cfg = {
+        workSec: (_a = initialLog == null ? void 0 : initialLog.workSec) != null ? _a : exercise.workSec,
+        restSec: (_b = initialLog == null ? void 0 : initialLog.restSec) != null ? _b : exercise.restSec,
+        totalSets: (_c = initialLog == null ? void 0 : initialLog.targetSets) != null ? _c : exercise.sets,
+        weight: (_d = initialLog == null ? void 0 : initialLog.weight) != null ? _d : exercise.weight
+      };
+      const completed2 = (initialLog == null ? void 0 : initialLog.completedSets) || 0;
+      const phase2 = completed2 === 0 ? "idle" : completed2 >= cfg.totalSets ? "done" : "next";
+      return { cfg, completed: completed2, phase: phase2, currentSet: phase2 === "next" ? completed2 + 1 : 1 };
+    });
+    const [phase, setPhase] = useState4(init.phase);
+    const [workSec, setWorkSec] = useState4(init.cfg.workSec);
+    const [restSec, setRestSec] = useState4(init.cfg.restSec);
+    const [totalSets, setTotalSets] = useState4(init.cfg.totalSets);
+    const [weight, setWeight] = useState4(init.cfg.weight);
     const weighted = exercise.type === "weightedInterval";
-    const [currentSet, setCurrentSet] = useState4(1);
-    const [timeLeft, setTimeLeft] = useState4(exercise.workSec);
+    const [currentSet, setCurrentSet] = useState4(init.currentSet);
+    const [timeLeft, setTimeLeft] = useState4(init.cfg.workSec);
     const [paused, setPaused] = useState4(false);
     const intervalRef = useRef3(null);
-    const phaseRef = useRef3("idle");
-    const currentSetRef = useRef3(1);
-    const timeLeftRef = useRef3(exercise.workSec);
-    const completedRef = useRef3(0);
-    const configRef = useRef3({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
+    const phaseRef = useRef3(init.phase);
+    const currentSetRef = useRef3(init.currentSet);
+    const timeLeftRef = useRef3(init.cfg.workSec);
+    const completedRef = useRef3(init.completed);
+    const configRef = useRef3(init.cfg);
     useEffect4(() => {
       configRef.current = { workSec, restSec, totalSets, weight };
+      if (phaseRef.current === "idle") report();
     }, [workSec, restSec, totalSets, weight]);
     const report = () => onChange({
       type: exercise.type,
@@ -22016,15 +22032,15 @@ Now generate the exercises and/or routines described by the user's request that 
     const rows = (log == null ? void 0 : log.rows) || [];
     return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
   }
-  function ExerciseCard({ exercise, notes, position, total, label, onChange, onMove, onNotesChange }) {
+  function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
     const [collapsed, setCollapsed] = useState6(false);
-    const [progress, setProgress] = useState6(() => progressOf(exercise, null));
+    const [progress, setProgress] = useState6(() => progressOf(exercise, initialLog));
     const complete = progress.total > 0 && progress.done >= progress.total;
     const handleChange = (log) => {
       setProgress(progressOf(exercise, log));
       onChange(log);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, initialLog, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, initialLog, onChange: handleChange })));
   }
 
   // climbing-tracker/components/Layout.jsx
@@ -22191,11 +22207,20 @@ Now generate the exercises and/or routines described by the user's request that 
       };
     }, []);
   }
-  function SessionPage({ session, notesById, onCancel, onLogChange, onFinish, onNotesChange }) {
+  function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
     var _a;
-    const [order, setOrder] = useState9(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
-    const completedRef = useRef4(session.exercises.map(() => false));
-    const doneCountRef = useRef4(session.exercises.map(() => 0));
+    const [order, setOrder] = useState9(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+    const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+    const completedRef = useRef4(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
+    const doneCountRef = useRef4(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
+    const firstOrderRef = useRef4(true);
+    useEffect7(() => {
+      if (firstOrderRef.current) {
+        firstOrderRef.current = false;
+        return;
+      }
+      onOrderChange && onOrderChange(order);
+    }, [order]);
     const [cardExercises] = useState9(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
@@ -22228,7 +22253,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const wasBlockComplete = block.every((i) => completedRef.current[i]);
       const prevRound = Math.min(...block.map((i) => doneCountRef.current[i]));
       completedRef.current[exIdx] = isStepComplete(exercise, log);
-      doneCountRef.current[exIdx] = isIntervalType(exercise.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+      doneCountRef.current[exIdx] = doneCountOf(exercise, log);
       const blockComplete = block.every((i) => completedRef.current[i]);
       const round2 = Math.min(...block.map((i) => doneCountRef.current[i]));
       if (blockComplete && !wasBlockComplete) {
@@ -22252,6 +22277,7 @@ Now generate the exercises and/or routines described by the user's request that 
         {
           key: exIdx,
           exercise: cardExercises[exIdx],
+          initialLog: initialLogs[exIdx],
           notes: notesById[session.exercises[exIdx].id],
           position,
           total: order.length,
@@ -27052,6 +27078,22 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/App.jsx
   var { useState: useState13, useEffect: useEffect9, useRef: useRef7 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
+  var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
+  function readActiveSession() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY));
+      return saved && saved.session && Array.isArray(saved.session.exercises) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+  function writeActiveSession(saved) {
+    try {
+      if (saved) localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(saved));
+      else localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } catch {
+    }
+  }
   var TABS = [
     { id: "Exercises", label: "Exercises", icon: "exercises" },
     { id: "Routines", label: "Routines", icon: "routines" },
@@ -27067,7 +27109,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [activeSession, setActiveSession] = useState13(null);
+    const [restored] = useState13(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState13(() => (restored == null ? void 0 : restored.session) || null);
     const [confirm, setConfirm] = useState13(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
@@ -27190,10 +27233,25 @@ Now generate the exercises and/or routines described by the user's request that 
         return { ...r, steps: normalizeSupersets(blocks.flat()) };
       }));
     };
-    const sessionLogsRef = useRef7([]);
+    const sessionLogsRef = useRef7((restored == null ? void 0 : restored.logs) || []);
+    const sessionOrderRef = useRef7((restored == null ? void 0 : restored.order) || null);
+    const persistSession = (session = activeSession) => writeActiveSession(session && {
+      session,
+      logs: sessionLogsRef.current,
+      order: sessionOrderRef.current
+    });
+    const setActiveSession = (session) => {
+      if (!session) {
+        sessionLogsRef.current = [];
+        sessionOrderRef.current = null;
+      }
+      setActiveSessionState(session);
+      persistSession(session);
+    };
     const startExercise = (ex) => {
       sessionLogsRef.current = [null];
-      setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
+      sessionOrderRef.current = null;
+      setActiveSession({ id: uid(), kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
     };
     const startRoutine = (r) => {
       const exs = normalizeSupersets(r.steps).map((step) => {
@@ -27202,7 +27260,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }).filter(Boolean);
       if (exs.length === 0) return;
       sessionLogsRef.current = exs.map(() => null);
-      setActiveSession({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
+      sessionOrderRef.current = null;
+      setActiveSession({ id: uid(), kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
     };
     const cancelSession = () => setActiveSession(null);
     const requestCancelSession = () => {
@@ -27219,6 +27278,11 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const handleLogChange = (i, log) => {
       sessionLogsRef.current[i] = log;
+      persistSession();
+    };
+    const handleOrderChange = (order) => {
+      sessionOrderRef.current = order;
+      persistSession();
     };
     const finishSession = () => {
       const current = activeSession;
@@ -27389,7 +27453,11 @@ Now generate the exercises and/or routines described by the user's request that 
       return /* @__PURE__ */ React.createElement("div", { style: rootStyle }, /* @__PURE__ */ React.createElement("div", { style: desktop ? d.focus : void 0 }, /* @__PURE__ */ React.createElement(
         SessionPage,
         {
+          key: activeSession.id || activeSession.startedAt,
           session: activeSession,
+          initialLogs: sessionLogsRef.current,
+          initialOrder: sessionOrderRef.current,
+          onOrderChange: handleOrderChange,
           notesById: Object.fromEntries(exercises.map((e) => [e.id, e.notes || ""])),
           onCancel: requestCancelSession,
           onLogChange: handleLogChange,

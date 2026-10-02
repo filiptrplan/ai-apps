@@ -21,25 +21,42 @@ const PREP_SEC = 5; // "get ready" countdown before each tapped start
 //
 // Every tapped start (Start, or "Start set N" in a superset) runs a short
 // prep countdown first so there's time to get into position.
-export function IntervalCard({ exercise, superset, onChange }) {
-  const [phase, setPhase] = useState("idle"); // idle | prep | work | rest | next (superset only) | done
-  const [workSec, setWorkSec] = useState(exercise.workSec);
-  const [restSec, setRestSec] = useState(exercise.restSec);
-  const [totalSets, setTotalSets] = useState(exercise.sets);
-  const [weight, setWeight] = useState(exercise.weight);
+//
+// initialLog (a workout restored after a reload) brings back the edited
+// values and completed sets. A timer that was mid-run comes back waiting on
+// "Start set N" (the "next" phase), resuming at the first unfinished set.
+export function IntervalCard({ exercise, initialLog, superset, onChange }) {
+  const [init] = useState(() => {
+    const cfg = {
+      workSec: initialLog?.workSec ?? exercise.workSec,
+      restSec: initialLog?.restSec ?? exercise.restSec,
+      totalSets: initialLog?.targetSets ?? exercise.sets,
+      weight: initialLog?.weight ?? exercise.weight,
+    };
+    const completed = initialLog?.completedSets || 0;
+    const phase = completed === 0 ? "idle" : completed >= cfg.totalSets ? "done" : "next";
+    return { cfg, completed, phase, currentSet: phase === "next" ? completed + 1 : 1 };
+  });
+  const [phase, setPhase] = useState(init.phase); // idle | prep | work | rest | next | done
+  const [workSec, setWorkSec] = useState(init.cfg.workSec);
+  const [restSec, setRestSec] = useState(init.cfg.restSec);
+  const [totalSets, setTotalSets] = useState(init.cfg.totalSets);
+  const [weight, setWeight] = useState(init.cfg.weight);
   const weighted = exercise.type === "weightedInterval";
-  const [currentSet, setCurrentSet] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(exercise.workSec);
+  const [currentSet, setCurrentSet] = useState(init.currentSet);
+  const [timeLeft, setTimeLeft] = useState(init.cfg.workSec);
   const [paused, setPaused] = useState(false);
   const intervalRef = useRef(null);
-  const phaseRef = useRef("idle");
-  const currentSetRef = useRef(1);
-  const timeLeftRef = useRef(exercise.workSec);
-  const completedRef = useRef(0);
-  const configRef = useRef({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
+  const phaseRef = useRef(init.phase);
+  const currentSetRef = useRef(init.currentSet);
+  const timeLeftRef = useRef(init.cfg.workSec);
+  const completedRef = useRef(init.completed);
+  const configRef = useRef(init.cfg);
 
+  // Values edited before Start are reported too, so they survive a reload.
   useEffect(() => {
     configRef.current = { workSec, restSec, totalSets, weight };
+    if (phaseRef.current === "idle") report();
   }, [workSec, restSec, totalSets, weight]);
 
   const report = () => onChange({

@@ -15,9 +15,9 @@ function progressOf(exercise, log) {
   return { done: rows.filter(r => r.done).length, total: rows.length || exercise.sets || 1 };
 }
 
-export function ExerciseCard({ exercise, notes, position, total, label, onChange, onMove, onNotesChange }) {
+export function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [progress, setProgress] = useState(() => progressOf(exercise, null));
+  const [progress, setProgress] = useState(() => progressOf(exercise, initialLog));
   const complete = progress.total > 0 && progress.done >= progress.total;
 
   const handleChange = (log) => {
@@ -52,8 +52,8 @@ export function ExerciseCard({ exercise, notes, position, total, label, onChange
       <div style={collapsed ? s.hidden : s.exerciseCardBody}>
         <ExerciseNotes notes={notes} onSave={onNotesChange} />
         {isIntervalType(exercise.type)
-          ? <IntervalCard exercise={exercise} superset={!!exercise.supersetGroup} onChange={handleChange} />
-          : <SetsCard exercise={exercise} onChange={handleChange} />}
+          ? <IntervalCard exercise={exercise} initialLog={initialLog} superset={!!exercise.supersetGroup} onChange={handleChange} />
+          : <SetsCard exercise={exercise} initialLog={initialLog} onChange={handleChange} />}
       </div>
     </div>
   );
