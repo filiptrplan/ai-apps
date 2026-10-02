@@ -349,7 +349,7 @@ export const s = {
     display: "flow-root", padding: "0 16px",
     background: "rgba(14,14,16,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
   },
-  restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
+  restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0 },
   restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
   restBarBtn: {

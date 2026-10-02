@@ -28,7 +28,7 @@ export function SetValueInput({ value, onChange, suffix, decimal, dim, label }) 
 // done in any order. Ticking a set starts a non-blocking rest countdown (when
 // the exercise has a restSec configured) before the next tick; inside a
 // session it shows in the pinned rest dock rather than under the set.
-export function SetsCard({ exercise, onChange }) {
+export function SetsCard({ exercise, initialLog, onChange }) {
   const targetSets = exercise.sets || 1;
   const restSec = exercise.restSec || 0;
   const isWeighted = exercise.type === "weighted";
@@ -40,7 +40,7 @@ export function SetsCard({ exercise, onChange }) {
     return { reps: t ? t.reps : (exercise.reps || 0), weight: t ? (t.weight ?? exercise.weight ?? 0) : (exercise.weight || 0), done: false };
   };
 
-  const [rows, setRows] = useState(() => Array.from({ length: targetSets }, (_, i) => makeRow(i)));
+  const [rows, setRows] = useState(() => initialLog?.rows?.length ? initialLog.rows : Array.from({ length: targetSets }, (_, i) => makeRow(i)));
   const restTimer = useRestTimer();
   const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
 
@@ -101,6 +101,7 @@ export function SetsCard({ exercise, onChange }) {
             <RestBar
               label={`Rest · ${exercise.name}`}
               timeLeft={restTimer.rest.timeLeft}
+              remainingMs={restTimer.rest.remainingMs}
               total={restTimer.rest.total}
               paused={restTimer.rest.paused}
               onTogglePause={restTimer.togglePause}

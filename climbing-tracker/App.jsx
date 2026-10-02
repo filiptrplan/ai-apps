@@ -16,6 +16,7 @@ import {
   normalizeSupersets,
   applyRoutineStep,
   isIntervalType,
+  isStepComplete,
 } from "./format.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
@@ -24,6 +25,7 @@ import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ExerciseStatsPage } from "./components/ExerciseStatsPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
+import { HistoryEditForm } from "./components/HistoryEditForm.jsx";
 import { NumberField } from "./components/NumberField.jsx";
 import { Header, TabBar, Sidebar, Sheet, EmptyState, useIsDesktop } from "./components/Layout.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -32,6 +34,25 @@ const { useState, useEffect, useRef } = React;
 
 // A superset's round rests live on its last step (see RoutineEditPage).
 const roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
+
+// The workout in progress, kept in this device's localStorage (not synced)
+// so it survives the phone discarding the backgrounded app: { session, logs,
+// order }, written on every logged change and dropped on finish/cancel.
+const ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
+
+function readActiveSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY));
+    return saved && saved.session && Array.isArray(saved.session.exercises) ? saved : null;
+  } catch { return null; }
+}
+
+function writeActiveSession(saved) {
+  try {
+    if (saved) localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(saved));
+    else localStorage.removeItem(ACTIVE_SESSION_KEY);
+  } catch {}
+}
 
 const TABS = [
   { id: "Exercises", label: "Exercises", icon: "exercises" },
@@ -49,12 +70,13 @@ export function ClimbingTrackerApp() {
   const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
   const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
 
-  const [activeSession, setActiveSession] = useState(null);
+  const [restored] = useState(readActiveSession);
+  const [activeSession, setActiveSessionState] = useState(() => restored?.session || null);
 
   // Confirmation modal for destructive actions (delete / clear / overwrite).
   const [confirm, setConfirm] = useState(null); // { title, message, onConfirm, confirmLabel }
-  const requestConfirm = (title, message, onConfirm, confirmLabel) => {
-    setConfirm({ title, message, onConfirm, confirmLabel });
+  const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
+    setConfirm({ title, message, onConfirm, confirmLabel, tone });
   };
 
   // Exercise form state
@@ -200,12 +222,23 @@ export function ClimbingTrackerApp() {
 
   // Session control. Logs for the active session live in a ref (not state) since
   // cards report progress on every tick/timer-tick; we only need to read the
-  // latest values once, when the workout is finished.
-  const sessionLogsRef = useRef([]);
+  // latest values when the workout is finished - and mirror them to
+  // localStorage so a reload resumes the workout where it was.
+  const sessionLogsRef = useRef(restored?.logs || []);
+  const sessionOrderRef = useRef(restored?.order || null);
+  const persistSession = (session = activeSession) => writeActiveSession(session && {
+    session, logs: sessionLogsRef.current, order: sessionOrderRef.current,
+  });
+  const setActiveSession = (session) => {
+    if (!session) { sessionLogsRef.current = []; sessionOrderRef.current = null; }
+    setActiveSessionState(session);
+    persistSession(session);
+  };
 
   const startExercise = (ex) => {
     sessionLogsRef.current = [null];
-    setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
+    sessionOrderRef.current = null;
+    setActiveSession({ id: uid(), kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
   };
   const startRoutine = (r) => {
     const exs = normalizeSupersets(r.steps).map(step => {
@@ -214,7 +247,8 @@ export function ClimbingTrackerApp() {
     }).filter(Boolean);
     if (exs.length === 0) return;
     sessionLogsRef.current = exs.map(() => null);
-    setActiveSession({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
+    sessionOrderRef.current = null;
+    setActiveSession({ id: uid(), kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
   };
   const cancelSession = () => setActiveSession(null);
   const requestCancelSession = () => {
@@ -229,7 +263,8 @@ export function ClimbingTrackerApp() {
       cancelSession();
     }
   };
-  const handleLogChange = (i, log) => { sessionLogsRef.current[i] = log; };
+  const handleLogChange = (i, log) => { sessionLogsRef.current[i] = log; persistSession(); };
+  const handleOrderChange = (order) => { sessionOrderRef.current = order; persistSession(); };
   const finishSession = () => {
     const current = activeSession;
     const results = [];
@@ -256,9 +291,28 @@ export function ClimbingTrackerApp() {
     setActiveSession(null);
   };
 
+  // Finishing always goes through a confirm: the button sits under the
+  // thumb at the bottom of the screen, and a stray tap there used to end
+  // (and save) the workout on the spot.
+  const requestFinishSession = () => {
+    const { exercises: exs } = activeSession;
+    const left = exs.filter((ex, i) => !isStepComplete(ex, sessionLogsRef.current[i])).length;
+    const message = left === 0
+      ? "Everything's done. Save this workout to your history?"
+      : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
+    requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
+  };
+
   const [postSessionDrifts, setPostSessionDrifts] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
+  const [editingHistoryId, setEditingHistoryId] = useState(null);
+  // Re-sorted (newest first) in case the date was moved.
+  const saveHistoryEntry = (entry) => {
+    setHistory(history.map(h => h.id === entry.id ? entry : h)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)));
+    setEditingHistoryId(null);
+  };
   const requestDeleteHistoryEntry = (id) => {
     requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
   };
@@ -407,11 +461,15 @@ export function ClimbingTrackerApp() {
       <div style={rootStyle}>
         <div style={desktop ? d.focus : undefined}>
           <SessionPage
+            key={activeSession.id || activeSession.startedAt}
             session={activeSession}
+            initialLogs={sessionLogsRef.current}
+            initialOrder={sessionOrderRef.current}
+            onOrderChange={handleOrderChange}
             notesById={Object.fromEntries(exercises.map(e => [e.id, e.notes || ""]))}
             onCancel={requestCancelSession}
             onLogChange={handleLogChange}
-            onFinish={finishSession}
+            onFinish={requestFinishSession}
             onNotesChange={(id, notes) => updateExerciseTemplate(id, { notes })}
           />
         </div>
@@ -421,6 +479,7 @@ export function ClimbingTrackerApp() {
   }
 
   const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
+  const editingHistoryEntry = editingHistoryId ? history.find(h => h.id === editingHistoryId) : null;
   const statsExercise = statsExerciseId ? exercises.find(e => e.id === statsExerciseId) : null;
   const changeTab = (t) => {
     if (editingRoutine) closeRoutineEditor();
@@ -647,6 +706,9 @@ export function ClimbingTrackerApp() {
                                     <Icon.chart size={16} /> Stats
                                   </button>
                                 )}
+                                <button style={{ ...s.textBtn, ...s.btnSmall, marginLeft: 0 }} onClick={() => setEditingHistoryId(h.id)}>
+                                  <Icon.pencil size={16} /> Edit
+                                </button>
                                 <button
                                   style={{ ...s.btnDangerText, ...s.btnSmall }}
                                   onClick={() => requestDeleteHistoryEntry(h.id)}
@@ -784,6 +846,12 @@ export function ClimbingTrackerApp() {
               </div>
             </>
           )}
+        </Sheet>
+      )}
+
+      {editingHistoryEntry && (
+        <Sheet title={`Edit ${editingHistoryEntry.refName}`} onClose={() => setEditingHistoryId(null)}>
+          <HistoryEditForm entry={editingHistoryEntry} onSave={saveHistoryEntry} onCancel={() => setEditingHistoryId(null)} />
         </Sheet>
       )}
 

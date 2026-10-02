@@ -3,6 +3,7 @@ import { formatTime, formatWeightLabel } from "../format.js";
 import { sounds, getAudioCtx } from "../sounds.js";
 import { NumberField } from "./NumberField.jsx";
 import { Icon } from "./Icons.jsx";
+import { useDrain } from "./useDrain.js";
 
 const { useState, useEffect, useRef } = React;
 
@@ -21,25 +22,42 @@ const PREP_SEC = 5; // "get ready" countdown before each tapped start
 //
 // Every tapped start (Start, or "Start set N" in a superset) runs a short
 // prep countdown first so there's time to get into position.
-export function IntervalCard({ exercise, superset, onChange }) {
-  const [phase, setPhase] = useState("idle"); // idle | prep | work | rest | next (superset only) | done
-  const [workSec, setWorkSec] = useState(exercise.workSec);
-  const [restSec, setRestSec] = useState(exercise.restSec);
-  const [totalSets, setTotalSets] = useState(exercise.sets);
-  const [weight, setWeight] = useState(exercise.weight);
+//
+// initialLog (a workout restored after a reload) brings back the edited
+// values and completed sets. A timer that was mid-run comes back waiting on
+// "Start set N" (the "next" phase), resuming at the first unfinished set.
+export function IntervalCard({ exercise, initialLog, superset, onChange }) {
+  const [init] = useState(() => {
+    const cfg = {
+      workSec: initialLog?.workSec ?? exercise.workSec,
+      restSec: initialLog?.restSec ?? exercise.restSec,
+      totalSets: initialLog?.targetSets ?? exercise.sets,
+      weight: initialLog?.weight ?? exercise.weight,
+    };
+    const completed = initialLog?.completedSets || 0;
+    const phase = completed === 0 ? "idle" : completed >= cfg.totalSets ? "done" : "next";
+    return { cfg, completed, phase, currentSet: phase === "next" ? completed + 1 : 1 };
+  });
+  const [phase, setPhase] = useState(init.phase); // idle | prep | work | rest | next | done
+  const [workSec, setWorkSec] = useState(init.cfg.workSec);
+  const [restSec, setRestSec] = useState(init.cfg.restSec);
+  const [totalSets, setTotalSets] = useState(init.cfg.totalSets);
+  const [weight, setWeight] = useState(init.cfg.weight);
   const weighted = exercise.type === "weightedInterval";
-  const [currentSet, setCurrentSet] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(exercise.workSec);
+  const [currentSet, setCurrentSet] = useState(init.currentSet);
+  const [timeLeft, setTimeLeft] = useState(init.cfg.workSec);
   const [paused, setPaused] = useState(false);
   const intervalRef = useRef(null);
-  const phaseRef = useRef("idle");
-  const currentSetRef = useRef(1);
-  const timeLeftRef = useRef(exercise.workSec);
-  const completedRef = useRef(0);
-  const configRef = useRef({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
+  const phaseRef = useRef(init.phase);
+  const currentSetRef = useRef(init.currentSet);
+  const timeLeftRef = useRef(init.cfg.workSec);
+  const completedRef = useRef(init.completed);
+  const configRef = useRef(init.cfg);
 
+  // Values edited before Start are reported too, so they survive a reload.
   useEffect(() => {
     configRef.current = { workSec, restSec, totalSets, weight };
+    if (phaseRef.current === "idle") report();
   }, [workSec, restSec, totalSets, weight]);
 
   const report = () => onChange({
@@ -186,7 +204,10 @@ export function IntervalCard({ exercise, superset, onChange }) {
   const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
   const completed = phase === "done" ? (completedRef.current >= totalSets ? totalSets : completedRef.current) : completedRef.current;
   const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
+  // Each tick is 1s after the last (a resume restarts the interval), so
+  // while running the ring drains toward timeLeft - 1 over that second.
   const fraction = running ? (phaseTotal > 0 ? timeLeft / phaseTotal : 0) : phase === "done" ? 0 : 1;
+  const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
 
   return (
     <div>
@@ -204,6 +225,7 @@ export function IntervalCard({ exercise, superset, onChange }) {
           <Ring
             key={`${phase}-${currentSet}`}
             fraction={fraction}
+            nextFraction={nextFraction}
             color={phaseColor}
             animate={running && !paused}
           />
@@ -281,15 +303,16 @@ export function IntervalCard({ exercise, superset, onChange }) {
 
 // Circular countdown. Remounted (via key) at each phase change so it snaps to
 // full instead of animating backwards.
-function Ring({ fraction, color, animate }) {
+function Ring({ fraction, nextFraction, color, animate }) {
+  const drain = useDrain(fraction, nextFraction, 1000, animate);
   const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.surface2} strokeWidth={stroke} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, fraction)))}
-        style={{ transition: animate ? "stroke-dashoffset 1s linear" : "none" }}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, drain.value)))}
+        style={{ transition: drain.ms ? `stroke-dashoffset ${drain.ms}ms linear` : "none" }}
       />
     </svg>
   );

@@ -75,7 +75,8 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Tapping the "Rest over" notification brings the app back to the front.
+// Tapping a rest notification (countdown or "Rest over") brings the app back
+// to the front.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(

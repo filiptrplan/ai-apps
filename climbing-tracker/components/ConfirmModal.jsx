@@ -8,7 +8,7 @@ export function ConfirmModal({ confirm, onCancel }) {
       <p style={s.sheetMessage}>{confirm.message}</p>
       <div style={s.btnRow}>
         <button style={{ ...s.btnSecondary, flex: 1 }} onClick={onCancel}>Cancel</button>
-        <button style={{ ...s.btnDanger, flex: 1 }} onClick={() => { confirm.onConfirm(); onCancel(); }}>
+        <button style={{ ...(confirm.tone === "primary" ? s.btnPrimary : s.btnDanger), flex: 1 }} onClick={() => { confirm.onConfirm(); onCancel(); }}>
           {confirm.confirmLabel || "Delete"}
         </button>
       </div>

@@ -7354,8 +7354,8 @@ Suggested solution: ${env.workaround}`;
     }
     /** @internal */
     _notThisChannelEvent(event, ref) {
-      const { close, error, leave, join: join2 } = CHANNEL_EVENTS;
-      const events = [close, error, leave, join2];
+      const { close: close2, error, leave, join: join2 } = CHANNEL_EVENTS;
+      const events = [close2, error, leave, join2];
       return ref && events.includes(event) && ref !== this.joinPush.ref;
     }
     /** @internal */
@@ -18086,12 +18086,12 @@ ${suffix}`;
     async _startAutoRefresh() {
       await this._stopAutoRefresh();
       this._debug("#_startAutoRefresh()");
-      const ticker = setInterval(() => this._autoRefreshTokenTick(), AUTO_REFRESH_TICK_DURATION_MS);
-      this.autoRefreshTicker = ticker;
-      if (ticker && typeof ticker === "object" && typeof ticker.unref === "function") {
-        ticker.unref();
+      const ticker2 = setInterval(() => this._autoRefreshTokenTick(), AUTO_REFRESH_TICK_DURATION_MS);
+      this.autoRefreshTicker = ticker2;
+      if (ticker2 && typeof ticker2 === "object" && typeof ticker2.unref === "function") {
+        ticker2.unref();
       } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
-        Deno.unrefTimer(ticker);
+        Deno.unrefTimer(ticker2);
       }
       const timeout = setTimeout(async () => {
         await this.initializePromise;
@@ -18110,10 +18110,10 @@ ${suffix}`;
      */
     async _stopAutoRefresh() {
       this._debug("#_stopAutoRefresh()");
-      const ticker = this.autoRefreshTicker;
+      const ticker2 = this.autoRefreshTicker;
       this.autoRefreshTicker = null;
-      if (ticker) {
-        clearInterval(ticker);
+      if (ticker2) {
+        clearInterval(ticker2);
       }
       const timeout = this.autoRefreshTickTimeout;
       this.autoRefreshTickTimeout = null;
@@ -21211,7 +21211,7 @@ Now generate the exercises and/or routines described by the user's request that 
       backdropFilter: "blur(14px)",
       WebkitBackdropFilter: "blur(14px)"
     },
-    restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0, transition: "width 1s linear" },
+    restBarFill: { position: "absolute", left: 0, top: 0, bottom: 0 },
     restBarLabel: { position: "relative", flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
     restBarTime: { position: "relative", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 4 },
     restBarBtn: {
@@ -21382,18 +21382,19 @@ Now generate the exercises and/or routines described by the user's request that 
     link: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" })),
     grip: (p) => /* @__PURE__ */ React.createElement("svg", { width: p.size || 22, height: p.size || 22, viewBox: "0 0 24 24", "aria-hidden": "true", fill: "currentColor" }, [6, 12, 18].flatMap((y) => [9, 15].map((x) => /* @__PURE__ */ React.createElement("circle", { key: `${x}-${y}`, cx: x, cy: y, r: "1.6" })))),
     chart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 19h16M5 15l4.5-5 3.5 3 6-7" })),
+    pencil: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4zM13.5 6.5l4 4" })),
     flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
   // climbing-tracker/components/NumberField.jsx
   function NumberField({ label, value, onChange, min: min2 = 0, step = 1, inc, suffix = "" }) {
     const delta = inc != null ? inc : step;
-    const num = typeof value === "number" && !isNaN(value) ? value : min2;
+    const num2 = typeof value === "number" && !isNaN(value) ? value : min2;
     const bump = (dir) => {
-      const next = Math.round((num + dir * delta) * 100) / 100;
+      const next = Math.round((num2 + dir * delta) * 100) / 100;
       onChange(Math.max(min2, next));
     };
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.stepper }, /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(-1), disabled: num <= min2, "aria-label": `Decrease ${label}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 20 })), /* @__PURE__ */ React.createElement("div", { style: s.stepperValue }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.stepper }, /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(-1), disabled: num2 <= min2, "aria-label": `Decrease ${label}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 20 })), /* @__PURE__ */ React.createElement("div", { style: s.stepperValue }, /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.stepperInput,
@@ -21467,19 +21468,52 @@ Now generate the exercises and/or routines described by the user's request that 
     )), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, onClick: onSave, disabled: !draft.name.trim() }, "Save exercise"), onDelete && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 8 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete exercise"));
   }
 
+  // climbing-tracker/components/useDrain.js
+  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  function useDrain(from, to, ms, running) {
+    const [shown, setShown] = useState2({ value: from, ms: 0 });
+    const primedRef = useRef2(false);
+    useEffect2(() => {
+      if (!running) {
+        primedRef.current = false;
+        setShown({ value: from, ms: 0 });
+        return;
+      }
+      if (primedRef.current) {
+        setShown({ value: to, ms });
+        return;
+      }
+      setShown({ value: from, ms: 0 });
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => {
+          primedRef.current = true;
+          setShown({ value: to, ms });
+        });
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
+    }, [from, to, ms, running]);
+    return shown;
+  }
+
   // climbing-tracker/components/RestBar.jsx
   var { createContext, useContext } = React;
   var RestDockContext = createContext(null);
-  function RestBar({ label, timeLeft, total, paused, onTogglePause, onSkip, tone = "green" }) {
+  function RestBar({ label, timeLeft, remainingMs, total, paused, onTogglePause, onSkip, tone = "green" }) {
     const dock = useContext(RestDockContext);
     const color = tone === "green" ? C.green : C.accent;
     const soft = tone === "green" ? "rgba(76,195,138,0.18)" : "rgba(232,176,75,0.18)";
-    const pct = total > 0 ? Math.max(0, Math.min(100, timeLeft / total * 100)) : 0;
+    const pctOf = (sec) => total > 0 ? Math.max(0, Math.min(100, sec / total * 100)) : 0;
+    const exactSec = remainingMs != null ? remainingMs / 1e3 : timeLeft;
+    const drain = useDrain(pctOf(exactSec), pctOf(timeLeft - 1), Math.round((exactSec - (timeLeft - 1)) * 1e3), !paused);
     const bar = /* @__PURE__ */ React.createElement("div", { style: {
       ...s.restBar,
       ...tone === "green" ? {} : { background: "rgba(232,176,75,0.08)", borderColor: "rgba(232,176,75,0.35)" },
       ...dock && s.restBarDocked
-    } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${pct}%`, background: soft } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
+    } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${drain.value}%`, background: soft, transition: drain.ms ? `width ${drain.ms}ms linear` : "none" } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
     return dock ? ReactDOM.createPortal(bar, dock) : bar;
   }
 
@@ -21523,59 +21557,123 @@ Now generate the exercises and/or routines described by the user's request that 
   };
 
   // climbing-tracker/restAlert.js
-  var TAG = "climbing-tracker-rest";
+  var OVER_TAG = "climbing-tracker-rest";
+  var COUNTDOWN_TAG = "climbing-tracker-rest-countdown";
+  var ICON = "./climbing-tracker/icon.svg";
   function isInstalled() {
     return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   }
-  function supported() {
-    return isInstalled() && "Notification" in window && "serviceWorker" in navigator;
+  function notificationsSupported() {
+    return "Notification" in window && "serviceWorker" in navigator;
   }
-  function requestRestAlertPermission() {
-    if (supported() && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {
-      });
+  function notificationState() {
+    return notificationsSupported() ? Notification.permission : "unsupported";
+  }
+  async function requestNotifications() {
+    if (!notificationsSupported()) return "unsupported";
+    try {
+      return await Notification.requestPermission();
+    } catch {
+      return Notification.permission;
+    }
+  }
+  function canNotify() {
+    return notificationsSupported() && Notification.permission === "granted";
+  }
+  async function show(title, options) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { icon: ICON, ...options });
+    } catch {
+    }
+  }
+  async function close(tag) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      (await reg.getNotifications({ tag })).forEach((n) => n.close());
+    } catch {
+    }
+  }
+  var rests = /* @__PURE__ */ new Map();
+  var ticker = null;
+  var lastShown = "";
+  function mmss(sec) {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  }
+  function secondsLeft(r) {
+    return Math.max(0, Math.ceil((r.paused ? r.remainingMs : r.endsAt - Date.now()) / 1e3));
+  }
+  function updateCountdown() {
+    if (!canNotify() || document.visibilityState === "visible" || rests.size === 0) return;
+    const r = [...rests.values()].sort((a, b) => secondsLeft(a) - secondsLeft(b))[0];
+    const sec = secondsLeft(r);
+    if (sec <= 0) return;
+    const title = r.paused ? `Rest paused \xB7 ${mmss(sec)} left` : `Rest \xB7 ${mmss(sec)}`;
+    if (title === lastShown) return;
+    lastShown = title;
+    show(title, { body: r.label, tag: COUNTDOWN_TAG, silent: true, renotify: false });
+  }
+  function clearCountdown() {
+    lastShown = "";
+    if (canNotify()) close(COUNTDOWN_TAG);
+  }
+  function syncTicker() {
+    const want = rests.size > 0 && document.visibilityState !== "visible";
+    if (want && !ticker) {
+      ticker = setInterval(updateCountdown, 500);
+      updateCountdown();
+    } else if (!want && ticker) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+    if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
+  }
+  function trackRest(id, { endsAt = 0, remainingMs = 0, paused = false, label = "" }) {
+    rests.set(id, { endsAt, remainingMs, paused, label });
+    lastShown = "";
+    syncTicker();
+    updateCountdown();
+  }
+  function untrackRest(id) {
+    if (!rests.delete(id)) return;
+    syncTicker();
+    if (rests.size > 0) {
+      lastShown = "";
+      updateCountdown();
     }
   }
   async function notifyRestOver(body) {
-    if (!supported() || Notification.permission !== "granted") return;
+    if (!canNotify()) return;
     if (document.visibilityState === "visible") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Rest over", {
-        body,
-        tag: TAG,
-        renotify: true,
-        requireInteraction: true,
-        vibrate: [400, 150, 400, 150, 400],
-        icon: "./climbing-tracker/icon.svg"
-      });
-    } catch {
-    }
+    await show("Rest over", {
+      body,
+      tag: OVER_TAG,
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [400, 150, 400, 150, 400]
+    });
   }
   async function clearRestAlerts() {
-    if (!supported() || Notification.permission !== "granted") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      (await reg.getNotifications({ tag: TAG })).forEach((n) => n.close());
-    } catch {
-    }
+    if (canNotify()) close(OVER_TAG);
   }
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") clearRestAlerts();
+      syncTicker();
     });
   }
 
   // climbing-tracker/components/useRestTimer.js
-  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  var { useState: useState3, useEffect: useEffect3, useRef: useRef3 } = React;
   function useRestTimer() {
-    const [rest, setRest] = useState2(null);
-    const endsAtRef = useRef2(0);
-    const remainingMsRef = useRef2(0);
-    const tickRef = useRef2(null);
-    const endRef = useRef2(null);
-    const noticeRef = useRef2("");
-    const lastSecRef = useRef2(0);
+    const [rest, setRest] = useState3(null);
+    const endsAtRef = useRef3(0);
+    const remainingMsRef = useRef3(0);
+    const tickRef = useRef3(null);
+    const endRef = useRef3(null);
+    const noticeRef = useRef3("");
+    const lastSecRef = useRef3(0);
+    const idRef = useRef3({});
     const clearTimers = () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
@@ -21588,6 +21686,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const finish = () => {
       clearTimers();
+      untrackRest(idRef.current);
       sounds.workStart();
       notifyRestOver(noticeRef.current);
       setRest(null);
@@ -21600,7 +21699,7 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       if (sec === lastSecRef.current) return;
       lastSecRef.current = sec;
-      setRest((r) => r && { ...r, timeLeft: sec });
+      setRest((r) => r && { ...r, timeLeft: sec, remainingMs: endsAtRef.current - Date.now() });
       if (sec <= 3) sounds.countdown();
     };
     const run = (ms) => {
@@ -21608,36 +21707,41 @@ Now generate the exercises and/or routines described by the user's request that 
       lastSecRef.current = Math.ceil(ms / 1e3);
       tickRef.current = setInterval(tick, 250);
       endRef.current = setTimeout(finish, ms);
+      trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
     };
     const start = (sec, { notice = "", ...meta } = {}) => {
       clearTimers();
-      requestRestAlertPermission();
       noticeRef.current = notice;
-      setRest({ ...meta, total: sec, timeLeft: sec, paused: false });
+      setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1e3, paused: false });
       sounds.restStart();
       run(sec * 1e3);
     };
     const stop = () => {
       clearTimers();
+      untrackRest(idRef.current);
       setRest(null);
     };
     const togglePause = () => {
       if (!rest) return;
       if (rest.paused) {
         run(remainingMsRef.current);
-        setRest({ ...rest, paused: false });
+        setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
       } else {
         remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
         clearTimers();
-        setRest({ ...rest, paused: true });
+        trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
+        setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
       }
     };
-    useEffect2(() => clearTimers, []);
+    useEffect3(() => () => {
+      clearTimers();
+      untrackRest(idRef.current);
+    }, []);
     return { rest, start, stop, togglePause };
   }
 
   // climbing-tracker/components/SetsCard.jsx
-  var { useState: useState3, useEffect: useEffect3 } = React;
+  var { useState: useState4, useEffect: useEffect4 } = React;
   function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
     return /* @__PURE__ */ React.createElement("div", { style: { ...s.setInputWrap, ...dim ? s.setDone : {} } }, /* @__PURE__ */ React.createElement(
       "input",
@@ -21654,7 +21758,7 @@ Now generate the exercises and/or routines described by the user's request that 
       }
     ), /* @__PURE__ */ React.createElement("span", { style: s.setInputSuffix }, suffix));
   }
-  function SetsCard({ exercise, onChange }) {
+  function SetsCard({ exercise, initialLog, onChange }) {
     const targetSets = exercise.sets || 1;
     const restSec = exercise.restSec || 0;
     const isWeighted = exercise.type === "weighted";
@@ -21663,10 +21767,13 @@ Now generate the exercises and/or routines described by the user's request that 
       const t = exercise.targetSets && exercise.targetSets[i];
       return { reps: t ? t.reps : exercise.reps || 0, weight: t ? (_b = (_a = t.weight) != null ? _a : exercise.weight) != null ? _b : 0 : exercise.weight || 0, done: false };
     };
-    const [rows, setRows] = useState3(() => Array.from({ length: targetSets }, (_2, i) => makeRow(i)));
+    const [rows, setRows] = useState4(() => {
+      var _a;
+      return ((_a = initialLog == null ? void 0 : initialLog.rows) == null ? void 0 : _a.length) ? initialLog.rows : Array.from({ length: targetSets }, (_2, i) => makeRow(i));
+    });
     const restTimer = useRestTimer();
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
-    useEffect3(() => {
+    useEffect4(() => {
       onChange({ rows });
     }, [rows]);
     const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
@@ -21718,6 +21825,7 @@ Now generate the exercises and/or routines described by the user's request that 
       {
         label: `Rest \xB7 ${exercise.name}`,
         timeLeft: restTimer.rest.timeLeft,
+        remainingMs: restTimer.rest.remainingMs,
         total: restTimer.rest.total,
         paused: restTimer.rest.paused,
         onTogglePause: restTimer.togglePause,
@@ -21727,26 +21835,39 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/IntervalCard.jsx
-  var { useState: useState4, useEffect: useEffect4, useRef: useRef3 } = React;
+  var { useState: useState5, useEffect: useEffect5, useRef: useRef4 } = React;
   var PREP_SEC = 5;
-  function IntervalCard({ exercise, superset, onChange }) {
-    const [phase, setPhase] = useState4("idle");
-    const [workSec, setWorkSec] = useState4(exercise.workSec);
-    const [restSec, setRestSec] = useState4(exercise.restSec);
-    const [totalSets, setTotalSets] = useState4(exercise.sets);
-    const [weight, setWeight] = useState4(exercise.weight);
+  function IntervalCard({ exercise, initialLog, superset, onChange }) {
+    const [init] = useState5(() => {
+      var _a, _b, _c, _d;
+      const cfg = {
+        workSec: (_a = initialLog == null ? void 0 : initialLog.workSec) != null ? _a : exercise.workSec,
+        restSec: (_b = initialLog == null ? void 0 : initialLog.restSec) != null ? _b : exercise.restSec,
+        totalSets: (_c = initialLog == null ? void 0 : initialLog.targetSets) != null ? _c : exercise.sets,
+        weight: (_d = initialLog == null ? void 0 : initialLog.weight) != null ? _d : exercise.weight
+      };
+      const completed2 = (initialLog == null ? void 0 : initialLog.completedSets) || 0;
+      const phase2 = completed2 === 0 ? "idle" : completed2 >= cfg.totalSets ? "done" : "next";
+      return { cfg, completed: completed2, phase: phase2, currentSet: phase2 === "next" ? completed2 + 1 : 1 };
+    });
+    const [phase, setPhase] = useState5(init.phase);
+    const [workSec, setWorkSec] = useState5(init.cfg.workSec);
+    const [restSec, setRestSec] = useState5(init.cfg.restSec);
+    const [totalSets, setTotalSets] = useState5(init.cfg.totalSets);
+    const [weight, setWeight] = useState5(init.cfg.weight);
     const weighted = exercise.type === "weightedInterval";
-    const [currentSet, setCurrentSet] = useState4(1);
-    const [timeLeft, setTimeLeft] = useState4(exercise.workSec);
-    const [paused, setPaused] = useState4(false);
-    const intervalRef = useRef3(null);
-    const phaseRef = useRef3("idle");
-    const currentSetRef = useRef3(1);
-    const timeLeftRef = useRef3(exercise.workSec);
-    const completedRef = useRef3(0);
-    const configRef = useRef3({ workSec: exercise.workSec, restSec: exercise.restSec, totalSets: exercise.sets, weight: exercise.weight });
-    useEffect4(() => {
+    const [currentSet, setCurrentSet] = useState5(init.currentSet);
+    const [timeLeft, setTimeLeft] = useState5(init.cfg.workSec);
+    const [paused, setPaused] = useState5(false);
+    const intervalRef = useRef4(null);
+    const phaseRef = useRef4(init.phase);
+    const currentSetRef = useRef4(init.currentSet);
+    const timeLeftRef = useRef4(init.cfg.workSec);
+    const completedRef = useRef4(init.completed);
+    const configRef = useRef4(init.cfg);
+    useEffect5(() => {
       configRef.current = { workSec, restSec, totalSets, weight };
+      if (phaseRef.current === "idle") report();
     }, [workSec, restSec, totalSets, weight]);
     const report = () => onChange({
       type: exercise.type,
@@ -21874,24 +21995,27 @@ Now generate the exercises and/or routines described by the user's request that 
         endWork(true);
       }
     };
-    useEffect4(() => () => clearTick(), []);
+    useEffect5(() => () => clearTick(), []);
     const running = phase === "prep" || phase === "work" || phase === "rest";
     const phaseColor = phase === "prep" ? C.text : phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
     const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
     const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
     const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
     const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
+    const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
     return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 }), weighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: weight, onChange: setWeight, min: 0, step: 0.5, inc: 2.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
         key: `${phase}-${currentSet}`,
         fraction,
+        nextFraction,
         color: phaseColor,
         animate: running && !paused
       }
     ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
-  function Ring({ fraction, color, animate }) {
+  function Ring({ fraction, nextFraction, color, animate }) {
+    const drain = useDrain(fraction, nextFraction, 1e3, animate);
     const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
     return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: `0 0 ${size} ${size}`, style: { transform: "rotate(-90deg)" }, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("circle", { cx: size / 2, cy: size / 2, r, fill: "none", stroke: C.surface2, strokeWidth: stroke }), /* @__PURE__ */ React.createElement(
       "circle",
@@ -21904,16 +22028,16 @@ Now generate the exercises and/or routines described by the user's request that 
         strokeWidth: stroke,
         strokeLinecap: "round",
         strokeDasharray: circ,
-        strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, fraction))),
-        style: { transition: animate ? "stroke-dashoffset 1s linear" : "none" }
+        strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, drain.value))),
+        style: { transition: drain.ms ? `stroke-dashoffset ${drain.ms}ms linear` : "none" }
       }
     ));
   }
 
   // climbing-tracker/components/ExerciseNotes.jsx
-  var { useState: useState5 } = React;
+  var { useState: useState6 } = React;
   function ExerciseNotes({ notes, onSave }) {
-    const [draft, setDraft] = useState5(null);
+    const [draft, setDraft] = useState6(null);
     if (draft !== null) {
       const commit = () => {
         const text = draft.trim();
@@ -21937,7 +22061,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseCard.jsx
-  var { useState: useState6 } = React;
+  var { useState: useState7 } = React;
   function progressOf(exercise, log) {
     var _a, _b;
     if (isIntervalType(exercise.type)) {
@@ -21946,22 +22070,22 @@ Now generate the exercises and/or routines described by the user's request that 
     const rows = (log == null ? void 0 : log.rows) || [];
     return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
   }
-  function ExerciseCard({ exercise, notes, position, total, label, onChange, onMove, onNotesChange }) {
-    const [collapsed, setCollapsed] = useState6(false);
-    const [progress, setProgress] = useState6(() => progressOf(exercise, null));
+  function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
+    const [collapsed, setCollapsed] = useState7(false);
+    const [progress, setProgress] = useState7(() => progressOf(exercise, initialLog));
     const complete = progress.total > 0 && progress.done >= progress.total;
     const handleChange = (log) => {
       setProgress(progressOf(exercise, log));
       onChange(log);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, onChange: handleChange })));
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, initialLog, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, initialLog, onChange: handleChange })));
   }
 
   // climbing-tracker/components/Layout.jsx
-  var { useEffect: useEffect5, useState: useState7 } = React;
+  var { useEffect: useEffect6, useState: useState8 } = React;
   function useIsDesktop() {
-    const [matches, setMatches] = useState7(() => window.matchMedia(DESKTOP_QUERY).matches);
-    useEffect5(() => {
+    const [matches, setMatches] = useState8(() => window.matchMedia(DESKTOP_QUERY).matches);
+    useEffect6(() => {
       const mq = window.matchMedia(DESKTOP_QUERY);
       const onChange = () => setMatches(mq.matches);
       mq.addEventListener("change", onChange);
@@ -22009,14 +22133,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function Sheet({ title, onClose, children }) {
     const desktop = useIsDesktop();
-    useEffect5(() => {
+    useEffect6(() => {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = prev;
       };
     }, []);
-    useEffect5(() => {
+    useEffect6(() => {
       const onKey = (e) => {
         if (e.key === "Escape") onClose();
       };
@@ -22030,18 +22154,71 @@ Now generate the exercises and/or routines described by the user's request that 
     return /* @__PURE__ */ React.createElement("div", { style: s.empty }, /* @__PURE__ */ React.createElement("div", { style: s.emptyIcon }, /* @__PURE__ */ React.createElement(EmptyIcon, { size: 28 })), /* @__PURE__ */ React.createElement("div", { style: s.emptyTitle }, title), /* @__PURE__ */ React.createElement("div", { style: s.emptyText }, text), action);
   }
 
+  // climbing-tracker/components/NotificationPrompt.jsx
+  var { useState: useState9, useEffect: useEffect7 } = React;
+  var DISMISS_KEY = "climbing-tracker:notif-prompt-dismissed";
+  function readDismissed() {
+    try {
+      return localStorage.getItem(DISMISS_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  }
+  function useNotificationState() {
+    const [state, setState] = useState9(notificationState);
+    useEffect7(() => {
+      var _a;
+      const refresh = () => setState(notificationState());
+      document.addEventListener("visibilitychange", refresh);
+      let status = null;
+      (_a = navigator.permissions) == null ? void 0 : _a.query({ name: "notifications" }).then((st) => {
+        status = st;
+        st.onchange = refresh;
+      }).catch(() => {
+      });
+      return () => {
+        document.removeEventListener("visibilitychange", refresh);
+        if (status) status.onchange = null;
+      };
+    }, []);
+    return [state, setState];
+  }
+  function NotificationPrompt({ style }) {
+    const [state, setState] = useNotificationState();
+    const [dismissed, setDismissed] = useState9(readDismissed);
+    const kind = state === "unsupported" ? isIOS() && !isInstalled() ? "install" : null : state === "granted" ? null : state;
+    if (!kind || dismissed === kind) return null;
+    const dismiss = () => {
+      try {
+        localStorage.setItem(DISMISS_KEY, kind);
+      } catch {
+      }
+      setDismissed(kind);
+    };
+    const enable = async () => setState(await requestNotifications());
+    const text = {
+      default: "Turn on notifications to see the rest countdown when the app is in the background.",
+      denied: "Notifications are blocked, so you won't see the rest countdown in the background. Allow them for this site in your browser or system settings.",
+      install: "Add this app to your Home Screen (Share \u2192 Add to Home Screen) to get rest countdown notifications."
+    }[kind];
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.drift, marginTop: 0, marginBottom: 12, ...style }, role: "status" }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, text), kind === "default" && /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: enable }, "Enable"), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color: C.accent }, onClick: dismiss, "aria-label": "Dismiss" }, /* @__PURE__ */ React.createElement(Icon.x, { size: 18 })));
+  }
+
   // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState8, useEffect: useEffect6, useRef: useRef4 } = React;
+  var { useState: useState10, useEffect: useEffect8, useRef: useRef5 } = React;
   function ElapsedTime({ since }) {
-    const [now, setNow] = useState8(Date.now());
-    useEffect6(() => {
+    const [now, setNow] = useState10(Date.now());
+    useEffect8(() => {
       const id = setInterval(() => setNow(Date.now()), 1e3);
       return () => clearInterval(id);
     }, []);
     return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
   }
   function useWakeLock() {
-    useEffect6(() => {
+    useEffect8(() => {
       if (!("wakeLock" in navigator)) return;
       let lock = null;
       let active = true;
@@ -22068,15 +22245,24 @@ Now generate the exercises and/or routines described by the user's request that 
       };
     }, []);
   }
-  function SessionPage({ session, notesById, onCancel, onLogChange, onFinish, onNotesChange }) {
+  function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
     var _a;
-    const [order, setOrder] = useState8(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
-    const completedRef = useRef4(session.exercises.map(() => false));
-    const doneCountRef = useRef4(session.exercises.map(() => 0));
-    const [cardExercises] = useState8(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
+    const [order, setOrder] = useState10(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+    const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+    const completedRef = useRef5(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
+    const doneCountRef = useRef5(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
+    const firstOrderRef = useRef5(true);
+    useEffect8(() => {
+      if (firstOrderRef.current) {
+        firstOrderRef.current = false;
+        return;
+      }
+      onOrderChange && onOrderChange(order);
+    }, [order]);
+    const [cardExercises] = useState10(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
-    const [restDock, setRestDock] = useState8(null);
+    const [restDock, setRestDock] = useState10(null);
     const desktop = useIsDesktop();
     useWakeLock();
     const startInterRest = (restAfterSec, label = "Next exercise in") => {
@@ -22105,7 +22291,7 @@ Now generate the exercises and/or routines described by the user's request that 
       const wasBlockComplete = block.every((i) => completedRef.current[i]);
       const prevRound = Math.min(...block.map((i) => doneCountRef.current[i]));
       completedRef.current[exIdx] = isStepComplete(exercise, log);
-      doneCountRef.current[exIdx] = isIntervalType(exercise.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
+      doneCountRef.current[exIdx] = doneCountOf(exercise, log);
       const blockComplete = block.every((i) => completedRef.current[i]);
       const round2 = Math.min(...block.map((i) => doneCountRef.current[i]));
       if (blockComplete && !wasBlockComplete) {
@@ -22122,13 +22308,14 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
         right: null
       }
-    ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((block, position) => {
+    ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, /* @__PURE__ */ React.createElement(NotificationPrompt, { style: desktop ? d.fullRow : void 0 }), order.map((block, position) => {
       const isSuperset = block.length > 1;
       const cards = block.map((exIdx, k) => /* @__PURE__ */ React.createElement(
         ExerciseCard,
         {
           key: exIdx,
           exercise: cardExercises[exIdx],
+          initialLog: initialLogs[exIdx],
           notes: notesById[session.exercises[exIdx].id],
           position,
           total: order.length,
@@ -22145,6 +22332,7 @@ Now generate the exercises and/or routines described by the user's request that 
         label: interRest.label,
         tone: "accent",
         timeLeft: interRest.timeLeft,
+        remainingMs: interRest.remainingMs,
         total: interRest.total,
         paused: interRest.paused,
         onTogglePause: interRestTimer.togglePause,
@@ -22179,11 +22367,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useDragReorder.js
-  var { useRef: useRef5, useState: useState9 } = React;
+  var { useRef: useRef6, useState: useState11 } = React;
   var EDGE = 80;
   function useDragReorder(onDrop) {
-    const drag = useRef5(null);
-    const [draggingList, setDraggingList] = useState9(null);
+    const drag = useRef6(null);
+    const [draggingList, setDraggingList] = useState11(null);
     const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
     const layout = (st) => {
       const { els, rects, from, pointerY, startY } = st;
@@ -22270,11 +22458,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState10 } = React;
+  var { useState: useState12 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
   function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState10(false);
+    const [pickerOpen, setPickerOpen] = useState12(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -22629,19 +22817,19 @@ Now generate the exercises and/or routines described by the user's request that 
     el.removeEventListener(ev, cb, evOpts);
   }
   domEnv && setPxRatio();
-  function closestIdx(num, arr, lo, hi) {
+  function closestIdx(num2, arr, lo, hi) {
     let mid;
     lo = lo || 0;
     hi = hi || arr.length - 1;
     let bitwise = hi <= 2147483647;
     while (hi - lo > 1) {
       mid = bitwise ? lo + hi >> 1 : floor((lo + hi) / 2);
-      if (arr[mid] < num)
+      if (arr[mid] < num2)
         lo = mid;
       else
         hi = mid;
     }
-    if (num - arr[lo] <= arr[hi] - num)
+    if (num2 - arr[lo] <= arr[hi] - num2)
       return lo;
     return hi;
   }
@@ -22834,8 +23022,8 @@ Now generate the exercises and/or routines described by the user's request that 
   function numIntDigits(x) {
     return (log10((x ^ x >> 31) - (x >> 31)) | 0) + 1;
   }
-  function clamp(num, _min, _max) {
-    return min(max(num, _min), _max);
+  function clamp(num2, _min, _max) {
+    return min(max(num2, _min), _max);
   }
   function isFn(v) {
     return typeof v == "function";
@@ -22860,19 +23048,19 @@ Now generate the exercises and/or routines described by the user's request that 
       return val;
     let len = match[0].length - 1;
     if (str.indexOf("e-") != -1) {
-      let [num, exp] = str.split("e");
-      return +`${fixFloat(num)}e${exp}`;
+      let [num2, exp] = str.split("e");
+      return +`${fixFloat(num2)}e${exp}`;
     }
     return roundDec(val, len);
   };
-  function incrRound(num, incr) {
-    return fixFloat(roundDec(fixFloat(num / incr)) * incr);
+  function incrRound(num2, incr) {
+    return fixFloat(roundDec(fixFloat(num2 / incr)) * incr);
   }
-  function incrRoundUp(num, incr) {
-    return fixFloat(ceil(fixFloat(num / incr)) * incr);
+  function incrRoundUp(num2, incr) {
+    return fixFloat(ceil(fixFloat(num2 / incr)) * incr);
   }
-  function incrRoundDn(num, incr) {
-    return fixFloat(floor(fixFloat(num / incr)) * incr);
+  function incrRoundDn(num2, incr) {
+    return fixFloat(floor(fixFloat(num2 / incr)) * incr);
   }
   function roundDec(val, dec = 0) {
     if (isInt(val))
@@ -22882,8 +23070,8 @@ Now generate the exercises and/or routines described by the user's request that 
     return round(n) / p;
   }
   var fixedDec = /* @__PURE__ */ new Map();
-  function guessDec(num) {
-    return (("" + num).split(".")[1] || "").length;
+  function guessDec(num2) {
+    return (("" + num2).split(".")[1] || "").length;
   }
   function genIncrs(base, minExp, maxExp, mults) {
     let incrs = [];
@@ -25475,9 +25663,9 @@ Now generate the exercises and/or routines described by the user's request that 
             s2._paths != null && drawPath(i, false);
             {
               let _gaps = s2._paths != null ? s2._paths.gaps : null;
-              let show = s2.points.show(self2, i, i0, i1, _gaps);
-              let idxs2 = s2.points.filter(self2, i, show, _gaps);
-              if (show || idxs2) {
+              let show2 = s2.points.show(self2, i, i0, i1, _gaps);
+              let idxs2 = s2.points.filter(self2, i, show2, _gaps);
+              if (show2 || idxs2) {
                 s2.points._paths = s2.points.paths(self2, i, i0, i1, idxs2);
                 drawPath(i, true);
               }
@@ -26813,14 +27001,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/LineChart.jsx
-  var { useEffect: useEffect7, useRef: useRef6 } = React;
+  var { useEffect: useEffect9, useRef: useRef7 } = React;
   var HEIGHT2 = 220;
   var FONT = "12px -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif";
   function LineChart({ times, values, formatAxis, onCursor }) {
-    const ref = useRef6(null);
-    const onCursorRef = useRef6(onCursor);
+    const ref = useRef7(null);
+    const onCursorRef = useRef7(onCursor);
     onCursorRef.current = onCursor;
-    useEffect7(() => {
+    useEffect9(() => {
       const el = ref.current;
       const axis = {
         stroke: C.muted,
@@ -26869,13 +27057,13 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseStatsPage.jsx
-  var { useState: useState11, useMemo } = React;
+  var { useState: useState13, useMemo } = React;
   var shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
     const desktop = useIsDesktop();
-    const [range, setRange] = useState11("all");
-    const [metricId, setMetricId] = useState11(null);
-    const [cursorIdx, setCursorIdx] = useState11(null);
+    const [range, setRange] = useState13("all");
+    const [metricId, setMetricId] = useState13(null);
+    const [cursorIdx, setCursorIdx] = useState13(null);
     const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
     const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
     const metrics = useMemo(() => metricsFor(exercise, bodyweight), [exercise, bodyweight]);
@@ -26920,15 +27108,86 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/ConfirmModal.jsx
   function ConfirmModal({ confirm, onCancel }) {
     if (!confirm) return null;
-    return /* @__PURE__ */ React.createElement(Sheet, { title: confirm.title, onClose: onCancel }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDanger, flex: 1 }, onClick: () => {
+    return /* @__PURE__ */ React.createElement(Sheet, { title: confirm.title, onClose: onCancel }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...confirm.tone === "primary" ? s.btnPrimary : s.btnDanger, flex: 1 }, onClick: () => {
       confirm.onConfirm();
       onCancel();
     } }, confirm.confirmLabel || "Delete")));
   }
 
+  // climbing-tracker/components/HistoryEditForm.jsx
+  var { useState: useState14 } = React;
+  function toLocalInput(iso) {
+    const d2 = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}T${pad(d2.getHours())}:${pad(d2.getMinutes())}`;
+  }
+  var num = (v) => Number(v) || 0;
+  function HistoryEditForm({ entry, onSave, onCancel }) {
+    const [date, setDate] = useState14(() => toLocalInput(entry.date));
+    const [durationMin, setDurationMin] = useState14(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
+    const [steps, setSteps] = useState14(() => entry.steps.map((step) => ({
+      ...step,
+      performed: { ...step.performed, ...step.performed.sets && { sets: step.performed.sets.map((x) => ({ ...x })) } }
+    })));
+    const updatePerformed = (i, patch) => setSteps(steps.map((st, k) => k === i ? { ...st, performed: { ...st.performed, ...patch } } : st));
+    const updateSet = (i, j, patch) => updatePerformed(i, { sets: steps[i].performed.sets.map((x, k) => k === j ? { ...x, ...patch } : x) });
+    const addSet = (i) => {
+      const sets = steps[i].performed.sets;
+      updatePerformed(i, { sets: [...sets, { ...sets[sets.length - 1] }] });
+    };
+    const removeSet = (i, j) => updatePerformed(i, { sets: steps[i].performed.sets.filter((_2, k) => k !== j) });
+    const removeStep = (i) => setSteps(steps.filter((_2, k) => k !== i));
+    const save = () => {
+      const cleaned = steps.map((st) => {
+        const p = st.performed;
+        if (isIntervalType(p.type)) {
+          return { ...st, performed: {
+            ...p,
+            completedSets: num(p.completedSets),
+            targetSets: num(p.targetSets),
+            workSec: num(p.workSec),
+            restSec: num(p.restSec),
+            ...p.type === "weightedInterval" && { weight: num(p.weight) }
+          } };
+        }
+        return { ...st, performed: {
+          ...p,
+          sets: p.sets.map((x) => p.type === "weighted" ? { reps: num(x.reps), weight: num(x.weight) } : { reps: num(x.reps) })
+        } };
+      });
+      const dateChanged = date !== toLocalInput(entry.date);
+      onSave({
+        ...entry,
+        date: dateChanged && date ? new Date(date).toISOString() : entry.date,
+        durationSec: durationMin === "" ? entry.durationSec : Math.round(num(durationMin) * 60),
+        steps: cleaned
+      });
+    };
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Date"), /* @__PURE__ */ React.createElement("input", { style: { ...s.input, colorScheme: "dark" }, type: "datetime-local", value: date, onChange: (e) => setDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(NumberField, { label: "Duration", value: durationMin, onChange: setDurationMin, min: 0, suffix: "min" })), steps.map((st, i) => {
+      const p = st.performed;
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.card, padding: 14, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" } }, st.exerciseName), steps.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.danger }, onClick: () => removeStep(i), "aria-label": `Remove ${st.exerciseName}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }))), isIntervalType(p.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets done", value: p.completedSets, onChange: (v) => updatePerformed(i, { completedSets: v }), min: 0 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Target sets", value: p.targetSets, onChange: (v) => updatePerformed(i, { targetSets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: p.workSec, onChange: (v) => updatePerformed(i, { workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: p.restSec, onChange: (v) => updatePerformed(i, { restSec: v }), min: 0, suffix: "s" }), p.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: p.weight, onChange: (v) => updatePerformed(i, { weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.sets.map((set, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, j + 1), /* @__PURE__ */ React.createElement(SetValueInput, { value: set.reps, onChange: (v) => updateSet(i, j, { reps: v }), suffix: "reps", label: `${st.exerciseName} set ${j + 1} reps` }), p.type === "weighted" && /* @__PURE__ */ React.createElement(SetValueInput, { value: set.weight, onChange: (v) => updateSet(i, j, { weight: v }), suffix: "kg", decimal: true, label: `${st.exerciseName} set ${j + 1} weight` }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeSet(i, j), disabled: p.sets.length <= 1, "aria-label": `Remove set ${j + 1}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock }, onClick: () => addSet(i) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set")));
+    }), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: save }, "Save")));
+  }
+
   // climbing-tracker/App.jsx
-  var { useState: useState12, useEffect: useEffect8, useRef: useRef7 } = React;
+  var { useState: useState15, useEffect: useEffect10, useRef: useRef8 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
+  var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
+  function readActiveSession() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY));
+      return saved && saved.session && Array.isArray(saved.session.exercises) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+  function writeActiveSession(saved) {
+    try {
+      if (saved) localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(saved));
+      else localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } catch {
+    }
+  }
   var TABS = [
     { id: "Exercises", label: "Exercises", icon: "exercises" },
     { id: "Routines", label: "Routines", icon: "routines" },
@@ -26938,20 +27197,21 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState12("Exercises");
+    const [tab, setTab] = useState15("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [activeSession, setActiveSession] = useState12(null);
-    const [confirm, setConfirm] = useState12(null);
-    const requestConfirm = (title, message, onConfirm, confirmLabel) => {
-      setConfirm({ title, message, onConfirm, confirmLabel });
+    const [restored] = useState15(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState15(() => (restored == null ? void 0 : restored.session) || null);
+    const [confirm, setConfirm] = useState15(null);
+    const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
+      setConfirm({ title, message, onConfirm, confirmLabel, tone });
     };
-    const [formOpen, setFormOpen] = useState12(false);
-    const [editingId, setEditingId] = useState12(null);
-    const [draft, setDraft] = useState12({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState15(false);
+    const [editingId, setEditingId] = useState15(null);
+    const [draft, setDraft] = useState15({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -26976,13 +27236,13 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState12(null);
-    const [statsExerciseId, setStatsExerciseId] = useState12(null);
+    const [editingRoutineId, setEditingRoutineId] = useState15(null);
+    const [statsExerciseId, setStatsExerciseId] = useState15(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
     };
-    useEffect8(() => {
+    useEffect10(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
@@ -26991,7 +27251,7 @@ Now generate the exercises and/or routines described by the user's request that 
         }));
       }
     }, []);
-    useEffect8(() => {
+    useEffect10(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         runDailyBackupIfNeeded(supabase, session);
       });
@@ -27056,9 +27316,9 @@ Now generate the exercises and/or routines described by the user's request that 
         if (block.length > 1 && !wholeBlock) {
           const k = idx - (end - block.length), j = clamp2(k + delta, block.length - 1);
           if (j === k) return r;
-          const rests = roundRests(block[block.length - 1]);
+          const rests2 = roundRests(block[block.length - 1]);
           block.splice(j, 0, block.splice(k, 1)[0]);
-          block[block.length - 1] = { ...block[block.length - 1], ...rests };
+          block[block.length - 1] = { ...block[block.length - 1], ...rests2 };
         } else {
           const c = clamp2(b + delta, blocks.length - 1);
           if (c === b) return r;
@@ -27067,10 +27327,25 @@ Now generate the exercises and/or routines described by the user's request that 
         return { ...r, steps: normalizeSupersets(blocks.flat()) };
       }));
     };
-    const sessionLogsRef = useRef7([]);
+    const sessionLogsRef = useRef8((restored == null ? void 0 : restored.logs) || []);
+    const sessionOrderRef = useRef8((restored == null ? void 0 : restored.order) || null);
+    const persistSession = (session = activeSession) => writeActiveSession(session && {
+      session,
+      logs: sessionLogsRef.current,
+      order: sessionOrderRef.current
+    });
+    const setActiveSession = (session) => {
+      if (!session) {
+        sessionLogsRef.current = [];
+        sessionOrderRef.current = null;
+      }
+      setActiveSessionState(session);
+      persistSession(session);
+    };
     const startExercise = (ex) => {
       sessionLogsRef.current = [null];
-      setActiveSession({ kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
+      sessionOrderRef.current = null;
+      setActiveSession({ id: uid(), kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
     };
     const startRoutine = (r) => {
       const exs = normalizeSupersets(r.steps).map((step) => {
@@ -27079,7 +27354,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }).filter(Boolean);
       if (exs.length === 0) return;
       sessionLogsRef.current = exs.map(() => null);
-      setActiveSession({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
+      sessionOrderRef.current = null;
+      setActiveSession({ id: uid(), kind: "routine", refId: r.id, refName: r.name || "Untitled routine", exercises: exs, startedAt: Date.now() });
     };
     const cancelSession = () => setActiveSession(null);
     const requestCancelSession = () => {
@@ -27096,6 +27372,11 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const handleLogChange = (i, log) => {
       sessionLogsRef.current[i] = log;
+      persistSession();
+    };
+    const handleOrderChange = (order) => {
+      sessionOrderRef.current = order;
+      persistSession();
     };
     const finishSession = () => {
       const current = activeSession;
@@ -27121,9 +27402,20 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState12([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState12(null);
+    const requestFinishSession = () => {
+      const { exercises: exs } = activeSession;
+      const left = exs.filter((ex, i) => !isStepComplete(ex, sessionLogsRef.current[i])).length;
+      const message = left === 0 ? "Everything's done. Save this workout to your history?" : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
+      requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
+    };
+    const [postSessionDrifts, setPostSessionDrifts] = useState15([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState15(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
+    const [editingHistoryId, setEditingHistoryId] = useState15(null);
+    const saveHistoryEntry = (entry) => {
+      setHistory(history.map((h) => h.id === entry.id ? entry : h).sort((a, b) => new Date(b.date) - new Date(a.date)));
+      setEditingHistoryId(null);
+    };
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
     };
@@ -27155,13 +27447,13 @@ Now generate the exercises and/or routines described by the user's request that 
       applyDrift(drift);
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
-    const fileInputRef = useRef7(null);
-    const [transferMode, setTransferMode] = useState12(null);
-    const [transferScope, setTransferScope] = useState12("all");
-    const [transferText, setTransferText] = useState12("");
-    const [copied, setCopied] = useState12(false);
-    const [importError, setImportError] = useState12("");
-    const [llmCopied, setLlmCopied] = useState12(false);
+    const fileInputRef = useRef8(null);
+    const [transferMode, setTransferMode] = useState15(null);
+    const [transferScope, setTransferScope] = useState15("all");
+    const [transferText, setTransferText] = useState15("");
+    const [copied, setCopied] = useState15(false);
+    const [importError, setImportError] = useState15("");
+    const [llmCopied, setLlmCopied] = useState15(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -27266,16 +27558,21 @@ Now generate the exercises and/or routines described by the user's request that 
       return /* @__PURE__ */ React.createElement("div", { style: rootStyle }, /* @__PURE__ */ React.createElement("div", { style: desktop ? d.focus : void 0 }, /* @__PURE__ */ React.createElement(
         SessionPage,
         {
+          key: activeSession.id || activeSession.startedAt,
           session: activeSession,
+          initialLogs: sessionLogsRef.current,
+          initialOrder: sessionOrderRef.current,
+          onOrderChange: handleOrderChange,
           notesById: Object.fromEntries(exercises.map((e) => [e.id, e.notes || ""])),
           onCancel: requestCancelSession,
           onLogChange: handleLogChange,
-          onFinish: finishSession,
+          onFinish: requestFinishSession,
           onNotesChange: (id, notes) => updateExerciseTemplate(id, { notes })
         }
       )), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
     }
     const editingRoutine = editingRoutineId ? routines.find((r) => r.id === editingRoutineId) : null;
+    const editingHistoryEntry = editingHistoryId ? history.find((h) => h.id === editingHistoryId) : null;
     const statsExercise = statsExerciseId ? exercises.find((e) => e.id === statsExerciseId) : null;
     const changeTab = (t) => {
       if (editingRoutine) closeRoutineEditor();
@@ -27376,7 +27673,7 @@ Now generate the exercises and/or routines described by the user's request that 
       return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.historyCard }, /* @__PURE__ */ React.createElement("button", { style: s.historyHead, onClick: () => setExpandedHistoryId(expanded ? null : h.id), "aria-expanded": expanded }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, h.refName), h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.badge }, "Routine")), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), (drifts.length > 0 || expanded) && /* @__PURE__ */ React.createElement("div", { style: s.historyBody }, drifts.map(({ step, drift }, i) => /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: { ...s.drift, marginTop: i === 0 ? 0 : 8 } }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyDrift(drift) }, "Update"))), expanded && /* @__PURE__ */ React.createElement("div", { style: { ...s.historySteps, ...drifts.length > 0 ? { marginTop: 12 } : {} } }, h.steps.map((step, i) => {
         const exists = exercises.some((e) => e.id === step.exerciseId);
         return /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" && (exists ? /* @__PURE__ */ React.createElement("button", { style: { ...s.historyStepName, ...s.historyStepLink }, onClick: () => openStats(step.exerciseId) }, step.exerciseName) : /* @__PURE__ */ React.createElement("span", { style: s.historyStepName }, step.exerciseName)), /* @__PURE__ */ React.createElement("span", { style: s.historyStepValue }, formatPerformedSummary(step)));
-      }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", marginTop: 6, marginLeft: -14 } }, h.kind === "exercise" && exercises.some((e) => e.id === h.refId) && /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => openStats(h.refId) }, /* @__PURE__ */ React.createElement(Icon.chart, { size: 16 }), " Stats"), /* @__PURE__ */ React.createElement(
+      }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", marginTop: 6, marginLeft: -14 } }, h.kind === "exercise" && exercises.some((e) => e.id === h.refId) && /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => openStats(h.refId) }, /* @__PURE__ */ React.createElement(Icon.chart, { size: 16 }), " Stats"), /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => setEditingHistoryId(h.id) }, /* @__PURE__ */ React.createElement(Icon.pencil, { size: 16 }), " Edit"), /* @__PURE__ */ React.createElement(
         "button",
         {
           style: { ...s.btnDangerText, ...s.btnSmall },
@@ -27434,7 +27731,7 @@ Now generate the exercises and/or routines described by the user's request that 
         var _a2;
         return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
       } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json,application/json", onChange: importFromFile, style: { display: "none" } })))
-    ), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    ), editingHistoryEntry && /* @__PURE__ */ React.createElement(Sheet, { title: `Edit ${editingHistoryEntry.refName}`, onClose: () => setEditingHistoryId(null) }, /* @__PURE__ */ React.createElement(HistoryEditForm, { entry: editingHistoryEntry, onSave: saveHistoryEntry, onCancel: () => setEditingHistoryId(null) })), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx
