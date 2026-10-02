@@ -3,10 +3,12 @@
 // (adds its tools, prefixed with the app's name) and `instructions`.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as climbing from "./apps/climbing.js";
+import * as recipes from "./apps/recipes.js";
 
-const APPS = [climbing];
+const APPS = [climbing, recipes];
 
-export function createMcpServer({ appData }) {
+// `deps` is { appData, removePhoto?, callFunction? }; see http.js.
+export function createMcpServer(deps) {
   const server = new McpServer(
     { name: "ai-apps", title: "AI Apps", version: "1.0.0" },
     {
@@ -16,6 +18,6 @@ export function createMcpServer({ appData }) {
       ].join("\n\n"),
     }
   );
-  APPS.forEach(app => app.register(server, { appData }));
+  APPS.forEach(app => app.register(server, deps));
   return server;
 }
