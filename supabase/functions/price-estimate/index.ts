@@ -140,6 +140,15 @@ async function pool<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): 
 
 // ---- LLM steps ----
 
+// How hard the price picker leans toward cheap or pricey products.
+type Tier = "cheapest" | "normal" | "premium";
+const TIERS: Tier[] = ["cheapest", "normal", "premium"];
+const TIER_RULE: Record<Tier, string> = {
+  cheapest: "Pick the cheapest suitable product, by comparison price where sizes differ: the budget or store-brand line, never organic, premium or branded ones unless the item asks for them",
+  normal: "Prefer the plain, cheapest suitable everyday product over premium, organic or seasonal-special ones unless the item asks for them",
+  premium: "Pick the premium option: organic (Bio), regional, branded or higher-quality lines over the budget ones, even when they cost more",
+};
+
 const PLAN_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -194,10 +203,10 @@ const PICK_SCHEMA = {
   },
 };
 
-const PICK_SYSTEM = `You price a shopping list at Aldi Suisse. For each item (<item id | amount | name>) you get the Aldi products its search found (key | brand | name | pack size | CHF price | comparison price) and, for fresh produce, a Swiss retail price per unit.
+const pickSystem = (tier: Tier) => `You price a shopping list at Aldi Suisse. For each item (<item id | amount | name>) you get the Aldi products its search found (key | brand | name | pack size | CHF price | comparison price) and, for fresh produce, a Swiss retail price per unit.
 
 For every item choose:
-- source "aldi" with product = the key of the Aldi product that is really this item (not something that only contains it: "Vollmilch" is milk, not milk chocolate; "Pouletbrust" is not "Poulet-Hotdog"). Prefer the plain, cheapest suitable everyday product over premium, organic or seasonal-special ones unless the item asks for them. When there's no exact match, a close stand-in a cook would happily use is much better than no price: another variety or form of the same thing (brown or cane sugar for sugar, crunchy for smooth peanut butter, coconut cream for coconut milk, a bigger pack, an organic one); say so in the note. Then:
+- source "aldi" with product = the key of the Aldi product that is really this item (not something that only contains it: "Vollmilch" is milk, not milk chocolate; "Pouletbrust" is not "Poulet-Hotdog"). ${TIER_RULE[tier]}. When there's no exact match, a close stand-in a cook would happily use is much better than no price: another variety or form of the same thing (brown or cane sugar for sugar, crunchy for smooth peanut butter, coconut cream for coconut milk, a bigger pack, an organic one); say so in the note. Then:
   - packs: whole packs needed to cover the amount (at least 1).
   - usedPacks: how many packs the amount uses, as a decimal (200 g from a 1 kg bag -> 0.2; 3 eggs from a 10-pack -> 0.3; 1 l from a 1 l pack -> 1). With no amount, packs = 1 and usedPacks is what a typical recipe uses (salt -> 0.02, a bunch of herbs -> 1).
   - produceQty: 0.
@@ -255,6 +264,8 @@ serveSignedIn("Sign in to estimate prices.", async (body) => {
   if (list.length > MAX_ITEMS || list.reduce((n, i) => n + i.name.length + i.q.length, 0) > MAX_TOTAL_CHARS) {
     return json({ error: "The list is too long to price." }, 400);
   }
+
+  const tier: Tier = TIERS.includes(body?.tier) ? body.tier : "normal";
 
   try {
     const produce = await producePrices();
@@ -336,7 +347,7 @@ serveSignedIn("Sign in to estimate prices.", async (body) => {
         })
         .join("\n\n");
       const pick = await structuredCompletion<{ items: Pick[] }>({
-        system: PICK_SYSTEM,
+        system: pickSystem(tier),
         user: pickInput,
         schema: PICK_SCHEMA,
         schemaName: "price_pick",

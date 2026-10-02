@@ -1,9 +1,23 @@
-import { priceTotals, chf, priceDetail, monthLabel } from "../shared/prices.js";
+import { priceTotals, chf, priceDetail, monthLabel, PRICE_TIERS } from "../shared/prices.js";
+
+// Chips for choosing whether estimates look for the cheapest, normal or
+// premium products.
+export function TierPicker({ tier, setTier }) {
+  return (
+    <div className="ra-chips tight" role="group" aria-label="Price level">
+      {PRICE_TIERS.map((t) => (
+        <button key={t.id} className={`ra-chip sm${tier === t.id ? " on" : ""}`} aria-pressed={tier === t.id} onClick={() => setTier(t.id)}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // The cost breakdown for an estimate. With `servings` (a recipe) it shows
 // what the recipe uses next to what you'd pay; without (a list), only what
 // you'd pay.
-export function PriceBreakdown({ est, servings, stale, onRefresh, onClose }) {
+export function PriceBreakdown({ est, servings, stale, tier, setTier, onRefresh, onClose }) {
   if (est.loading) {
     return (
       <div className="ra-price" role="status" aria-live="polite">
@@ -54,10 +68,12 @@ export function PriceBreakdown({ est, servings, stale, onRefresh, onClose }) {
       )}
       {stale && (
         <p className="ra-price-stale">
-          {recipe ? "Servings or ingredients changed." : "The list changed."}{" "}
+          {recipe ? "Servings, ingredients or price level changed." : "The list or price level changed."}{" "}
           <button className="ra-link" onClick={onRefresh}>Recalculate</button>
         </p>
       )}
+
+      <TierPicker tier={tier} setTier={setTier} />
 
       <ul className="ra-price-rows">
         {est.items.map((row) => {

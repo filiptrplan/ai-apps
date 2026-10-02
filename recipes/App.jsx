@@ -9,6 +9,7 @@ import { Notebook } from "./Notebook.jsx";
 import { RecipeDetail } from "./RecipeDetail.jsx";
 import { Compose } from "./Compose.jsx";
 import { removePhoto } from "./photos.js";
+import { readTier, saveTier } from "../shared/prices.js";
 import { mergeRequest, applyMerges } from "./merge.js";
 
 const { useState, useEffect, useRef, useMemo } = React;
@@ -43,6 +44,12 @@ export function RecipesApp() {
   // Price estimates by recipe id (and "list:<id>" for lists), kept while
   // the app is open.
   const [prices, setPrices] = useState({});
+  // Whether estimates look for the cheapest, normal or premium products. Per device.
+  const [tier, setTierState] = useState(readTier);
+  const setTier = (t) => {
+    setTierState(t);
+    saveTier(t);
+  };
   const [timers, setTimers] = useState({});
   const [, setNow] = useState(0);
   const [toast, setToast] = useState(null);
@@ -208,6 +215,8 @@ export function RecipesApp() {
         session={session}
         price={prices[`list:${list.id}`]}
         setPrice={(fn) => setPrices((ps) => ({ ...ps, [`list:${list.id}`]: fn(ps[`list:${list.id}`]) }))}
+        tier={tier}
+        setTier={setTier}
       />
     );
   } else if (compose) {
@@ -232,6 +241,8 @@ export function RecipesApp() {
         setServings={(n) => setServings((s) => ({ ...s, [recipe.id]: n }))}
         price={prices[recipe.id]}
         setPrice={(fn) => setPrices((ps) => ({ ...ps, [recipe.id]: fn(ps[recipe.id]) }))}
+        tier={tier}
+        setTier={setTier}
         timers={timers}
         setTimer={setTimer}
         onBack={() => setRecipeId(null)}

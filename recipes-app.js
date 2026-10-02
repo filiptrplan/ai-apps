@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
+  // node_modules/tslib/tslib.es6.mjs
   function __rest(s, e) {
     var t = {};
     for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
+  // node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -20238,13 +20238,33 @@ ${suffix}`;
   var allIngs = (r) => r.ingredients.flatMap((s) => s.items);
 
   // shared/prices.js
-  var estimatePrices = (items) => callAI("price-estimate", { items });
-  var estimateKey = (items) => JSON.stringify(items.map((i) => [i.id, i.q, i.name]));
-  function runEstimate(items, set) {
-    const key = estimateKey(items);
+  var PRICE_TIERS = [
+    { id: "cheapest", label: "Cheapest" },
+    { id: "normal", label: "Normal" },
+    { id: "premium", label: "Premium" }
+  ];
+  var TIER_KEY = "recipes-price-tier";
+  function readTier() {
+    try {
+      const t = localStorage.getItem(TIER_KEY);
+      if (PRICE_TIERS.some((x) => x.id === t)) return t;
+    } catch {
+    }
+    return "normal";
+  }
+  function saveTier(tier) {
+    try {
+      localStorage.setItem(TIER_KEY, tier);
+    } catch {
+    }
+  }
+  var estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
+  var estimateKey = (items, tier = "normal") => JSON.stringify([tier, items.map((i) => [i.id, i.q, i.name])]);
+  function runEstimate(items, set, tier = "normal") {
+    const key = estimateKey(items, tier);
     set(() => ({ key, items, loading: true }));
     const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
-    estimatePrices(items).then(
+    estimatePrices(items, tier).then(
       (result) => done({ result }),
       (err) => done({ error: err.message || "Couldn't estimate prices." })
     );
@@ -20273,7 +20293,10 @@ ${suffix}`;
   }
 
   // recipes/Prices.jsx
-  function PriceBreakdown({ est, servings, stale, onRefresh, onClose }) {
+  function TierPicker({ tier, setTier }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "ra-chips tight", role: "group", "aria-label": "Price level" }, PRICE_TIERS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, className: `ra-chip sm${tier === t.id ? " on" : ""}`, "aria-pressed": tier === t.id, onClick: () => setTier(t.id) }, t.label)));
+  }
+  function PriceBreakdown({ est, servings, stale, tier, setTier, onRefresh, onClose }) {
     if (est.loading) {
       return /* @__PURE__ */ React.createElement("div", { className: "ra-price", role: "status", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("p", { className: "ra-muted" }, "Looking up Aldi prices\u2026"));
     }
@@ -20283,7 +20306,7 @@ ${suffix}`;
     const byId = new Map(est.result.items.map((i) => [i.id, i]));
     const t = priceTotals(est.result);
     const recipe = servings != null;
-    return /* @__PURE__ */ React.createElement("div", { className: "ra-price" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-totals" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "At the till"), /* @__PURE__ */ React.createElement("strong", null, chf(t.buy))), recipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Used"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used))), recipe && servings > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Per serving"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used / servings)))), t.missing > 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm" }, t.missing === 1 ? "1 item has" : `${t.missing} items have`, " no price and ", t.missing === 1 ? "isn't" : "aren't", " counted."), stale && /* @__PURE__ */ React.createElement("p", { className: "ra-price-stale" }, recipe ? "Servings or ingredients changed." : "The list changed.", " ", /* @__PURE__ */ React.createElement("button", { className: "ra-link", onClick: onRefresh }, "Recalculate")), /* @__PURE__ */ React.createElement("ul", { className: "ra-price-rows" }, est.items.map((row) => {
+    return /* @__PURE__ */ React.createElement("div", { className: "ra-price" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-totals" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "At the till"), /* @__PURE__ */ React.createElement("strong", null, chf(t.buy))), recipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Used"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used))), recipe && servings > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Per serving"), /* @__PURE__ */ React.createElement("strong", null, chf(t.used / servings)))), t.missing > 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm" }, t.missing === 1 ? "1 item has" : `${t.missing} items have`, " no price and ", t.missing === 1 ? "isn't" : "aren't", " counted."), stale && /* @__PURE__ */ React.createElement("p", { className: "ra-price-stale" }, recipe ? "Servings, ingredients or price level changed." : "The list or price level changed.", " ", /* @__PURE__ */ React.createElement("button", { className: "ra-link", onClick: onRefresh }, "Recalculate")), /* @__PURE__ */ React.createElement(TierPicker, { tier, setTier }), /* @__PURE__ */ React.createElement("ul", { className: "ra-price-rows" }, est.items.map((row) => {
       const p = byId.get(row.id) || { source: "none" };
       return /* @__PURE__ */ React.createElement("li", { key: row.id, className: p.source === "none" ? "none" : "" }, /* @__PURE__ */ React.createElement("div", { className: "ra-price-main" }, /* @__PURE__ */ React.createElement("span", { className: "ra-price-name" }, row.name, row.q && /* @__PURE__ */ React.createElement("span", { className: "ra-row-q" }, row.q)), /* @__PURE__ */ React.createElement("span", { className: "ra-price-sub" }, p.source === "aldi" && /* @__PURE__ */ React.createElement(React.Fragment, null, p.product, p.size ? ` \xB7 ${p.size}` : ""), p.source === "produce" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ra-price-tag" }, "Swiss avg."), p.product), p.source === "none" && "No price found", p.source !== "none" && /* @__PURE__ */ React.createElement("span", { className: "ra-price-calc" }, " \xB7 ", priceDetail(p))), p.note && /* @__PURE__ */ React.createElement("span", { className: "ra-price-note" }, p.note)), p.source !== "none" && /* @__PURE__ */ React.createElement("div", { className: "ra-price-cost" }, /* @__PURE__ */ React.createElement("span", null, chf(recipe ? p.used : p.buy)), recipe && p.buy !== p.used && /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "of ", chf(p.buy))));
     })), /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-src" }, "Prices from aldi-suisse.ch.", t.produce && ` Swiss avg.: fresh produce, Swiss retail average ${monthLabel(est.result.produceMonth)} (BLW), as Aldi doesn't list it online.`), /* @__PURE__ */ React.createElement("div", { className: "ra-price-actions" }, !stale && /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onRefresh }, "Refresh"), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: onClose }, "Close")));
@@ -20302,7 +20325,7 @@ ${suffix}`;
     }
   };
   var stop = (e) => e.stopPropagation();
-  function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
+  function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice, tier, setTier }) {
     const [editingId, setEditingId] = useState3(null);
     const [editingTitle, setEditingTitle] = useState3(false);
     const [draft, setDraft] = useState3("");
@@ -20509,7 +20532,7 @@ ${suffix}`;
     }
     const done = list.items.filter(inCart);
     const priceItems = list.items.filter((i) => !i.checked).map((i) => ({ id: i.id, q: i.q || "", name: i.name }));
-    const estimate = () => runEstimate(priceItems, setPrice);
+    const estimate = () => runEstimate(priceItems, setPrice, tier);
     const renderRow = (i, draggable) => {
       const dragging = draggable && drag && drag.id === i.id;
       const checked = shownChecked(i);
@@ -20578,11 +20601,13 @@ ${suffix}`;
         onBlur: () => setConfirmClear(false)
       },
       confirmClear ? "Tap again to clear" : "Clear list"
-    ))), price && /* @__PURE__ */ React.createElement(
+    ))), !price && todo.length > 0 && /* @__PURE__ */ React.createElement(TierPicker, { tier, setTier }), price && /* @__PURE__ */ React.createElement(
       PriceBreakdown,
       {
         est: price,
-        stale: !price.loading && price.key !== estimateKey(priceItems),
+        stale: !price.loading && price.key !== estimateKey(priceItems, tier),
+        tier,
+        setTier,
         onRefresh: estimate,
         onClose: () => setPrice(() => null)
       }
@@ -20736,7 +20761,7 @@ ${suffix}`;
     );
     return /* @__PURE__ */ React.createElement("div", { className: `ra-timer-run${tm.done ? " done" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "ra-timer-bar", style: { width: `${progress}%` } }), /* @__PURE__ */ React.createElement("span", { className: "ra-timer-clock" }, tm.done ? "Time's up" : fmtClock(left)), /* @__PURE__ */ React.createElement("button", { className: "pause", onClick: pause }, tm.done ? "Restart" : tm.running ? "Pause" : "Resume"), /* @__PURE__ */ React.createElement("button", { className: "reset", onClick: () => update((o) => ({ dur: o.dur, label: o.label })) }, "Reset"));
   }
-  function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, onBack, onEdit, addToList }) {
+  function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, tier, setTier, onBack, onEdit, addToList }) {
     const sv = servings != null ? servings : recipe.serves;
     const k = sv > 0 ? sv / recipe.serves : 1;
     const have = new Set(list.items.filter((i) => !i.checked).flatMap((i) => i.src || []));
@@ -20744,7 +20769,7 @@ ${suffix}`;
     const toAdd = (g) => ({ q: scaleQty(g.q, k), n: g.n, src: src(g) });
     const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
     const priceItems = allIngs(recipe).map((g) => ({ id: g.id, q: scaleQty(g.q, k), name: g.n }));
-    const estimate = () => runEstimate(priceItems, setPrice);
+    const estimate = () => runEstimate(priceItems, setPrice, tier);
     return /* @__PURE__ */ React.createElement("main", { className: "ra-detail" }, /* @__PURE__ */ React.createElement(Photo, { path: recipe.photo, session, className: `ra-detail-ph${recipe.photo ? " has-photo" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn", onClick: onBack, "aria-label": "Back" }, "\u2190"), /* @__PURE__ */ React.createElement("button", { className: "ra-round-btn text", onClick: onEdit }, "Edit")), /* @__PURE__ */ React.createElement("div", { className: "ra-detail-body" }, /* @__PURE__ */ React.createElement(Tags, { tags: recipe.tags }), /* @__PURE__ */ React.createElement("h1", { className: "ra-title detail" }, recipe.name), /* @__PURE__ */ React.createElement("div", { className: "ra-servings" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "ra-muted sm" }, "Servings"), /* @__PURE__ */ React.createElement("span", { className: "ra-muted" }, recipe.time, " min")), /* @__PURE__ */ React.createElement("div", { className: "ra-stepper" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setServings(Math.max(1, (sv || 1) - 1)), "aria-label": "Fewer servings" }, "\u2212"), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -20764,12 +20789,14 @@ ${suffix}`;
         onClick: () => addToList(missing.map(toAdd))
       },
       missing.length ? `Add ${missing.length} to ${list.name}` : `All on ${list.name}`
-    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), priceItems.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Cost"), !price && /* @__PURE__ */ React.createElement("button", { className: "ra-pill-btn", disabled: !session, onClick: estimate }, "Estimate at Aldi")), !price && session === null && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to estimate prices."), price && /* @__PURE__ */ React.createElement(
+    )), recipe.ingredients.map((sec) => /* @__PURE__ */ React.createElement("section", { key: sec.id }, sec.name && /* @__PURE__ */ React.createElement("h3", { className: "ra-sec-head" }, sec.name), sec.items.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ra-ing" }, /* @__PURE__ */ React.createElement("span", { className: "ra-ing-q" }, scaleQty(g.q, k)), /* @__PURE__ */ React.createElement("span", { className: "ra-ing-n" }, g.n), have.has(src(g)) ? /* @__PURE__ */ React.createElement("span", { className: "ra-on-list" }, "On list") : /* @__PURE__ */ React.createElement("button", { className: "ra-ing-add", onClick: () => addToList([toAdd(g)]), "aria-label": `Add ${g.n} to shopping list` }, "+"))))), priceItems.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-sub-head" }, /* @__PURE__ */ React.createElement("h2", null, "Cost"), !price && /* @__PURE__ */ React.createElement("button", { className: "ra-pill-btn", disabled: !session, onClick: estimate }, "Estimate at Aldi")), !price && /* @__PURE__ */ React.createElement(TierPicker, { tier, setTier }), !price && session === null && /* @__PURE__ */ React.createElement("p", { className: "ra-muted sm ra-price-hint" }, /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page"), " to estimate prices."), price && /* @__PURE__ */ React.createElement(
       PriceBreakdown,
       {
         est: price,
         servings: sv,
-        stale: !price.loading && price.key !== estimateKey(priceItems),
+        stale: !price.loading && price.key !== estimateKey(priceItems, tier),
+        tier,
+        setTier,
         onRefresh: estimate,
         onClose: () => setPrice(() => null)
       }
@@ -21356,6 +21383,11 @@ ${suffix}`;
     const [cat, setCat] = useState7("All");
     const [servings, setServings] = useState7({});
     const [prices, setPrices] = useState7({});
+    const [tier, setTierState] = useState7(readTier);
+    const setTier = (t) => {
+      setTierState(t);
+      saveTier(t);
+    };
     const [timers, setTimers] = useState7({});
     const [, setNow] = useState7(0);
     const [toast, setToast] = useState7(null);
@@ -21491,7 +21523,9 @@ ${suffix}`;
           showToast,
           session,
           price: prices[`list:${list.id}`],
-          setPrice: (fn) => setPrices((ps) => ({ ...ps, [`list:${list.id}`]: fn(ps[`list:${list.id}`]) }))
+          setPrice: (fn) => setPrices((ps) => ({ ...ps, [`list:${list.id}`]: fn(ps[`list:${list.id}`]) })),
+          tier,
+          setTier
         }
       );
     } else if (compose) {
@@ -21518,6 +21552,8 @@ ${suffix}`;
           setServings: (n) => setServings((s) => ({ ...s, [recipe.id]: n })),
           price: prices[recipe.id],
           setPrice: (fn) => setPrices((ps) => ({ ...ps, [recipe.id]: fn(ps[recipe.id]) })),
+          tier,
+          setTier,
           timers,
           setTimer,
           onBack: () => setRecipeId(null),

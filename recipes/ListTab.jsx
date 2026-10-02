@@ -1,6 +1,6 @@
 import { uid, plural, parseIng, ingToLine } from "./format.js";
 import { runEstimate, estimateKey } from "../shared/prices.js";
-import { PriceBreakdown } from "./Prices.jsx";
+import { PriceBreakdown, TierPicker } from "./Prices.jsx";
 
 const { useState, useRef, useEffect } = React;
 
@@ -22,7 +22,7 @@ const stop = (e) => e.stopPropagation();
 // name deletes it), switch lists with the chips. Items and edits are typed
 // amount first ("2 Onions"); the amount shows after the name. A typed item
 // that's already on the list is combined with it, like recipe ingredients.
-export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice }) {
+export function ListTab({ lists, list, setActive, setLists, updateItems, queueMerge, showToast, session, price, setPrice, tier, setTier }) {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draft, setDraft] = useState("");
@@ -245,7 +245,7 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
   const done = list.items.filter(inCart);
   // What's still to get, as sent for a price estimate.
   const priceItems = list.items.filter((i) => !i.checked).map((i) => ({ id: i.id, q: i.q || "", name: i.name }));
-  const estimate = () => runEstimate(priceItems, setPrice);
+  const estimate = () => runEstimate(priceItems, setPrice, tier);
 
   const renderRow = (i, draggable) => {
     const dragging = draggable && drag && drag.id === i.id;
@@ -354,10 +354,13 @@ export function ListTab({ lists, list, setActive, setLists, updateItems, queueMe
           )}
         </span>
       </div>
+      {!price && todo.length > 0 && <TierPicker tier={tier} setTier={setTier} />}
       {price && (
         <PriceBreakdown
           est={price}
-          stale={!price.loading && price.key !== estimateKey(priceItems)}
+          stale={!price.loading && price.key !== estimateKey(priceItems, tier)}
+          tier={tier}
+          setTier={setTier}
           onRefresh={estimate}
           onClose={() => setPrice(() => null)}
         />
