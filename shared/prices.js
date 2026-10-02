@@ -9,20 +9,27 @@
 // pay for it, used the share of that the amount uses.
 import { callAI } from "./ai.js";
 
-export const estimatePrices = (items) => callAI("price-estimate", { items });
+// How the picker leans: the cheapest products, everyday ones, or premium.
+export const PRICE_TIERS = [
+  { id: "cheapest", label: "Cheapest" },
+  { id: "normal", label: "Normal" },
+  { id: "premium", label: "Premium" },
+];
+
+export const estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
 
 // Apps keep an estimate as { key, items, loading?, error?, result? }, where
 // items are the rows sent and key identifies them, so a screen can tell when
 // what it shows no longer matches the recipe or list.
-export const estimateKey = (items) => JSON.stringify(items.map((i) => [i.id, i.q, i.name]));
+export const estimateKey = (items, tier = "normal") => JSON.stringify([tier, items.map((i) => [i.id, i.q, i.name])]);
 
 // Starts an estimate. `set` is a functional setter for the estimate; a late
 // answer is dropped when a newer estimate has started or it was closed.
-export function runEstimate(items, set) {
-  const key = estimateKey(items);
+export function runEstimate(items, set, tier = "normal") {
+  const key = estimateKey(items, tier);
   set(() => ({ key, items, loading: true }));
   const done = (patch) => set((cur) => (cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur));
-  estimatePrices(items).then(
+  estimatePrices(items, tier).then(
     (result) => done({ result }),
     (err) => done({ error: err.message || "Couldn't estimate prices." })
   );

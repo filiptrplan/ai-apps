@@ -2,7 +2,7 @@ import { scaleQty, stepMin, fmtClock, allIngs } from "./format.js";
 import { Tags } from "./Notebook.jsx";
 import { Photo } from "./Photo.jsx";
 import { runEstimate, estimateKey } from "../shared/prices.js";
-import { PriceBreakdown } from "./Prices.jsx";
+import { PriceBreakdown, TierPicker } from "./Prices.jsx";
 
 // Per-step timer: closed -> setting (pick minutes) -> active (running,
 // paused or done). Timers live in the app so they keep running when you
@@ -51,7 +51,7 @@ function StepTimer({ tm, detected, open, update, close }) {
   );
 }
 
-export function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, onBack, onEdit, addToList }) {
+export function RecipeDetail({ recipe, session, list, servings, setServings, timers, setTimer, price, setPrice, tier, setTier, onBack, onEdit, addToList }) {
   const sv = servings ?? recipe.serves;
   const k = sv > 0 ? sv / recipe.serves : 1;
   // Which of this recipe's ingredients are on the list, even when they've
@@ -62,7 +62,7 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
   const missing = allIngs(recipe).filter((g) => !have.has(src(g)));
   // Every ingredient at the chosen servings, as sent for a price estimate.
   const priceItems = allIngs(recipe).map((g) => ({ id: g.id, q: scaleQty(g.q, k), name: g.n }));
-  const estimate = () => runEstimate(priceItems, setPrice);
+  const estimate = () => runEstimate(priceItems, setPrice, tier);
 
   return (
     <main className="ra-detail">
@@ -131,6 +131,7 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
                 </button>
               )}
             </div>
+            {!price && <TierPicker tier={tier} setTier={setTier} />}
             {!price && session === null && (
               <p className="ra-muted sm ra-price-hint">
                 <a href="./">Sign in on the home page</a> to estimate prices.
@@ -140,7 +141,9 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
               <PriceBreakdown
                 est={price}
                 servings={sv}
-                stale={!price.loading && price.key !== estimateKey(priceItems)}
+                stale={!price.loading && price.key !== estimateKey(priceItems, tier)}
+                tier={tier}
+                setTier={setTier}
                 onRefresh={estimate}
                 onClose={() => setPrice(() => null)}
               />
