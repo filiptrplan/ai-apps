@@ -16,6 +16,7 @@ import {
   normalizeSupersets,
   applyRoutineStep,
   isIntervalType,
+  isStepComplete,
 } from "./format.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
@@ -74,8 +75,8 @@ export function ClimbingTrackerApp() {
 
   // Confirmation modal for destructive actions (delete / clear / overwrite).
   const [confirm, setConfirm] = useState(null); // { title, message, onConfirm, confirmLabel }
-  const requestConfirm = (title, message, onConfirm, confirmLabel) => {
-    setConfirm({ title, message, onConfirm, confirmLabel });
+  const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
+    setConfirm({ title, message, onConfirm, confirmLabel, tone });
   };
 
   // Exercise form state
@@ -290,6 +291,18 @@ export function ClimbingTrackerApp() {
     setActiveSession(null);
   };
 
+  // Finishing always goes through a confirm: the button sits under the
+  // thumb at the bottom of the screen, and a stray tap there used to end
+  // (and save) the workout on the spot.
+  const requestFinishSession = () => {
+    const { exercises: exs } = activeSession;
+    const left = exs.filter((ex, i) => !isStepComplete(ex, sessionLogsRef.current[i])).length;
+    const message = left === 0
+      ? "Everything's done. Save this workout to your history?"
+      : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
+    requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
+  };
+
   const [postSessionDrifts, setPostSessionDrifts] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
@@ -456,7 +469,7 @@ export function ClimbingTrackerApp() {
             notesById={Object.fromEntries(exercises.map(e => [e.id, e.notes || ""]))}
             onCancel={requestCancelSession}
             onLogChange={handleLogChange}
-            onFinish={finishSession}
+            onFinish={requestFinishSession}
             onNotesChange={(id, notes) => updateExerciseTemplate(id, { notes })}
           />
         </div>

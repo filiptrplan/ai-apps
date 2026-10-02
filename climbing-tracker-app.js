@@ -27108,7 +27108,7 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/ConfirmModal.jsx
   function ConfirmModal({ confirm, onCancel }) {
     if (!confirm) return null;
-    return /* @__PURE__ */ React.createElement(Sheet, { title: confirm.title, onClose: onCancel }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDanger, flex: 1 }, onClick: () => {
+    return /* @__PURE__ */ React.createElement(Sheet, { title: confirm.title, onClose: onCancel }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, confirm.message), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...confirm.tone === "primary" ? s.btnPrimary : s.btnDanger, flex: 1 }, onClick: () => {
       confirm.onConfirm();
       onCancel();
     } }, confirm.confirmLabel || "Delete")));
@@ -27206,8 +27206,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const [restored] = useState15(readActiveSession);
     const [activeSession, setActiveSessionState] = useState15(() => (restored == null ? void 0 : restored.session) || null);
     const [confirm, setConfirm] = useState15(null);
-    const requestConfirm = (title, message, onConfirm, confirmLabel) => {
-      setConfirm({ title, message, onConfirm, confirmLabel });
+    const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
+      setConfirm({ title, message, onConfirm, confirmLabel, tone });
     };
     const [formOpen, setFormOpen] = useState15(false);
     const [editingId, setEditingId] = useState15(null);
@@ -27402,6 +27402,12 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
+    const requestFinishSession = () => {
+      const { exercises: exs } = activeSession;
+      const left = exs.filter((ex, i) => !isStepComplete(ex, sessionLogsRef.current[i])).length;
+      const message = left === 0 ? "Everything's done. Save this workout to your history?" : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
+      requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
+    };
     const [postSessionDrifts, setPostSessionDrifts] = useState15([]);
     const [expandedHistoryId, setExpandedHistoryId] = useState15(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
@@ -27560,7 +27566,7 @@ Now generate the exercises and/or routines described by the user's request that 
           notesById: Object.fromEntries(exercises.map((e) => [e.id, e.notes || ""])),
           onCancel: requestCancelSession,
           onLogChange: handleLogChange,
-          onFinish: finishSession,
+          onFinish: requestFinishSession,
           onNotesChange: (id, notes) => updateExerciseTemplate(id, { notes })
         }
       )), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
