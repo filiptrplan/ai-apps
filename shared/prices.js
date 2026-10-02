@@ -15,21 +15,6 @@ export const PRICE_TIERS = [
   { id: "normal", label: "Normal" },
   { id: "premium", label: "Premium" },
 ];
-const TIER_KEY = "recipes-price-tier";
-
-export function readTier() {
-  try {
-    const t = localStorage.getItem(TIER_KEY);
-    if (PRICE_TIERS.some((x) => x.id === t)) return t;
-  } catch {}
-  return "normal";
-}
-
-export function saveTier(tier) {
-  try {
-    localStorage.setItem(TIER_KEY, tier);
-  } catch {}
-}
 
 export const estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
 

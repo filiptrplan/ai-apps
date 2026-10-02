@@ -20173,6 +20173,46 @@ ${suffix}`;
     return data;
   }
 
+  // shared/prices.js
+  var PRICE_TIERS = [
+    { id: "cheapest", label: "Cheapest" },
+    { id: "normal", label: "Normal" },
+    { id: "premium", label: "Premium" }
+  ];
+  var estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
+  var estimateKey = (items, tier = "normal") => JSON.stringify([tier, items.map((i) => [i.id, i.q, i.name])]);
+  function runEstimate(items, set, tier = "normal") {
+    const key = estimateKey(items, tier);
+    set(() => ({ key, items, loading: true }));
+    const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
+    estimatePrices(items, tier).then(
+      (result) => done({ result }),
+      (err) => done({ error: err.message || "Couldn't estimate prices." })
+    );
+  }
+  function priceTotals(result) {
+    const items = (result == null ? void 0 : result.items) || [];
+    const priced = items.filter((i) => i.source !== "none");
+    return {
+      buy: priced.reduce((n, i) => n + i.buy, 0),
+      used: priced.reduce((n, i) => n + i.used, 0),
+      priced: priced.length,
+      missing: items.length - priced.length,
+      produce: priced.some((i) => i.source === "produce")
+    };
+  }
+  var chf = (n) => `CHF ${(Math.round(n * 20) / 20).toFixed(2)}`;
+  function priceDetail(i) {
+    if (i.source === "aldi") return `${i.qty} \xD7 ${chf(i.unitPrice)}`;
+    if (i.source === "produce") return `${+i.qty.toFixed(3)} ${i.unit} \xD7 ${chf(i.unitPrice)}`;
+    return "";
+  }
+  function monthLabel(m) {
+    if (!m) return "";
+    const [y, mo] = m.split("-").map(Number);
+    return new Date(Date.UTC(y, mo - 1, 1)).toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" });
+  }
+
   // recipes/format.js
   var CATS = ["Breakfast", "Lunch", "Dinner"];
   var uid = () => Math.random().toString(36).slice(2, 9);
@@ -20236,61 +20276,6 @@ ${suffix}`;
     };
   }
   var allIngs = (r) => r.ingredients.flatMap((s) => s.items);
-
-  // shared/prices.js
-  var PRICE_TIERS = [
-    { id: "cheapest", label: "Cheapest" },
-    { id: "normal", label: "Normal" },
-    { id: "premium", label: "Premium" }
-  ];
-  var TIER_KEY = "recipes-price-tier";
-  function readTier() {
-    try {
-      const t = localStorage.getItem(TIER_KEY);
-      if (PRICE_TIERS.some((x) => x.id === t)) return t;
-    } catch {
-    }
-    return "normal";
-  }
-  function saveTier(tier) {
-    try {
-      localStorage.setItem(TIER_KEY, tier);
-    } catch {
-    }
-  }
-  var estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
-  var estimateKey = (items, tier = "normal") => JSON.stringify([tier, items.map((i) => [i.id, i.q, i.name])]);
-  function runEstimate(items, set, tier = "normal") {
-    const key = estimateKey(items, tier);
-    set(() => ({ key, items, loading: true }));
-    const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
-    estimatePrices(items, tier).then(
-      (result) => done({ result }),
-      (err) => done({ error: err.message || "Couldn't estimate prices." })
-    );
-  }
-  function priceTotals(result) {
-    const items = (result == null ? void 0 : result.items) || [];
-    const priced = items.filter((i) => i.source !== "none");
-    return {
-      buy: priced.reduce((n, i) => n + i.buy, 0),
-      used: priced.reduce((n, i) => n + i.used, 0),
-      priced: priced.length,
-      missing: items.length - priced.length,
-      produce: priced.some((i) => i.source === "produce")
-    };
-  }
-  var chf = (n) => `CHF ${(Math.round(n * 20) / 20).toFixed(2)}`;
-  function priceDetail(i) {
-    if (i.source === "aldi") return `${i.qty} \xD7 ${chf(i.unitPrice)}`;
-    if (i.source === "produce") return `${+i.qty.toFixed(3)} ${i.unit} \xD7 ${chf(i.unitPrice)}`;
-    return "";
-  }
-  function monthLabel(m) {
-    if (!m) return "";
-    const [y, mo] = m.split("-").map(Number);
-    return new Date(Date.UTC(y, mo - 1, 1)).toLocaleString("en", { month: "short", year: "numeric", timeZone: "UTC" });
-  }
 
   // recipes/Prices.jsx
   function TierPicker({ tier, setTier }) {
@@ -21383,11 +21368,8 @@ ${suffix}`;
     const [cat, setCat] = useState7("All");
     const [servings, setServings] = useState7({});
     const [prices, setPrices] = useState7({});
-    const [tier, setTierState] = useState7(readTier);
-    const setTier = (t) => {
-      setTierState(t);
-      saveTier(t);
-    };
+    const [storedTier, setTier] = useSyncedStorage(APP_ID, "recipes-price-tier", "normal");
+    const tier = PRICE_TIERS.some((t) => t.id === storedTier) ? storedTier : "normal";
     const [timers, setTimers] = useState7({});
     const [, setNow] = useState7(0);
     const [toast, setToast] = useState7(null);

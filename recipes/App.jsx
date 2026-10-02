@@ -2,6 +2,7 @@ import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
 import { supabase } from "../shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "../shared/backup.js";
+import { PRICE_TIERS } from "../shared/prices.js";
 import { callAI } from "../shared/ai.js";
 import { uid, plural, normRecipe } from "./format.js";
 import { ListTab } from "./ListTab.jsx";
@@ -9,7 +10,6 @@ import { Notebook } from "./Notebook.jsx";
 import { RecipeDetail } from "./RecipeDetail.jsx";
 import { Compose } from "./Compose.jsx";
 import { removePhoto } from "./photos.js";
-import { readTier, saveTier } from "../shared/prices.js";
 import { mergeRequest, applyMerges } from "./merge.js";
 
 const { useState, useEffect, useRef, useMemo } = React;
@@ -44,12 +44,10 @@ export function RecipesApp() {
   // Price estimates by recipe id (and "list:<id>" for lists), kept while
   // the app is open.
   const [prices, setPrices] = useState({});
-  // Whether estimates look for the cheapest, normal or premium products. Per device.
-  const [tier, setTierState] = useState(readTier);
-  const setTier = (t) => {
-    setTierState(t);
-    saveTier(t);
-  };
+  // Whether estimates look for the cheapest, normal or premium products.
+  // Synced with the account.
+  const [storedTier, setTier] = useSyncedStorage(APP_ID, "recipes-price-tier", "normal");
+  const tier = PRICE_TIERS.some((t) => t.id === storedTier) ? storedTier : "normal";
   const [timers, setTimers] = useState({});
   const [, setNow] = useState(0);
   const [toast, setToast] = useState(null);
