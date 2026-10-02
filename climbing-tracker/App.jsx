@@ -24,6 +24,7 @@ import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { ExerciseStatsPage } from "./components/ExerciseStatsPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
+import { HistoryEditForm } from "./components/HistoryEditForm.jsx";
 import { NumberField } from "./components/NumberField.jsx";
 import { Header, TabBar, Sidebar, Sheet, EmptyState, useIsDesktop } from "./components/Layout.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -292,6 +293,13 @@ export function ClimbingTrackerApp() {
   const [postSessionDrifts, setPostSessionDrifts] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const deleteHistoryEntry = (id) => setHistory(history.filter(h => h.id !== id));
+  const [editingHistoryId, setEditingHistoryId] = useState(null);
+  // Re-sorted (newest first) in case the date was moved.
+  const saveHistoryEntry = (entry) => {
+    setHistory(history.map(h => h.id === entry.id ? entry : h)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)));
+    setEditingHistoryId(null);
+  };
   const requestDeleteHistoryEntry = (id) => {
     requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
   };
@@ -458,6 +466,7 @@ export function ClimbingTrackerApp() {
   }
 
   const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
+  const editingHistoryEntry = editingHistoryId ? history.find(h => h.id === editingHistoryId) : null;
   const statsExercise = statsExerciseId ? exercises.find(e => e.id === statsExerciseId) : null;
   const changeTab = (t) => {
     if (editingRoutine) closeRoutineEditor();
@@ -684,6 +693,9 @@ export function ClimbingTrackerApp() {
                                     <Icon.chart size={16} /> Stats
                                   </button>
                                 )}
+                                <button style={{ ...s.textBtn, ...s.btnSmall, marginLeft: 0 }} onClick={() => setEditingHistoryId(h.id)}>
+                                  <Icon.pencil size={16} /> Edit
+                                </button>
                                 <button
                                   style={{ ...s.btnDangerText, ...s.btnSmall }}
                                   onClick={() => requestDeleteHistoryEntry(h.id)}
@@ -821,6 +833,12 @@ export function ClimbingTrackerApp() {
               </div>
             </>
           )}
+        </Sheet>
+      )}
+
+      {editingHistoryEntry && (
+        <Sheet title={`Edit ${editingHistoryEntry.refName}`} onClose={() => setEditingHistoryId(null)}>
+          <HistoryEditForm entry={editingHistoryEntry} onSave={saveHistoryEntry} onCancel={() => setEditingHistoryId(null)} />
         </Sheet>
       )}
 

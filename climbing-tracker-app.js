@@ -21382,18 +21382,19 @@ Now generate the exercises and/or routines described by the user's request that 
     link: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" })),
     grip: (p) => /* @__PURE__ */ React.createElement("svg", { width: p.size || 22, height: p.size || 22, viewBox: "0 0 24 24", "aria-hidden": "true", fill: "currentColor" }, [6, 12, 18].flatMap((y) => [9, 15].map((x) => /* @__PURE__ */ React.createElement("circle", { key: `${x}-${y}`, cx: x, cy: y, r: "1.6" })))),
     chart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 19h16M5 15l4.5-5 3.5 3 6-7" })),
+    pencil: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4zM13.5 6.5l4 4" })),
     flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
   // climbing-tracker/components/NumberField.jsx
   function NumberField({ label, value, onChange, min: min2 = 0, step = 1, inc, suffix = "" }) {
     const delta = inc != null ? inc : step;
-    const num = typeof value === "number" && !isNaN(value) ? value : min2;
+    const num2 = typeof value === "number" && !isNaN(value) ? value : min2;
     const bump = (dir) => {
-      const next = Math.round((num + dir * delta) * 100) / 100;
+      const next = Math.round((num2 + dir * delta) * 100) / 100;
       onChange(Math.max(min2, next));
     };
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.stepper }, /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(-1), disabled: num <= min2, "aria-label": `Decrease ${label}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 20 })), /* @__PURE__ */ React.createElement("div", { style: s.stepperValue }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: s.label }, label), /* @__PURE__ */ React.createElement("div", { style: s.stepper }, /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(-1), disabled: num2 <= min2, "aria-label": `Decrease ${label}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 20 })), /* @__PURE__ */ React.createElement("div", { style: s.stepperValue }, /* @__PURE__ */ React.createElement(
       "input",
       {
         style: s.stepperInput,
@@ -22816,19 +22817,19 @@ Now generate the exercises and/or routines described by the user's request that 
     el.removeEventListener(ev, cb, evOpts);
   }
   domEnv && setPxRatio();
-  function closestIdx(num, arr, lo, hi) {
+  function closestIdx(num2, arr, lo, hi) {
     let mid;
     lo = lo || 0;
     hi = hi || arr.length - 1;
     let bitwise = hi <= 2147483647;
     while (hi - lo > 1) {
       mid = bitwise ? lo + hi >> 1 : floor((lo + hi) / 2);
-      if (arr[mid] < num)
+      if (arr[mid] < num2)
         lo = mid;
       else
         hi = mid;
     }
-    if (num - arr[lo] <= arr[hi] - num)
+    if (num2 - arr[lo] <= arr[hi] - num2)
       return lo;
     return hi;
   }
@@ -23021,8 +23022,8 @@ Now generate the exercises and/or routines described by the user's request that 
   function numIntDigits(x) {
     return (log10((x ^ x >> 31) - (x >> 31)) | 0) + 1;
   }
-  function clamp(num, _min, _max) {
-    return min(max(num, _min), _max);
+  function clamp(num2, _min, _max) {
+    return min(max(num2, _min), _max);
   }
   function isFn(v) {
     return typeof v == "function";
@@ -23047,19 +23048,19 @@ Now generate the exercises and/or routines described by the user's request that 
       return val;
     let len = match[0].length - 1;
     if (str.indexOf("e-") != -1) {
-      let [num, exp] = str.split("e");
-      return +`${fixFloat(num)}e${exp}`;
+      let [num2, exp] = str.split("e");
+      return +`${fixFloat(num2)}e${exp}`;
     }
     return roundDec(val, len);
   };
-  function incrRound(num, incr) {
-    return fixFloat(roundDec(fixFloat(num / incr)) * incr);
+  function incrRound(num2, incr) {
+    return fixFloat(roundDec(fixFloat(num2 / incr)) * incr);
   }
-  function incrRoundUp(num, incr) {
-    return fixFloat(ceil(fixFloat(num / incr)) * incr);
+  function incrRoundUp(num2, incr) {
+    return fixFloat(ceil(fixFloat(num2 / incr)) * incr);
   }
-  function incrRoundDn(num, incr) {
-    return fixFloat(floor(fixFloat(num / incr)) * incr);
+  function incrRoundDn(num2, incr) {
+    return fixFloat(floor(fixFloat(num2 / incr)) * incr);
   }
   function roundDec(val, dec = 0) {
     if (isInt(val))
@@ -23069,8 +23070,8 @@ Now generate the exercises and/or routines described by the user's request that 
     return round(n) / p;
   }
   var fixedDec = /* @__PURE__ */ new Map();
-  function guessDec(num) {
-    return (("" + num).split(".")[1] || "").length;
+  function guessDec(num2) {
+    return (("" + num2).split(".")[1] || "").length;
   }
   function genIncrs(base, minExp, maxExp, mults) {
     let incrs = [];
@@ -27113,8 +27114,63 @@ Now generate the exercises and/or routines described by the user's request that 
     } }, confirm.confirmLabel || "Delete")));
   }
 
+  // climbing-tracker/components/HistoryEditForm.jsx
+  var { useState: useState14 } = React;
+  function toLocalInput(iso) {
+    const d2 = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}T${pad(d2.getHours())}:${pad(d2.getMinutes())}`;
+  }
+  var num = (v) => Number(v) || 0;
+  function HistoryEditForm({ entry, onSave, onCancel }) {
+    const [date, setDate] = useState14(() => toLocalInput(entry.date));
+    const [durationMin, setDurationMin] = useState14(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
+    const [steps, setSteps] = useState14(() => entry.steps.map((step) => ({
+      ...step,
+      performed: { ...step.performed, ...step.performed.sets && { sets: step.performed.sets.map((x) => ({ ...x })) } }
+    })));
+    const updatePerformed = (i, patch) => setSteps(steps.map((st, k) => k === i ? { ...st, performed: { ...st.performed, ...patch } } : st));
+    const updateSet = (i, j, patch) => updatePerformed(i, { sets: steps[i].performed.sets.map((x, k) => k === j ? { ...x, ...patch } : x) });
+    const addSet = (i) => {
+      const sets = steps[i].performed.sets;
+      updatePerformed(i, { sets: [...sets, { ...sets[sets.length - 1] }] });
+    };
+    const removeSet = (i, j) => updatePerformed(i, { sets: steps[i].performed.sets.filter((_2, k) => k !== j) });
+    const removeStep = (i) => setSteps(steps.filter((_2, k) => k !== i));
+    const save = () => {
+      const cleaned = steps.map((st) => {
+        const p = st.performed;
+        if (isIntervalType(p.type)) {
+          return { ...st, performed: {
+            ...p,
+            completedSets: num(p.completedSets),
+            targetSets: num(p.targetSets),
+            workSec: num(p.workSec),
+            restSec: num(p.restSec),
+            ...p.type === "weightedInterval" && { weight: num(p.weight) }
+          } };
+        }
+        return { ...st, performed: {
+          ...p,
+          sets: p.sets.map((x) => p.type === "weighted" ? { reps: num(x.reps), weight: num(x.weight) } : { reps: num(x.reps) })
+        } };
+      });
+      const dateChanged = date !== toLocalInput(entry.date);
+      onSave({
+        ...entry,
+        date: dateChanged && date ? new Date(date).toISOString() : entry.date,
+        durationSec: durationMin === "" ? entry.durationSec : Math.round(num(durationMin) * 60),
+        steps: cleaned
+      });
+    };
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Date"), /* @__PURE__ */ React.createElement("input", { style: { ...s.input, colorScheme: "dark" }, type: "datetime-local", value: date, onChange: (e) => setDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(NumberField, { label: "Duration", value: durationMin, onChange: setDurationMin, min: 0, suffix: "min" })), steps.map((st, i) => {
+      const p = st.performed;
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.card, padding: 14, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" } }, st.exerciseName), steps.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.danger }, onClick: () => removeStep(i), "aria-label": `Remove ${st.exerciseName}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }))), isIntervalType(p.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets done", value: p.completedSets, onChange: (v) => updatePerformed(i, { completedSets: v }), min: 0 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Target sets", value: p.targetSets, onChange: (v) => updatePerformed(i, { targetSets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: p.workSec, onChange: (v) => updatePerformed(i, { workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: p.restSec, onChange: (v) => updatePerformed(i, { restSec: v }), min: 0, suffix: "s" }), p.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: p.weight, onChange: (v) => updatePerformed(i, { weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.sets.map((set, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, j + 1), /* @__PURE__ */ React.createElement(SetValueInput, { value: set.reps, onChange: (v) => updateSet(i, j, { reps: v }), suffix: "reps", label: `${st.exerciseName} set ${j + 1} reps` }), p.type === "weighted" && /* @__PURE__ */ React.createElement(SetValueInput, { value: set.weight, onChange: (v) => updateSet(i, j, { weight: v }), suffix: "kg", decimal: true, label: `${st.exerciseName} set ${j + 1} weight` }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeSet(i, j), disabled: p.sets.length <= 1, "aria-label": `Remove set ${j + 1}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock }, onClick: () => addSet(i) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set")));
+    }), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: save }, "Save")));
+  }
+
   // climbing-tracker/App.jsx
-  var { useState: useState14, useEffect: useEffect10, useRef: useRef8 } = React;
+  var { useState: useState15, useEffect: useEffect10, useRef: useRef8 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
   function readActiveSession() {
@@ -27141,21 +27197,21 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState14("Exercises");
+    const [tab, setTab] = useState15("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [restored] = useState14(readActiveSession);
-    const [activeSession, setActiveSessionState] = useState14(() => (restored == null ? void 0 : restored.session) || null);
-    const [confirm, setConfirm] = useState14(null);
+    const [restored] = useState15(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState15(() => (restored == null ? void 0 : restored.session) || null);
+    const [confirm, setConfirm] = useState15(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
     };
-    const [formOpen, setFormOpen] = useState14(false);
-    const [editingId, setEditingId] = useState14(null);
-    const [draft, setDraft] = useState14({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState15(false);
+    const [editingId, setEditingId] = useState15(null);
+    const [draft, setDraft] = useState15({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -27180,8 +27236,8 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState14(null);
-    const [statsExerciseId, setStatsExerciseId] = useState14(null);
+    const [editingRoutineId, setEditingRoutineId] = useState15(null);
+    const [statsExerciseId, setStatsExerciseId] = useState15(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
@@ -27346,9 +27402,14 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState14([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState14(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState15([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState15(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
+    const [editingHistoryId, setEditingHistoryId] = useState15(null);
+    const saveHistoryEntry = (entry) => {
+      setHistory(history.map((h) => h.id === entry.id ? entry : h).sort((a, b) => new Date(b.date) - new Date(a.date)));
+      setEditingHistoryId(null);
+    };
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
     };
@@ -27381,12 +27442,12 @@ Now generate the exercises and/or routines described by the user's request that 
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
     const fileInputRef = useRef8(null);
-    const [transferMode, setTransferMode] = useState14(null);
-    const [transferScope, setTransferScope] = useState14("all");
-    const [transferText, setTransferText] = useState14("");
-    const [copied, setCopied] = useState14(false);
-    const [importError, setImportError] = useState14("");
-    const [llmCopied, setLlmCopied] = useState14(false);
+    const [transferMode, setTransferMode] = useState15(null);
+    const [transferScope, setTransferScope] = useState15("all");
+    const [transferText, setTransferText] = useState15("");
+    const [copied, setCopied] = useState15(false);
+    const [importError, setImportError] = useState15("");
+    const [llmCopied, setLlmCopied] = useState15(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -27505,6 +27566,7 @@ Now generate the exercises and/or routines described by the user's request that 
       )), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
     }
     const editingRoutine = editingRoutineId ? routines.find((r) => r.id === editingRoutineId) : null;
+    const editingHistoryEntry = editingHistoryId ? history.find((h) => h.id === editingHistoryId) : null;
     const statsExercise = statsExerciseId ? exercises.find((e) => e.id === statsExerciseId) : null;
     const changeTab = (t) => {
       if (editingRoutine) closeRoutineEditor();
@@ -27605,7 +27667,7 @@ Now generate the exercises and/or routines described by the user's request that 
       return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.historyCard }, /* @__PURE__ */ React.createElement("button", { style: s.historyHead, onClick: () => setExpandedHistoryId(expanded ? null : h.id), "aria-expanded": expanded }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, h.refName), h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.badge }, "Routine")), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), (drifts.length > 0 || expanded) && /* @__PURE__ */ React.createElement("div", { style: s.historyBody }, drifts.map(({ step, drift }, i) => /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: { ...s.drift, marginTop: i === 0 ? 0 : 8 } }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyDrift(drift) }, "Update"))), expanded && /* @__PURE__ */ React.createElement("div", { style: { ...s.historySteps, ...drifts.length > 0 ? { marginTop: 12 } : {} } }, h.steps.map((step, i) => {
         const exists = exercises.some((e) => e.id === step.exerciseId);
         return /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" && (exists ? /* @__PURE__ */ React.createElement("button", { style: { ...s.historyStepName, ...s.historyStepLink }, onClick: () => openStats(step.exerciseId) }, step.exerciseName) : /* @__PURE__ */ React.createElement("span", { style: s.historyStepName }, step.exerciseName)), /* @__PURE__ */ React.createElement("span", { style: s.historyStepValue }, formatPerformedSummary(step)));
-      }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", marginTop: 6, marginLeft: -14 } }, h.kind === "exercise" && exercises.some((e) => e.id === h.refId) && /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => openStats(h.refId) }, /* @__PURE__ */ React.createElement(Icon.chart, { size: 16 }), " Stats"), /* @__PURE__ */ React.createElement(
+      }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", marginTop: 6, marginLeft: -14 } }, h.kind === "exercise" && exercises.some((e) => e.id === h.refId) && /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => openStats(h.refId) }, /* @__PURE__ */ React.createElement(Icon.chart, { size: 16 }), " Stats"), /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => setEditingHistoryId(h.id) }, /* @__PURE__ */ React.createElement(Icon.pencil, { size: 16 }), " Edit"), /* @__PURE__ */ React.createElement(
         "button",
         {
           style: { ...s.btnDangerText, ...s.btnSmall },
@@ -27663,7 +27725,7 @@ Now generate the exercises and/or routines described by the user's request that 
         var _a2;
         return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
       } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json,application/json", onChange: importFromFile, style: { display: "none" } })))
-    ), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    ), editingHistoryEntry && /* @__PURE__ */ React.createElement(Sheet, { title: `Edit ${editingHistoryEntry.refName}`, onClose: () => setEditingHistoryId(null) }, /* @__PURE__ */ React.createElement(HistoryEditForm, { entry: editingHistoryEntry, onSave: saveHistoryEntry, onCancel: () => setEditingHistoryId(null) })), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx
