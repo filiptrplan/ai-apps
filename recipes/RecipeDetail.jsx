@@ -179,6 +179,13 @@ export function RecipeDetail({ recipe, session, list, servings, setServings, tim
             </ol>
           </section>
         ))}
+
+        {recipe.notes && (
+          <>
+            <h2 className="ra-method-head">Notes</h2>
+            <p className="ra-notes">{recipe.notes}</p>
+          </>
+        )}
       </div>
     </main>
   );

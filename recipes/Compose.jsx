@@ -14,6 +14,7 @@ const emptyForm = () => ({
   serves: "",
   ingredients: [blankSection("ing")],
   method: [blankSection("step")],
+  notes: "",
 });
 const EMPTY_MAGIC = { images: [], link: "", text: "", loading: false, error: "" };
 
@@ -28,6 +29,7 @@ function toForm(r) {
     serves: String(r.serves),
     ingredients: orBlank("ing", r.ingredients),
     method: orBlank("step", r.method),
+    notes: r.notes || "",
   };
 }
 
@@ -136,6 +138,7 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
       }
     }
     if (oldPath && oldPath !== path) removePhoto(oldPath);
+    const notes = form.notes.trim();
     onSave({
       id: initial ? initial.id : uid(),
       ...(path ? { photo: path } : {}),
@@ -146,6 +149,7 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
       serves: parseInt(form.serves, 10) || 2,
       ingredients: cleanSections("ing", form.ingredients),
       method: cleanSections("step", form.method),
+      ...(notes ? { notes } : {}),
     });
   }
 
@@ -185,6 +189,7 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
         serves: data.serves ? String(data.serves) : "",
         ingredients: magicSections("ing", data.ingredients, data.ings, (line) => ({ id: uid(), ...parseIng(line) })),
         method: magicSections("step", data.method, data.steps, (text) => ({ id: uid(), text })),
+        notes: data.notes || "",
       });
       setMagicState(EMPTY_MAGIC);
       setFromMagic(true);
@@ -329,6 +334,17 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
               disabled={saving}
             />
           </div>
+          <label className="ra-label">
+            Notes
+            <textarea
+              className="ra-field"
+              value={form.notes}
+              onChange={(e) => setForm("notes", e.target.value)}
+              rows={4}
+              placeholder="Tips, substitutions, what to change next time…"
+              disabled={saving}
+            />
+          </label>
           {initial && (
             <button
               className={`ra-delete${confirmDelete ? " confirm" : ""}`}
