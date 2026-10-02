@@ -7354,8 +7354,8 @@ Suggested solution: ${env.workaround}`;
     }
     /** @internal */
     _notThisChannelEvent(event, ref) {
-      const { close, error, leave, join: join2 } = CHANNEL_EVENTS;
-      const events = [close, error, leave, join2];
+      const { close: close2, error, leave, join: join2 } = CHANNEL_EVENTS;
+      const events = [close2, error, leave, join2];
       return ref && events.includes(event) && ref !== this.joinPush.ref;
     }
     /** @internal */
@@ -18086,12 +18086,12 @@ ${suffix}`;
     async _startAutoRefresh() {
       await this._stopAutoRefresh();
       this._debug("#_startAutoRefresh()");
-      const ticker = setInterval(() => this._autoRefreshTokenTick(), AUTO_REFRESH_TICK_DURATION_MS);
-      this.autoRefreshTicker = ticker;
-      if (ticker && typeof ticker === "object" && typeof ticker.unref === "function") {
-        ticker.unref();
+      const ticker2 = setInterval(() => this._autoRefreshTokenTick(), AUTO_REFRESH_TICK_DURATION_MS);
+      this.autoRefreshTicker = ticker2;
+      if (ticker2 && typeof ticker2 === "object" && typeof ticker2.unref === "function") {
+        ticker2.unref();
       } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
-        Deno.unrefTimer(ticker);
+        Deno.unrefTimer(ticker2);
       }
       const timeout = setTimeout(async () => {
         await this.initializePromise;
@@ -18110,10 +18110,10 @@ ${suffix}`;
      */
     async _stopAutoRefresh() {
       this._debug("#_stopAutoRefresh()");
-      const ticker = this.autoRefreshTicker;
+      const ticker2 = this.autoRefreshTicker;
       this.autoRefreshTicker = null;
-      if (ticker) {
-        clearInterval(ticker);
+      if (ticker2) {
+        clearInterval(ticker2);
       }
       const timeout = this.autoRefreshTickTimeout;
       this.autoRefreshTickTimeout = null;
@@ -21523,46 +21523,109 @@ Now generate the exercises and/or routines described by the user's request that 
   };
 
   // climbing-tracker/restAlert.js
-  var TAG = "climbing-tracker-rest";
+  var OVER_TAG = "climbing-tracker-rest";
+  var COUNTDOWN_TAG = "climbing-tracker-rest-countdown";
+  var ICON = "./climbing-tracker/icon.svg";
   function isInstalled() {
     return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   }
-  function supported() {
-    return isInstalled() && "Notification" in window && "serviceWorker" in navigator;
+  function notificationsSupported() {
+    return "Notification" in window && "serviceWorker" in navigator;
   }
-  function requestRestAlertPermission() {
-    if (supported() && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {
-      });
+  function notificationState() {
+    return notificationsSupported() ? Notification.permission : "unsupported";
+  }
+  async function requestNotifications() {
+    if (!notificationsSupported()) return "unsupported";
+    try {
+      return await Notification.requestPermission();
+    } catch {
+      return Notification.permission;
+    }
+  }
+  function canNotify() {
+    return notificationsSupported() && Notification.permission === "granted";
+  }
+  async function show(title, options) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { icon: ICON, ...options });
+    } catch {
+    }
+  }
+  async function close(tag) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      (await reg.getNotifications({ tag })).forEach((n) => n.close());
+    } catch {
+    }
+  }
+  var rests = /* @__PURE__ */ new Map();
+  var ticker = null;
+  var lastShown = "";
+  function mmss(sec) {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  }
+  function secondsLeft(r) {
+    return Math.max(0, Math.ceil((r.paused ? r.remainingMs : r.endsAt - Date.now()) / 1e3));
+  }
+  function updateCountdown() {
+    if (!canNotify() || document.visibilityState === "visible" || rests.size === 0) return;
+    const r = [...rests.values()].sort((a, b) => secondsLeft(a) - secondsLeft(b))[0];
+    const sec = secondsLeft(r);
+    if (sec <= 0) return;
+    const title = r.paused ? `Rest paused \xB7 ${mmss(sec)} left` : `Rest \xB7 ${mmss(sec)}`;
+    if (title === lastShown) return;
+    lastShown = title;
+    show(title, { body: r.label, tag: COUNTDOWN_TAG, silent: true, renotify: false });
+  }
+  function clearCountdown() {
+    lastShown = "";
+    if (canNotify()) close(COUNTDOWN_TAG);
+  }
+  function syncTicker() {
+    const want = rests.size > 0 && document.visibilityState !== "visible";
+    if (want && !ticker) {
+      ticker = setInterval(updateCountdown, 500);
+      updateCountdown();
+    } else if (!want && ticker) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+    if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
+  }
+  function trackRest(id, { endsAt = 0, remainingMs = 0, paused = false, label = "" }) {
+    rests.set(id, { endsAt, remainingMs, paused, label });
+    lastShown = "";
+    syncTicker();
+    updateCountdown();
+  }
+  function untrackRest(id) {
+    if (!rests.delete(id)) return;
+    syncTicker();
+    if (rests.size > 0) {
+      lastShown = "";
+      updateCountdown();
     }
   }
   async function notifyRestOver(body) {
-    if (!supported() || Notification.permission !== "granted") return;
+    if (!canNotify()) return;
     if (document.visibilityState === "visible") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Rest over", {
-        body,
-        tag: TAG,
-        renotify: true,
-        requireInteraction: true,
-        vibrate: [400, 150, 400, 150, 400],
-        icon: "./climbing-tracker/icon.svg"
-      });
-    } catch {
-    }
+    await show("Rest over", {
+      body,
+      tag: OVER_TAG,
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [400, 150, 400, 150, 400]
+    });
   }
   async function clearRestAlerts() {
-    if (!supported() || Notification.permission !== "granted") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      (await reg.getNotifications({ tag: TAG })).forEach((n) => n.close());
-    } catch {
-    }
+    if (canNotify()) close(OVER_TAG);
   }
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") clearRestAlerts();
+      syncTicker();
     });
   }
 
@@ -21576,6 +21639,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const endRef = useRef2(null);
     const noticeRef = useRef2("");
     const lastSecRef = useRef2(0);
+    const idRef = useRef2({});
     const clearTimers = () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
@@ -21588,6 +21652,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const finish = () => {
       clearTimers();
+      untrackRest(idRef.current);
       sounds.workStart();
       notifyRestOver(noticeRef.current);
       setRest(null);
@@ -21608,10 +21673,10 @@ Now generate the exercises and/or routines described by the user's request that 
       lastSecRef.current = Math.ceil(ms / 1e3);
       tickRef.current = setInterval(tick, 250);
       endRef.current = setTimeout(finish, ms);
+      trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
     };
     const start = (sec, { notice = "", ...meta } = {}) => {
       clearTimers();
-      requestRestAlertPermission();
       noticeRef.current = notice;
       setRest({ ...meta, total: sec, timeLeft: sec, paused: false });
       sounds.restStart();
@@ -21619,6 +21684,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const stop = () => {
       clearTimers();
+      untrackRest(idRef.current);
       setRest(null);
     };
     const togglePause = () => {
@@ -21629,10 +21695,14 @@ Now generate the exercises and/or routines described by the user's request that 
       } else {
         remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
         clearTimers();
+        trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
         setRest({ ...rest, paused: true });
       }
     };
-    useEffect2(() => clearTimers, []);
+    useEffect2(() => () => {
+      clearTimers();
+      untrackRest(idRef.current);
+    }, []);
     return { rest, start, stop, togglePause };
   }
 
@@ -22030,18 +22100,71 @@ Now generate the exercises and/or routines described by the user's request that 
     return /* @__PURE__ */ React.createElement("div", { style: s.empty }, /* @__PURE__ */ React.createElement("div", { style: s.emptyIcon }, /* @__PURE__ */ React.createElement(EmptyIcon, { size: 28 })), /* @__PURE__ */ React.createElement("div", { style: s.emptyTitle }, title), /* @__PURE__ */ React.createElement("div", { style: s.emptyText }, text), action);
   }
 
-  // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState8, useEffect: useEffect6, useRef: useRef4 } = React;
-  function ElapsedTime({ since }) {
-    const [now, setNow] = useState8(Date.now());
+  // climbing-tracker/components/NotificationPrompt.jsx
+  var { useState: useState8, useEffect: useEffect6 } = React;
+  var DISMISS_KEY = "climbing-tracker:notif-prompt-dismissed";
+  function readDismissed() {
+    try {
+      return localStorage.getItem(DISMISS_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  }
+  function useNotificationState() {
+    const [state, setState] = useState8(notificationState);
     useEffect6(() => {
+      var _a;
+      const refresh = () => setState(notificationState());
+      document.addEventListener("visibilitychange", refresh);
+      let status = null;
+      (_a = navigator.permissions) == null ? void 0 : _a.query({ name: "notifications" }).then((st) => {
+        status = st;
+        st.onchange = refresh;
+      }).catch(() => {
+      });
+      return () => {
+        document.removeEventListener("visibilitychange", refresh);
+        if (status) status.onchange = null;
+      };
+    }, []);
+    return [state, setState];
+  }
+  function NotificationPrompt({ style }) {
+    const [state, setState] = useNotificationState();
+    const [dismissed, setDismissed] = useState8(readDismissed);
+    const kind = state === "unsupported" ? isIOS() && !isInstalled() ? "install" : null : state === "granted" ? null : state;
+    if (!kind || dismissed === kind) return null;
+    const dismiss = () => {
+      try {
+        localStorage.setItem(DISMISS_KEY, kind);
+      } catch {
+      }
+      setDismissed(kind);
+    };
+    const enable = async () => setState(await requestNotifications());
+    const text = {
+      default: "Turn on notifications to see the rest countdown when the app is in the background.",
+      denied: "Notifications are blocked, so you won't see the rest countdown in the background. Allow them for this site in your browser or system settings.",
+      install: "Add this app to your Home Screen (Share \u2192 Add to Home Screen) to get rest countdown notifications."
+    }[kind];
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.drift, marginTop: 0, marginBottom: 12, ...style }, role: "status" }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, text), kind === "default" && /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: enable }, "Enable"), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color: C.accent }, onClick: dismiss, "aria-label": "Dismiss" }, /* @__PURE__ */ React.createElement(Icon.x, { size: 18 })));
+  }
+
+  // climbing-tracker/components/SessionPage.jsx
+  var { useState: useState9, useEffect: useEffect7, useRef: useRef4 } = React;
+  function ElapsedTime({ since }) {
+    const [now, setNow] = useState9(Date.now());
+    useEffect7(() => {
       const id = setInterval(() => setNow(Date.now()), 1e3);
       return () => clearInterval(id);
     }, []);
     return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
   }
   function useWakeLock() {
-    useEffect6(() => {
+    useEffect7(() => {
       if (!("wakeLock" in navigator)) return;
       let lock = null;
       let active = true;
@@ -22070,13 +22193,13 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SessionPage({ session, notesById, onCancel, onLogChange, onFinish, onNotesChange }) {
     var _a;
-    const [order, setOrder] = useState8(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+    const [order, setOrder] = useState9(() => groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const completedRef = useRef4(session.exercises.map(() => false));
     const doneCountRef = useRef4(session.exercises.map(() => 0));
-    const [cardExercises] = useState8(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState9(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer();
     const interRest = interRestTimer.rest;
-    const [restDock, setRestDock] = useState8(null);
+    const [restDock, setRestDock] = useState9(null);
     const desktop = useIsDesktop();
     useWakeLock();
     const startInterRest = (restAfterSec, label = "Next exercise in") => {
@@ -22122,7 +22245,7 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
         right: null
       }
-    ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, order.map((block, position) => {
+    ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, /* @__PURE__ */ React.createElement(NotificationPrompt, { style: desktop ? d.fullRow : void 0 }), order.map((block, position) => {
       const isSuperset = block.length > 1;
       const cards = block.map((exIdx, k) => /* @__PURE__ */ React.createElement(
         ExerciseCard,
@@ -22179,11 +22302,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useDragReorder.js
-  var { useRef: useRef5, useState: useState9 } = React;
+  var { useRef: useRef5, useState: useState10 } = React;
   var EDGE = 80;
   function useDragReorder(onDrop) {
     const drag = useRef5(null);
-    const [draggingList, setDraggingList] = useState9(null);
+    const [draggingList, setDraggingList] = useState10(null);
     const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
     const layout = (st) => {
       const { els, rects, from, pointerY, startY } = st;
@@ -22270,11 +22393,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState10 } = React;
+  var { useState: useState11 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
   function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState10(false);
+    const [pickerOpen, setPickerOpen] = useState11(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -25475,9 +25598,9 @@ Now generate the exercises and/or routines described by the user's request that 
             s2._paths != null && drawPath(i, false);
             {
               let _gaps = s2._paths != null ? s2._paths.gaps : null;
-              let show = s2.points.show(self2, i, i0, i1, _gaps);
-              let idxs2 = s2.points.filter(self2, i, show, _gaps);
-              if (show || idxs2) {
+              let show2 = s2.points.show(self2, i, i0, i1, _gaps);
+              let idxs2 = s2.points.filter(self2, i, show2, _gaps);
+              if (show2 || idxs2) {
                 s2.points._paths = s2.points.paths(self2, i, i0, i1, idxs2);
                 drawPath(i, true);
               }
@@ -26813,14 +26936,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/LineChart.jsx
-  var { useEffect: useEffect7, useRef: useRef6 } = React;
+  var { useEffect: useEffect8, useRef: useRef6 } = React;
   var HEIGHT2 = 220;
   var FONT = "12px -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif";
   function LineChart({ times, values, formatAxis, onCursor }) {
     const ref = useRef6(null);
     const onCursorRef = useRef6(onCursor);
     onCursorRef.current = onCursor;
-    useEffect7(() => {
+    useEffect8(() => {
       const el = ref.current;
       const axis = {
         stroke: C.muted,
@@ -26869,13 +26992,13 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseStatsPage.jsx
-  var { useState: useState11, useMemo } = React;
+  var { useState: useState12, useMemo } = React;
   var shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
     const desktop = useIsDesktop();
-    const [range, setRange] = useState11("all");
-    const [metricId, setMetricId] = useState11(null);
-    const [cursorIdx, setCursorIdx] = useState11(null);
+    const [range, setRange] = useState12("all");
+    const [metricId, setMetricId] = useState12(null);
+    const [cursorIdx, setCursorIdx] = useState12(null);
     const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
     const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
     const metrics = useMemo(() => metricsFor(exercise, bodyweight), [exercise, bodyweight]);
@@ -26927,7 +27050,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState12, useEffect: useEffect8, useRef: useRef7 } = React;
+  var { useState: useState13, useEffect: useEffect9, useRef: useRef7 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var TABS = [
     { id: "Exercises", label: "Exercises", icon: "exercises" },
@@ -26938,20 +27061,20 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState12("Exercises");
+    const [tab, setTab] = useState13("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [activeSession, setActiveSession] = useState12(null);
-    const [confirm, setConfirm] = useState12(null);
+    const [activeSession, setActiveSession] = useState13(null);
+    const [confirm, setConfirm] = useState13(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel) => {
       setConfirm({ title, message, onConfirm, confirmLabel });
     };
-    const [formOpen, setFormOpen] = useState12(false);
-    const [editingId, setEditingId] = useState12(null);
-    const [draft, setDraft] = useState12({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState13(false);
+    const [editingId, setEditingId] = useState13(null);
+    const [draft, setDraft] = useState13({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -26976,13 +27099,13 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState12(null);
-    const [statsExerciseId, setStatsExerciseId] = useState12(null);
+    const [editingRoutineId, setEditingRoutineId] = useState13(null);
+    const [statsExerciseId, setStatsExerciseId] = useState13(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
     };
-    useEffect8(() => {
+    useEffect9(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
@@ -26991,7 +27114,7 @@ Now generate the exercises and/or routines described by the user's request that 
         }));
       }
     }, []);
-    useEffect8(() => {
+    useEffect9(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         runDailyBackupIfNeeded(supabase, session);
       });
@@ -27056,9 +27179,9 @@ Now generate the exercises and/or routines described by the user's request that 
         if (block.length > 1 && !wholeBlock) {
           const k = idx - (end - block.length), j = clamp2(k + delta, block.length - 1);
           if (j === k) return r;
-          const rests = roundRests(block[block.length - 1]);
+          const rests2 = roundRests(block[block.length - 1]);
           block.splice(j, 0, block.splice(k, 1)[0]);
-          block[block.length - 1] = { ...block[block.length - 1], ...rests };
+          block[block.length - 1] = { ...block[block.length - 1], ...rests2 };
         } else {
           const c = clamp2(b + delta, blocks.length - 1);
           if (c === b) return r;
@@ -27121,8 +27244,8 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       setActiveSession(null);
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState12([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState12(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState13([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState13(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
     const requestDeleteHistoryEntry = (id) => {
       requestConfirm("Delete history entry?", "This workout log will be permanently removed.", () => deleteHistoryEntry(id));
@@ -27156,12 +27279,12 @@ Now generate the exercises and/or routines described by the user's request that 
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
     const fileInputRef = useRef7(null);
-    const [transferMode, setTransferMode] = useState12(null);
-    const [transferScope, setTransferScope] = useState12("all");
-    const [transferText, setTransferText] = useState12("");
-    const [copied, setCopied] = useState12(false);
-    const [importError, setImportError] = useState12("");
-    const [llmCopied, setLlmCopied] = useState12(false);
+    const [transferMode, setTransferMode] = useState13(null);
+    const [transferScope, setTransferScope] = useState13("all");
+    const [transferText, setTransferText] = useState13("");
+    const [copied, setCopied] = useState13(false);
+    const [importError, setImportError] = useState13("");
+    const [llmCopied, setLlmCopied] = useState13(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));

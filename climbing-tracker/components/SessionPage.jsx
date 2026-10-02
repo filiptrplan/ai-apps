@@ -5,6 +5,7 @@ import { Header, useIsDesktop } from "./Layout.jsx";
 import { RestBar, RestDockContext } from "./RestBar.jsx";
 import { useRestTimer } from "./useRestTimer.js";
 import { Icon } from "./Icons.jsx";
+import { NotificationPrompt } from "./NotificationPrompt.jsx";
 
 const { useState, useEffect, useRef } = React;
 
@@ -131,6 +132,7 @@ export function SessionPage({ session, notesById, onCancel, onLogChange, onFinis
         <div ref={setRestDock} style={{ ...s.restDock, ...(desktop && d.restDock) }} />
       </div>
       <div style={{ ...s.pageWithBottomBar, ...(desktop && { ...d.pageWithBottomBar, ...d.cardGrid }) }}>
+        <NotificationPrompt style={desktop ? d.fullRow : undefined} />
         {order.map((block, position) => {
           const isSuperset = block.length > 1;
           const cards = block.map((exIdx, k) => (
