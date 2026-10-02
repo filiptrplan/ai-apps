@@ -33,7 +33,7 @@ const SECTION = {
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["name", "cat", "time", "serves", "ingredients", "method"],
+  required: ["name", "cat", "time", "serves", "ingredients", "method", "notes"],
   properties: {
     name: { type: "string" },
     cat: { type: "string", enum: ["Breakfast", "Lunch", "Dinner"] },
@@ -41,6 +41,7 @@ const SCHEMA = {
     serves: { type: "integer" },
     ingredients: { type: "array", items: SECTION },
     method: { type: "array", items: SECTION },
+    notes: { type: "string" },
   },
 };
 
@@ -52,6 +53,7 @@ const SYSTEM = `You turn the sources a user gives you (screenshots, photos of a 
 - serves: number of servings as stated, else a sensible estimate.
 - ingredients: sections of ingredients. Each item is one ingredient, quantity first, then the ingredient name in Title case, e.g. "2 cups Spinach", "200 g Chicken breast", "1 Lemon". Keep the recipe's own units and amounts. Leave the quantity out if there is none ("Salt").
 - method: sections of steps. Each item is one concise step, without numbering. Keep durations in the text ("simmer for 10 minutes") since the app turns them into timers.
+- notes: tips, substitutions, storage or make-ahead advice the source gives outside the steps, as short plain text (one per line). Empty if there are none; don't invent any.
 
 Sections: when the recipe groups its ingredients or method by component (e.g. "Sauce", "Dough", "Topping"), make one section per group, named as the recipe names it. Otherwise use a single section with an empty name. Ingredients and method are grouped independently.
 

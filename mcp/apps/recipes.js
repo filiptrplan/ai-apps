@@ -56,6 +56,7 @@ function describeRecipe(r, servings) {
       section: sec.name || null,
       steps: sec.items.map(s => s.text),
     })),
+    notes: r.notes || "",
   };
 }
 
@@ -168,7 +169,7 @@ export function register(server, { appData, removePhoto, callFunction }) {
 
   server.registerTool("recipes_get_recipe", {
     title: "Recipes: get recipe",
-    description: "One recipe in full: ingredients (with ids, for recipes_add_to_list) and method, optionally scaled to a number of servings.",
+    description: "One recipe in full: ingredients (with ids, for recipes_add_to_list), method and notes, optionally scaled to a number of servings.",
     inputSchema: {
       id: z.string(),
       servings: z.number().int().min(1).optional().describe("Scale ingredient amounts to this many servings."),
@@ -195,6 +196,7 @@ export function register(server, { appData, removePhoto, callFunction }) {
         section: z.string().optional(),
         steps: z.array(z.string().min(1)).min(1).describe('One entry per step. Mention durations as "10 min" so the app offers a timer.'),
       })).min(1).optional(),
+      notes: z.string().optional().describe('Free-form notes shown under the method (tips, substitutions, what to change next time). Replaces the existing notes; "" clears them.'),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   }, async input => {
@@ -221,6 +223,10 @@ export function register(server, { appData, removePhoto, callFunction }) {
         ingredients: input.ingredients ? buildSections("ing", input.ingredients, existing?.ingredients ?? []) : existing.ingredients,
         method: input.method ? buildSections("step", input.method, existing?.method ?? []) : existing.method,
       };
+      // Like the app, empty notes aren't stored.
+      const notes = (input.notes ?? existing?.notes ?? "").trim();
+      if (notes) r.notes = notes;
+      else delete r.notes;
       if (!r.ingredients.length) fail("The recipe needs at least one ingredient.");
       saved = r;
       created = !existing;

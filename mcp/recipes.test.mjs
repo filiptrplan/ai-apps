@@ -111,6 +111,18 @@ test("save_recipe keeps ids of unchanged ingredients and other fields", async ()
   assert.equal(saved.method[0].items.length, 2);
 });
 
+test("save_recipe sets, keeps and clears notes", async () => {
+  const { call, appData } = await connect(seed());
+  const saved = () => appData.rows.get(K.recipes).find(r => r.id === "r-pasta");
+  const res = await call("recipes_save_recipe", { id: "r-pasta", notes: "  Use less salt.\nGood cold too. " });
+  assert.equal(res.updated.notes, "Use less salt.\nGood cold too.");
+  await call("recipes_save_recipe", { id: "r-pasta", timeMin: 25 });
+  assert.equal(saved().notes, "Use less salt.\nGood cold too.");
+  assert.equal((await call("recipes_get_recipe", { id: "r-pasta" })).notes, "Use less salt.\nGood cold too.");
+  await call("recipes_save_recipe", { id: "r-pasta", notes: " " });
+  assert.equal("notes" in saved(), false);
+});
+
 test("save_recipe converts an old recipe when changed", async () => {
   const { call, appData } = await connect(seed());
   await call("recipes_save_recipe", { id: "r-toast", category: "Lunch" });
