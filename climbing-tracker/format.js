@@ -113,6 +113,9 @@ export function buildPerformedFromLog(exercise, log) {
   }
   const doneRows = (log.rows || []).filter(r => r.done);
   if (doneRows.length === 0) return null;
+  // The rest can be changed mid-workout. Superset members have no rest of
+  // their own (the round rest replaces it), so none is recorded for them.
+  const rest = exercise.supersetGroup ? {} : { restSec: Number(log.restSec ?? exercise.restSec) || 0 };
   if (exercise.type === "weighted") {
     return {
       type: "weighted",
@@ -121,6 +124,7 @@ export function buildPerformedFromLog(exercise, log) {
       targetReps: exercise.reps,
       targetWeight: exercise.weight,
       sets: doneRows.map(r => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
+      ...rest,
     };
   }
   return {
@@ -128,6 +132,7 @@ export function buildPerformedFromLog(exercise, log) {
     targetSets: exercise.sets,
     targetReps: exercise.reps,
     sets: doneRows.map(r => ({ reps: Number(r.reps) || 0 })),
+    ...rest,
   };
 }
 
@@ -231,6 +236,8 @@ export function computeTemplateDrift(entry, step, exercises, routines) {
   } else {
     const isWeighted = p.type === "weighted";
     if (p.sets.length !== target.sets) patch.sets = p.sets.length;
+    // Entries logged before the rest was editable mid-workout have no restSec.
+    if (p.restSec != null && p.restSec !== (target.restSec ?? 0)) patch.restSec = p.restSec;
     const reps = uniformValue(p.sets.map(row => row.reps));
     if (reps !== null && reps !== target.reps) patch.reps = reps;
     const weight = isWeighted ? uniformValue(p.sets.map(row => row.weight)) : null;

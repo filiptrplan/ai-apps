@@ -1,6 +1,7 @@
 import { s } from "../styles.js";
 import { Icon } from "./Icons.jsx";
 import { RestBar } from "./RestBar.jsx";
+import { NumberField } from "./NumberField.jsx";
 import { useRestTimer } from "./useRestTimer.js";
 
 const { useState, useEffect } = React;
@@ -26,11 +27,15 @@ export function SetValueInput({ value, onChange, suffix, decimal, dim, label }) 
 
 // Checklist-style set logger: every set is visible at once and can be ticked
 // done in any order. Ticking a set starts a non-blocking rest countdown (when
-// the exercise has a restSec configured) before the next tick; inside a
-// session it shows in the pinned rest dock rather than under the set.
+// the rest is above zero) before the next tick; inside a session it shows in
+// the pinned rest dock rather than under the set. The rest starts from the
+// exercise's (or routine step's) restSec but can be changed mid-workout; it
+// goes into the log so it survives a reload and ends up in history. Superset
+// members get no rest field - the block's round rest replaces it.
 export function SetsCard({ exercise, initialLog, onChange }) {
   const targetSets = exercise.sets || 1;
-  const restSec = exercise.restSec || 0;
+  const [restInput, setRestInput] = useState(() => initialLog?.restSec ?? (exercise.restSec || 0));
+  const restSec = Number(restInput) || 0;
   const isWeighted = exercise.type === "weighted";
   // A routine step can specify a per-set target pattern (e.g. 2x12 then
   // 1x24, via exercise.targetSets); fall back to a uniform pattern from the
@@ -44,7 +49,7 @@ export function SetsCard({ exercise, initialLog, onChange }) {
   const restTimer = useRestTimer();
   const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
 
-  useEffect(() => { onChange({ rows }); }, [rows]);
+  useEffect(() => { onChange({ rows, restSec }); }, [rows, restSec]);
 
   const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
   const skipRest = restTimer.stop;
@@ -118,6 +123,11 @@ export function SetsCard({ exercise, initialLog, onChange }) {
           <Icon.minus size={18} />
         </button>
       </div>
+      {!exercise.supersetGroup && (
+        <div style={{ marginTop: 12 }}>
+          <NumberField label="Rest between sets" value={restInput} onChange={setRestInput} min={0} inc={15} suffix="s" />
+        </div>
+      )}
     </div>
   );
 }

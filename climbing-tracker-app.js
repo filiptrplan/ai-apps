@@ -20235,7 +20235,7 @@ ${suffix}`;
     return rows.length > 0 && rows.every((r) => r.done);
   }
   function buildPerformedFromLog(exercise, log) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     if (!log) return null;
     if (isIntervalType(exercise.type)) {
       if (!log.completedSets) return null;
@@ -20253,6 +20253,7 @@ ${suffix}`;
     }
     const doneRows = (log.rows || []).filter((r) => r.done);
     if (doneRows.length === 0) return null;
+    const rest = exercise.supersetGroup ? {} : { restSec: Number((_e = log.restSec) != null ? _e : exercise.restSec) || 0 };
     if (exercise.type === "weighted") {
       return {
         type: "weighted",
@@ -20260,14 +20261,16 @@ ${suffix}`;
         targetSets: exercise.sets,
         targetReps: exercise.reps,
         targetWeight: exercise.weight,
-        sets: doneRows.map((r) => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 }))
+        sets: doneRows.map((r) => ({ reps: Number(r.reps) || 0, weight: Number(r.weight) || 0 })),
+        ...rest
       };
     }
     return {
       type: "reps",
       targetSets: exercise.sets,
       targetReps: exercise.reps,
-      sets: doneRows.map((r) => ({ reps: Number(r.reps) || 0 }))
+      sets: doneRows.map((r) => ({ reps: Number(r.reps) || 0 })),
+      ...rest
     };
   }
   function formatPerformedSummary(step) {
@@ -20294,7 +20297,7 @@ ${suffix}`;
     return sets.map((row) => isWeighted ? `${row.reps}\xD7${row.weight}kg` : `${row.reps}`).join(", ");
   }
   function computeTemplateDrift(entry, step, exercises, routines) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     const ex = exercises.find((e) => e.id === step.exerciseId);
     if (!ex) return null;
     let routine = null;
@@ -20335,6 +20338,7 @@ ${suffix}`;
     } else {
       const isWeighted = p.type === "weighted";
       if (p.sets.length !== target.sets) patch.sets = p.sets.length;
+      if (p.restSec != null && p.restSec !== ((_e = target.restSec) != null ? _e : 0)) patch.restSec = p.restSec;
       const reps = uniformValue(p.sets.map((row) => row.reps));
       if (reps !== null && reps !== target.reps) patch.reps = reps;
       const weight = isWeighted ? uniformValue(p.sets.map((row) => row.weight)) : null;
@@ -21760,7 +21764,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SetsCard({ exercise, initialLog, onChange }) {
     const targetSets = exercise.sets || 1;
-    const restSec = exercise.restSec || 0;
+    const [restInput, setRestInput] = useState4(() => {
+      var _a;
+      return (_a = initialLog == null ? void 0 : initialLog.restSec) != null ? _a : exercise.restSec || 0;
+    });
+    const restSec = Number(restInput) || 0;
     const isWeighted = exercise.type === "weighted";
     const makeRow = (i) => {
       var _a, _b;
@@ -21774,8 +21782,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const restTimer = useRestTimer();
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
     useEffect4(() => {
-      onChange({ rows });
-    }, [rows]);
+      onChange({ rows, restSec });
+    }, [rows, restSec]);
     const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
     const skipRest = restTimer.stop;
     const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
@@ -21831,7 +21839,7 @@ Now generate the exercises and/or routines described by the user's request that 
         onTogglePause: restTimer.togglePause,
         onSkip: skipRest
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: s.setFooter }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, flex: 1 }, onClick: addRow }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall }, onClick: removeLastRow, disabled: rows.length <= 1, "aria-label": "Remove last set" }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 }))));
+    ))), /* @__PURE__ */ React.createElement("div", { style: s.setFooter }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, flex: 1 }, onClick: addRow }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall }, onClick: removeLastRow, disabled: rows.length <= 1, "aria-label": "Remove last set" }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 }))), !exercise.supersetGroup && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Rest between sets", value: restInput, onChange: setRestInput, min: 0, inc: 15, suffix: "s" })));
   }
 
   // climbing-tracker/components/IntervalCard.jsx
