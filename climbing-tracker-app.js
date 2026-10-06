@@ -27412,7 +27412,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
     };
     const updateRoutineStepById = (routineId, stepId, patch) => {
-      setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
+      setRoutines((prev) => prev.map((r) => r.id === routineId ? { ...r, steps: r.steps.map((step) => step.id === stepId ? { ...step, ...patch } : step) } : r));
     };
     const removeFromRoutine = (routineId, idx) => {
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_2, i) => i !== idx)) } : r));
@@ -27576,7 +27576,7 @@ Now generate the exercises and/or routines described by the user's request that 
       requestConfirm("Clear all history?", "All logged workouts will be permanently deleted. This cannot be undone.", clearHistory, "Clear all");
     };
     const updateExerciseTemplate = (exerciseId, patch) => {
-      setExercises(exercises.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
+      setExercises((prev) => prev.map((e) => e.id === exerciseId ? { ...e, ...patch } : e));
     };
     const applyDrift = (drift) => {
       if (drift.targetSetsPatch) {
@@ -27598,6 +27598,10 @@ Now generate the exercises and/or routines described by the user's request that 
     const applyPostSessionDrift = (drift) => {
       applyDrift(drift);
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
+    };
+    const applyAllPostSessionDrifts = () => {
+      postSessionDrifts.forEach(applyDrift);
+      setPostSessionDrifts([]);
     };
     const fileInputRef = useRef8(null);
     const [transferMode, setTransferMode] = useState16(null);
@@ -27887,7 +27891,7 @@ Now generate the exercises and/or routines described by the user's request that 
         var _a2;
         return (_a2 = fileInputRef.current) == null ? void 0 : _a2.click();
       } }, "From file"), /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".json,application/json", onChange: importFromFile, style: { display: "none" } })))
-    ), editingHistoryEntry && /* @__PURE__ */ React.createElement(Sheet, { title: `Edit ${editingHistoryEntry.refName}`, onClose: () => setEditingHistoryId(null) }, /* @__PURE__ */ React.createElement(HistoryEditForm, { entry: editingHistoryEntry, onSave: saveHistoryEntry, onCancel: () => setEditingHistoryId(null) })), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }, onClick: () => setPostSessionDrifts([]) }, "Done")), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
+    ), editingHistoryEntry && /* @__PURE__ */ React.createElement(Sheet, { title: `Edit ${editingHistoryEntry.refName}`, onClose: () => setEditingHistoryId(null) }, /* @__PURE__ */ React.createElement(HistoryEditForm, { entry: editingHistoryEntry, onSave: saveHistoryEntry, onCancel: () => setEditingHistoryId(null) })), postSessionDrifts.length > 0 && /* @__PURE__ */ React.createElement(Sheet, { title: "Update templates?", onClose: () => setPostSessionDrifts([]) }, /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "What you just logged differs from the saved targets."), postSessionDrifts.map((drift) => /* @__PURE__ */ React.createElement("div", { key: driftKey(drift), style: s.drift }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, drift.exercise.name, ": ", formatDriftSummary(drift)), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyPostSessionDrift(drift) }, "Update"))), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 16 } }, postSessionDrifts.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: applyAllPostSessionDrifts }, "Update all"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => setPostSessionDrifts([]) }, "Done"))), /* @__PURE__ */ React.createElement(ConfirmModal, { confirm, onCancel: () => setConfirm(null) }));
   }
 
   // climbing-tracker-app.jsx
