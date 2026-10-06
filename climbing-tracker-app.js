@@ -21387,6 +21387,7 @@ Now generate the exercises and/or routines described by the user's request that 
     grip: (p) => /* @__PURE__ */ React.createElement("svg", { width: p.size || 22, height: p.size || 22, viewBox: "0 0 24 24", "aria-hidden": "true", fill: "currentColor" }, [6, 12, 18].flatMap((y) => [9, 15].map((x) => /* @__PURE__ */ React.createElement("circle", { key: `${x}-${y}`, cx: x, cy: y, r: "1.6" })))),
     chart: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 19h16M5 15l4.5-5 3.5 3 6-7" })),
     pencil: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4zM13.5 6.5l4 4" })),
+    timer: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "13.5", r: "7.5" }), /* @__PURE__ */ React.createElement("path", { d: "M12 9.5v4l2.5 1.5M10 3h4" })),
     flag: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }))
   };
 
@@ -21646,10 +21647,10 @@ Now generate the exercises and/or routines described by the user's request that 
       updateCountdown();
     }
   }
-  async function notifyRestOver(body) {
+  async function notifyRestOver(body, title = "Rest over") {
     if (!canNotify()) return;
     if (document.visibilityState === "visible") return;
-    await show("Rest over", {
+    await show(title, {
       body,
       tag: OVER_TAG,
       renotify: true,
@@ -21676,6 +21677,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const tickRef = useRef3(null);
     const endRef = useRef3(null);
     const noticeRef = useRef3("");
+    const overTitleRef = useRef3(void 0);
     const metaRef = useRef3({});
     const totalRef = useRef3(0);
     const lastSecRef = useRef3(0);
@@ -21685,6 +21687,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const save = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
       total: totalRef.current,
       notice: noticeRef.current,
+      overTitle: overTitleRef.current,
       meta: metaRef.current,
       paused,
       ...paused ? { remainingMs: remainingMsRef.current } : { endsAt: endsAtRef.current }
@@ -21703,7 +21706,7 @@ Now generate the exercises and/or routines described by the user's request that 
       clearTimers();
       untrackRest(idRef.current);
       sounds.workStart();
-      notifyRestOver(noticeRef.current);
+      notifyRestOver(noticeRef.current, overTitleRef.current);
       setRest(null);
       save(null);
     };
@@ -21725,9 +21728,10 @@ Now generate the exercises and/or routines described by the user's request that 
       endRef.current = setTimeout(finish, ms);
       trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
     };
-    const start = (sec, { notice = "", ...meta } = {}) => {
+    const start = (sec, { notice = "", overTitle, ...meta } = {}) => {
       clearTimers();
       noticeRef.current = notice;
+      overTitleRef.current = overTitle;
       metaRef.current = meta;
       totalRef.current = sec;
       setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1e3, paused: false });
@@ -21758,6 +21762,7 @@ Now generate the exercises and/or routines described by the user's request that 
     useEffect3(() => {
       if (!saved || !(saved.total > 0)) return;
       noticeRef.current = saved.notice || "";
+      overTitleRef.current = saved.overTitle;
       metaRef.current = saved.meta || {};
       totalRef.current = saved.total;
       const ms = saved.paused ? saved.remainingMs : saved.endsAt - Date.now();
@@ -22283,10 +22288,21 @@ Now generate the exercises and/or routines described by the user's request that 
     return /* @__PURE__ */ React.createElement("div", { style: { ...s.drift, marginTop: 0, marginBottom: 12, ...style }, role: "status" }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, text), kind === "default" && /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: enable }, "Enable"), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color: C.accent }, onClick: dismiss, "aria-label": "Dismiss" }, /* @__PURE__ */ React.createElement(Icon.x, { size: 18 })));
   }
 
+  // climbing-tracker/components/TimerSheet.jsx
+  var { useState: useState10 } = React;
+  var PRESETS = [30, 60, 120, 180, 300];
+  var presetLabel = (sec) => sec < 60 ? `${sec}s` : `${sec / 60} min`;
+  function TimerSheet({ initialSec = 60, onStart, onClose }) {
+    const [min2, setMin] = useState10(Math.floor(initialSec / 60));
+    const [sec, setSec] = useState10(initialSec % 60);
+    const total = (Number(min2) || 0) * 60 + (Number(sec) || 0);
+    return /* @__PURE__ */ React.createElement(Sheet, { title: "Start a timer", onClose }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 } }, PRESETS.map((p) => /* @__PURE__ */ React.createElement("button", { key: p, style: { ...s.btnSecondary, ...s.btnSmall }, onClick: () => onStart(p) }, presetLabel(p)))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Minutes", value: min2, onChange: setMin }), /* @__PURE__ */ React.createElement(NumberField, { label: "Seconds", value: sec, onChange: setSec, inc: 15 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, disabled: total <= 0, onClick: () => onStart(total) }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start"));
+  }
+
   // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState10, useEffect: useEffect8, useRef: useRef5 } = React;
+  var { useState: useState11, useEffect: useEffect8, useRef: useRef5 } = React;
   function ElapsedTime({ since }) {
-    const [now, setNow] = useState10(Date.now());
+    const [now, setNow] = useState11(Date.now());
     useEffect8(() => {
       const id = setInterval(() => setNow(Date.now()), 1e3);
       return () => clearInterval(id);
@@ -22340,9 +22356,9 @@ Now generate the exercises and/or routines described by the user's request that 
       return () => document.removeEventListener("visibilitychange", save);
     }, [sessionId]);
   }
-  function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onFinish, onNotesChange }) {
-    var _a;
-    const [order, setOrder] = useState10(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+  function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, initialTimer, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onTimerChange, onFinish, onNotesChange }) {
+    var _a, _b;
+    const [order, setOrder] = useState11(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
     const completedRef = useRef5(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
     const doneCountRef = useRef5(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
@@ -22354,10 +22370,16 @@ Now generate the exercises and/or routines described by the user's request that 
       }
       onOrderChange && onOrderChange(order);
     }, [order]);
-    const [cardExercises] = useState10(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState11(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer({ saved: initialInterRest, onSave: onInterRestChange });
     const interRest = interRestTimer.rest;
-    const [restDock, setRestDock] = useState10(null);
+    const customTimer = useRestTimer({ saved: initialTimer, onSave: onTimerChange });
+    const [timerSheetOpen, setTimerSheetOpen] = useState11(false);
+    const startCustomTimer = (sec) => {
+      setTimerSheetOpen(false);
+      customTimer.start(sec, { label: "Timer", notice: `${formatTime(sec)} timer`, overTitle: "Timer done" });
+    };
+    const [restDock, setRestDock] = useState11(null);
     const desktop = useIsDesktop();
     useWakeLock();
     useRestoredScroll(session.id);
@@ -22403,7 +22425,7 @@ Now generate the exercises and/or routines described by the user's request that 
         title: session.kind === "routine" ? session.refName : (_a = session.exercises[0]) == null ? void 0 : _a.name,
         subtitle: /* @__PURE__ */ React.createElement(ElapsedTime, { since: session.startedAt }),
         left: /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, color: C.muted }, onClick: onCancel }, "Cancel"),
-        right: null
+        right: /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.accent }, onClick: () => setTimerSheetOpen(true), "aria-label": "Start a timer" }, /* @__PURE__ */ React.createElement(Icon.timer, null))
       }
     ), /* @__PURE__ */ React.createElement("div", { ref: setRestDock, style: { ...s.restDock, ...desktop && d.restDock } })), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && { ...d.pageWithBottomBar, ...d.cardGrid } } }, /* @__PURE__ */ React.createElement(NotificationPrompt, { style: desktop ? d.fullRow : void 0 }), order.map((block, position) => {
       const isSuperset = block.length > 1;
@@ -22435,6 +22457,25 @@ Now generate the exercises and/or routines described by the user's request that 
         onTogglePause: interRestTimer.togglePause,
         onSkip: skipInterRest
       }
+    ), customTimer.rest && /* @__PURE__ */ React.createElement(
+      RestBar,
+      {
+        label: customTimer.rest.label,
+        tone: "accent",
+        timeLeft: customTimer.rest.timeLeft,
+        remainingMs: customTimer.rest.remainingMs,
+        total: customTimer.rest.total,
+        paused: customTimer.rest.paused,
+        onTogglePause: customTimer.togglePause,
+        onSkip: customTimer.stop
+      }
+    ), timerSheetOpen && /* @__PURE__ */ React.createElement(
+      TimerSheet,
+      {
+        initialSec: ((_b = customTimer.rest) == null ? void 0 : _b.total) || 60,
+        onStart: startCustomTimer,
+        onClose: () => setTimerSheetOpen(false)
+      }
     ), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
   }
 
@@ -22464,11 +22505,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useDragReorder.js
-  var { useRef: useRef6, useState: useState11 } = React;
+  var { useRef: useRef6, useState: useState12 } = React;
   var EDGE = 80;
   function useDragReorder(onDrop) {
     const drag = useRef6(null);
-    const [draggingList, setDraggingList] = useState11(null);
+    const [draggingList, setDraggingList] = useState12(null);
     const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
     const layout = (st) => {
       const { els, rects, from, pointerY, startY } = st;
@@ -22555,11 +22596,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState12 } = React;
+  var { useState: useState13 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
   function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState12(false);
+    const [pickerOpen, setPickerOpen] = useState13(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -27154,13 +27195,13 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseStatsPage.jsx
-  var { useState: useState13, useMemo } = React;
+  var { useState: useState14, useMemo } = React;
   var shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
     const desktop = useIsDesktop();
-    const [range, setRange] = useState13("all");
-    const [metricId, setMetricId] = useState13(null);
-    const [cursorIdx, setCursorIdx] = useState13(null);
+    const [range, setRange] = useState14("all");
+    const [metricId, setMetricId] = useState14(null);
+    const [cursorIdx, setCursorIdx] = useState14(null);
     const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
     const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
     const metrics = useMemo(() => metricsFor(exercise, bodyweight), [exercise, bodyweight]);
@@ -27212,7 +27253,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/HistoryEditForm.jsx
-  var { useState: useState14 } = React;
+  var { useState: useState15 } = React;
   function toLocalInput(iso) {
     const d2 = new Date(iso);
     const pad = (n) => String(n).padStart(2, "0");
@@ -27220,9 +27261,9 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   var num = (v) => Number(v) || 0;
   function HistoryEditForm({ entry, onSave, onCancel }) {
-    const [date, setDate] = useState14(() => toLocalInput(entry.date));
-    const [durationMin, setDurationMin] = useState14(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
-    const [steps, setSteps] = useState14(() => entry.steps.map((step) => ({
+    const [date, setDate] = useState15(() => toLocalInput(entry.date));
+    const [durationMin, setDurationMin] = useState15(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
+    const [steps, setSteps] = useState15(() => entry.steps.map((step) => ({
       ...step,
       performed: { ...step.performed, ...step.performed.sets && { sets: step.performed.sets.map((x) => ({ ...x })) } }
     })));
@@ -27267,7 +27308,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState15, useEffect: useEffect10, useRef: useRef8 } = React;
+  var { useState: useState16, useEffect: useEffect10, useRef: useRef8 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
   function readActiveSession() {
@@ -27294,21 +27335,21 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState15("Exercises");
+    const [tab, setTab] = useState16("Exercises");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [restored] = useState15(readActiveSession);
-    const [activeSession, setActiveSessionState] = useState15(() => (restored == null ? void 0 : restored.session) || null);
-    const [confirm, setConfirm] = useState15(null);
+    const [restored] = useState16(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState16(() => (restored == null ? void 0 : restored.session) || null);
+    const [confirm, setConfirm] = useState16(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
       setConfirm({ title, message, onConfirm, confirmLabel, tone });
     };
-    const [formOpen, setFormOpen] = useState15(false);
-    const [editingId, setEditingId] = useState15(null);
-    const [draft, setDraft] = useState15({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState16(false);
+    const [editingId, setEditingId] = useState16(null);
+    const [draft, setDraft] = useState16({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
@@ -27333,8 +27374,8 @@ Now generate the exercises and/or routines described by the user's request that 
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
-    const [editingRoutineId, setEditingRoutineId] = useState15(null);
-    const [statsExerciseId, setStatsExerciseId] = useState15(null);
+    const [editingRoutineId, setEditingRoutineId] = useState16(null);
+    const [statsExerciseId, setStatsExerciseId] = useState16(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
@@ -27427,14 +27468,17 @@ Now generate the exercises and/or routines described by the user's request that 
     const sessionLogsRef = useRef8((restored == null ? void 0 : restored.logs) || []);
     const sessionOrderRef = useRef8((restored == null ? void 0 : restored.order) || null);
     const sessionInterRestRef = useRef8((restored == null ? void 0 : restored.interRest) || null);
+    const sessionTimerRef = useRef8((restored == null ? void 0 : restored.timer) || null);
     const persistSession = (session = activeSession) => writeActiveSession(session && {
       session,
       logs: sessionLogsRef.current,
       order: sessionOrderRef.current,
-      interRest: sessionInterRestRef.current
+      interRest: sessionInterRestRef.current,
+      timer: sessionTimerRef.current
     });
     const setActiveSession = (session) => {
       sessionInterRestRef.current = null;
+      sessionTimerRef.current = null;
       if (!session) {
         sessionLogsRef.current = [];
         sessionOrderRef.current = null;
@@ -27482,6 +27526,10 @@ Now generate the exercises and/or routines described by the user's request that 
       sessionInterRestRef.current = rest;
       persistSession();
     };
+    const handleTimerChange = (timer) => {
+      sessionTimerRef.current = timer;
+      persistSession();
+    };
     const finishSession = () => {
       const current = activeSession;
       const results = [];
@@ -27512,10 +27560,10 @@ Now generate the exercises and/or routines described by the user's request that 
       const message = left === 0 ? "Everything's done. Save this workout to your history?" : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
       requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState15([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState15(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState16([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState16(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
-    const [editingHistoryId, setEditingHistoryId] = useState15(null);
+    const [editingHistoryId, setEditingHistoryId] = useState16(null);
     const saveHistoryEntry = (entry) => {
       setHistory(history.map((h) => h.id === entry.id ? entry : h).sort((a, b) => new Date(b.date) - new Date(a.date)));
       setEditingHistoryId(null);
@@ -27552,12 +27600,12 @@ Now generate the exercises and/or routines described by the user's request that 
       setPostSessionDrifts(postSessionDrifts.filter((d2) => driftKey(d2) !== driftKey(drift)));
     };
     const fileInputRef = useRef8(null);
-    const [transferMode, setTransferMode] = useState15(null);
-    const [transferScope, setTransferScope] = useState15("all");
-    const [transferText, setTransferText] = useState15("");
-    const [copied, setCopied] = useState15(false);
-    const [importError, setImportError] = useState15("");
-    const [llmCopied, setLlmCopied] = useState15(false);
+    const [transferMode, setTransferMode] = useState16(null);
+    const [transferScope, setTransferScope] = useState16("all");
+    const [transferText, setTransferText] = useState16("");
+    const [copied, setCopied] = useState16(false);
+    const [importError, setImportError] = useState16("");
+    const [llmCopied, setLlmCopied] = useState16(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -27667,8 +27715,10 @@ Now generate the exercises and/or routines described by the user's request that 
           initialLogs: sessionLogsRef.current,
           initialOrder: sessionOrderRef.current,
           initialInterRest: sessionInterRestRef.current,
+          initialTimer: sessionTimerRef.current,
           onOrderChange: handleOrderChange,
           onInterRestChange: handleInterRestChange,
+          onTimerChange: handleTimerChange,
           notesById: Object.fromEntries(exercises.map((e) => [e.id, e.notes || ""])),
           onCancel: requestCancelSession,
           onLogChange: handleLogChange,

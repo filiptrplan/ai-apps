@@ -32,5 +32,6 @@ export const Icon = {
   grip: p => <svg width={p.size || 22} height={p.size || 22} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">{[6, 12, 18].flatMap(y => [9, 15].map(x => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" />))}</svg>,
   chart: p => <Svg {...p}><path d="M4 19h16M5 15l4.5-5 3.5 3 6-7" /></Svg>,
   pencil: p => <Svg {...p}><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4zM13.5 6.5l4 4" /></Svg>,
+  timer: p => <Svg {...p}><circle cx="12" cy="13.5" r="7.5" /><path d="M12 9.5v4l2.5 1.5M10 3h4" /></Svg>,
   flag: p => <Svg {...p}><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></Svg>,
 };

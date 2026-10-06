@@ -6,6 +6,7 @@ import { RestBar, RestDockContext } from "./RestBar.jsx";
 import { useRestTimer } from "./useRestTimer.js";
 import { Icon } from "./Icons.jsx";
 import { NotificationPrompt } from "./NotificationPrompt.jsx";
+import { TimerSheet } from "./TimerSheet.jsx";
 
 const { useState, useEffect, useRef } = React;
 
@@ -83,10 +84,14 @@ function useRestoredScroll(sessionId) {
 // Notes come from the live exercise list (notesById) rather than the
 // session's snapshot, so an edit shows on every card for that exercise.
 //
-// initialLogs/initialOrder/initialInterRest resume a workout restored after
-// a reload; order and between-exercise rest changes are reported via
-// onOrderChange/onInterRestChange so they can be saved too.
-export function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onFinish, onNotesChange }) {
+// The header's timer button starts a free-standing countdown of any length,
+// tied to no exercise; it runs as one more bar in the rest dock.
+//
+// initialLogs/initialOrder/initialInterRest/initialTimer resume a workout
+// restored after a reload; order, between-exercise rest and timer changes
+// are reported via onOrderChange/onInterRestChange/onTimerChange so they can
+// be saved too.
+export function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, initialTimer, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onTimerChange, onFinish, onNotesChange }) {
   const [order, setOrder] = useState(() => initialOrder || groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
   const doneCountOf = (ex, log) => isIntervalType(ex.type)
     ? (log?.completedSets || 0)
@@ -104,6 +109,12 @@ export function SessionPage({ session, initialLogs = [], initialOrder, initialIn
   const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
   const interRestTimer = useRestTimer({ saved: initialInterRest, onSave: onInterRestChange });
   const interRest = interRestTimer.rest; // { label, timeLeft, total, paused }
+  const customTimer = useRestTimer({ saved: initialTimer, onSave: onTimerChange });
+  const [timerSheetOpen, setTimerSheetOpen] = useState(false);
+  const startCustomTimer = (sec) => {
+    setTimerSheetOpen(false);
+    customTimer.start(sec, { label: "Timer", notice: `${formatTime(sec)} timer`, overTitle: "Timer done" });
+  };
 
   const [restDock, setRestDock] = useState(null);
 
@@ -162,7 +173,11 @@ export function SessionPage({ session, initialLogs = [], initialOrder, initialIn
           title={session.kind === "routine" ? session.refName : session.exercises[0]?.name}
           subtitle={<ElapsedTime since={session.startedAt} />}
           left={<button style={{ ...s.textBtn, color: C.muted }} onClick={onCancel}>Cancel</button>}
-          right={null}
+          right={
+            <button style={{ ...s.iconBtn, color: C.accent }} onClick={() => setTimerSheetOpen(true)} aria-label="Start a timer">
+              <Icon.timer />
+            </button>
+          }
         />
         <div ref={setRestDock} style={{ ...s.restDock, ...(desktop && d.restDock) }} />
       </div>
@@ -206,6 +221,25 @@ export function SessionPage({ session, initialLogs = [], initialOrder, initialIn
           paused={interRest.paused}
           onTogglePause={interRestTimer.togglePause}
           onSkip={skipInterRest}
+        />
+      )}
+      {customTimer.rest && (
+        <RestBar
+          label={customTimer.rest.label}
+          tone="accent"
+          timeLeft={customTimer.rest.timeLeft}
+          remainingMs={customTimer.rest.remainingMs}
+          total={customTimer.rest.total}
+          paused={customTimer.rest.paused}
+          onTogglePause={customTimer.togglePause}
+          onSkip={customTimer.stop}
+        />
+      )}
+      {timerSheetOpen && (
+        <TimerSheet
+          initialSec={customTimer.rest?.total || 60}
+          onStart={startCustomTimer}
+          onClose={() => setTimerSheetOpen(false)}
         />
       )}
       <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
