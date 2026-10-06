@@ -21669,15 +21669,26 @@ Now generate the exercises and/or routines described by the user's request that 
 
   // climbing-tracker/components/useRestTimer.js
   var { useState: useState3, useEffect: useEffect3, useRef: useRef3 } = React;
-  function useRestTimer() {
+  function useRestTimer({ saved, onSave } = {}) {
     const [rest, setRest] = useState3(null);
     const endsAtRef = useRef3(0);
     const remainingMsRef = useRef3(0);
     const tickRef = useRef3(null);
     const endRef = useRef3(null);
     const noticeRef = useRef3("");
+    const metaRef = useRef3({});
+    const totalRef = useRef3(0);
     const lastSecRef = useRef3(0);
     const idRef = useRef3({});
+    const onSaveRef = useRef3(onSave);
+    onSaveRef.current = onSave;
+    const save = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
+      total: totalRef.current,
+      notice: noticeRef.current,
+      meta: metaRef.current,
+      paused,
+      ...paused ? { remainingMs: remainingMsRef.current } : { endsAt: endsAtRef.current }
+    });
     const clearTimers = () => {
       if (tickRef.current) {
         clearInterval(tickRef.current);
@@ -21694,6 +21705,7 @@ Now generate the exercises and/or routines described by the user's request that 
       sounds.workStart();
       notifyRestOver(noticeRef.current);
       setRest(null);
+      save(null);
     };
     const tick = () => {
       const sec = Math.ceil((endsAtRef.current - Date.now()) / 1e3);
@@ -21716,27 +21728,53 @@ Now generate the exercises and/or routines described by the user's request that 
     const start = (sec, { notice = "", ...meta } = {}) => {
       clearTimers();
       noticeRef.current = notice;
+      metaRef.current = meta;
+      totalRef.current = sec;
       setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1e3, paused: false });
       sounds.restStart();
       run(sec * 1e3);
+      save(false);
     };
     const stop = () => {
       clearTimers();
       untrackRest(idRef.current);
       setRest(null);
+      save(null);
     };
     const togglePause = () => {
       if (!rest) return;
       if (rest.paused) {
         run(remainingMsRef.current);
         setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
+        save(false);
       } else {
         remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
         clearTimers();
         trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
         setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
+        save(true);
       }
     };
+    useEffect3(() => {
+      if (!saved || !(saved.total > 0)) return;
+      noticeRef.current = saved.notice || "";
+      metaRef.current = saved.meta || {};
+      totalRef.current = saved.total;
+      const ms = saved.paused ? saved.remainingMs : saved.endsAt - Date.now();
+      if (!(ms > 0)) {
+        save(null);
+        return;
+      }
+      const base = { ...metaRef.current, total: saved.total, timeLeft: Math.ceil(ms / 1e3), remainingMs: ms };
+      if (saved.paused) {
+        remainingMsRef.current = ms;
+        trackRest(idRef.current, { paused: true, remainingMs: ms, label: noticeRef.current });
+        setRest({ ...base, paused: true });
+      } else {
+        run(ms);
+        setRest({ ...base, paused: false });
+      }
+    }, []);
     useEffect3(() => () => {
       clearTimers();
       untrackRest(idRef.current);
@@ -21779,11 +21817,12 @@ Now generate the exercises and/or routines described by the user's request that 
       var _a;
       return ((_a = initialLog == null ? void 0 : initialLog.rows) == null ? void 0 : _a.length) ? initialLog.rows : Array.from({ length: targetSets }, (_2, i) => makeRow(i));
     });
-    const restTimer = useRestTimer();
+    const [savedRest, setSavedRest] = useState4(() => (initialLog == null ? void 0 : initialLog.rest) || null);
+    const restTimer = useRestTimer({ saved: initialLog == null ? void 0 : initialLog.rest, onSave: setSavedRest });
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
     useEffect4(() => {
-      onChange({ rows, restSec });
-    }, [rows, restSec]);
+      onChange({ rows, restSec, rest: savedRest });
+    }, [rows, restSec, savedRest]);
     const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
     const skipRest = restTimer.stop;
     const updateRow = (i, patch) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
@@ -21845,6 +21884,7 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/IntervalCard.jsx
   var { useState: useState5, useEffect: useEffect5, useRef: useRef4 } = React;
   var PREP_SEC = 5;
+  var RUNNING = ["prep", "work", "rest"];
   function IntervalCard({ exercise, initialLog, superset, onChange }) {
     const [init] = useState5(() => {
       var _a, _b, _c, _d;
@@ -21855,162 +21895,189 @@ Now generate the exercises and/or routines described by the user's request that 
         weight: (_d = initialLog == null ? void 0 : initialLog.weight) != null ? _d : exercise.weight
       };
       const completed2 = (initialLog == null ? void 0 : initialLog.completedSets) || 0;
+      const saved = initialLog == null ? void 0 : initialLog.timer;
+      if (saved && RUNNING.includes(saved.phase)) {
+        return { cfg, timer: { completed: completed2, phase: saved.phase, set: saved.set || 1, endsAt: saved.endsAt || 0, remainingMs: saved.remainingMs || 0, paused: !!saved.paused } };
+      }
       const phase2 = completed2 === 0 ? "idle" : completed2 >= cfg.totalSets ? "done" : "next";
-      return { cfg, completed: completed2, phase: phase2, currentSet: phase2 === "next" ? completed2 + 1 : 1 };
+      return { cfg, timer: { completed: completed2, phase: phase2, set: phase2 === "next" ? completed2 + 1 : 1, endsAt: 0, remainingMs: 0, paused: false } };
     });
-    const [phase, setPhase] = useState5(init.phase);
     const [workSec, setWorkSec] = useState5(init.cfg.workSec);
     const [restSec, setRestSec] = useState5(init.cfg.restSec);
     const [totalSets, setTotalSets] = useState5(init.cfg.totalSets);
     const [weight, setWeight] = useState5(init.cfg.weight);
     const weighted = exercise.type === "weightedInterval";
-    const [currentSet, setCurrentSet] = useState5(init.currentSet);
-    const [timeLeft, setTimeLeft] = useState5(init.cfg.workSec);
-    const [paused, setPaused] = useState5(false);
-    const intervalRef = useRef4(null);
-    const phaseRef = useRef4(init.phase);
-    const currentSetRef = useRef4(init.currentSet);
-    const timeLeftRef = useRef4(init.cfg.workSec);
-    const completedRef = useRef4(init.completed);
+    const timerRef = useRef4(init.timer);
     const configRef = useRef4(init.cfg);
+    const intervalRef = useRef4(null);
+    const lastSecRef = useRef4(0);
+    const [, setFrame] = useState5(0);
+    const rerender = () => setFrame((f) => f + 1);
     useEffect5(() => {
       configRef.current = { workSec, restSec, totalSets, weight };
-      if (phaseRef.current === "idle") report();
+      if (timerRef.current.phase === "idle") report();
     }, [workSec, restSec, totalSets, weight]);
-    const report = () => onChange({
-      type: exercise.type,
-      completedSets: completedRef.current,
-      workSec: configRef.current.workSec,
-      restSec: configRef.current.restSec,
-      targetSets: configRef.current.totalSets,
-      ...weighted && { weight: configRef.current.weight }
-    });
+    const onChangeRef = useRef4(onChange);
+    onChangeRef.current = onChange;
+    const report = (meta) => {
+      const t2 = timerRef.current;
+      onChangeRef.current({
+        type: exercise.type,
+        completedSets: t2.completed,
+        workSec: configRef.current.workSec,
+        restSec: configRef.current.restSec,
+        targetSets: configRef.current.totalSets,
+        ...weighted && { weight: configRef.current.weight },
+        timer: RUNNING.includes(t2.phase) ? { phase: t2.phase, set: t2.set, paused: t2.paused, ...t2.paused ? { remainingMs: t2.remainingMs } : { endsAt: t2.endsAt } } : null
+      }, meta);
+    };
+    const durationMs = (phase2) => 1e3 * (phase2 === "prep" ? PREP_SEC : phase2 === "work" ? Math.max(1, Number(configRef.current.workSec) || 0) : Math.max(0, Number(configRef.current.restSec) || 0));
     const clearTick = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
+    const startTick = () => {
+      clearTick();
+      intervalRef.current = setInterval(tick, 250);
+    };
+    const enter = (phase2, at) => {
+      const t2 = timerRef.current;
+      t2.phase = phase2;
+      t2.endsAt = at + durationMs(phase2);
+    };
+    const advance = (now, silent) => {
+      const t2 = timerRef.current;
+      let changed = false;
+      while (RUNNING.includes(t2.phase) && !t2.paused && t2.endsAt <= now) {
+        const at = t2.endsAt;
+        const live = !silent && now - at < 1500;
+        changed = true;
+        if (t2.phase === "prep") {
+          enter("work", at);
+          if (live) sounds.workStart();
+        } else if (t2.phase === "work") {
+          t2.completed += 1;
+          if (t2.set >= configRef.current.totalSets) {
+            t2.phase = "done";
+            if (live) sounds.finish();
+          } else if (superset) {
+            t2.set += 1;
+            t2.phase = "next";
+            if (live) sounds.restStart();
+          } else {
+            enter("rest", at);
+            if (live) sounds.restStart();
+          }
+        } else {
+          t2.set += 1;
+          enter("work", at);
+          if (live) sounds.workStart();
+        }
+      }
+      if (!RUNNING.includes(t2.phase)) clearTick();
+      return changed;
+    };
+    const tick = () => {
+      const now = Date.now();
+      if (advance(now, false)) {
+        report();
+        rerender();
+      }
+      const t2 = timerRef.current;
+      if (!RUNNING.includes(t2.phase) || t2.paused) return;
+      const sec = Math.ceil((t2.endsAt - now) / 1e3);
+      if (sec === lastSecRef.current) return;
+      lastSecRef.current = sec;
+      if (sec <= 3 && sec >= 1) sounds.countdown();
+      rerender();
+    };
+    useEffect5(() => {
+      const t2 = timerRef.current;
+      if (!RUNNING.includes(t2.phase)) return;
+      if (advance(Date.now(), true)) {
+        report({ restored: true });
+        rerender();
+      }
+      if (RUNNING.includes(t2.phase) && !t2.paused) startTick();
+    }, []);
+    useEffect5(() => {
+      const onVisible = () => {
+        if (document.visibilityState === "visible" && intervalRef.current) tick();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => document.removeEventListener("visibilitychange", onVisible);
+    }, []);
     const finishNow = () => {
       clearTick();
-      phaseRef.current = "done";
-      setPhase("done");
+      timerRef.current.phase = "done";
+      timerRef.current.paused = false;
       report();
-    };
-    const endWork = (silent) => {
-      completedRef.current += 1;
-      report();
-      if (currentSetRef.current >= configRef.current.totalSets) {
-        clearTick();
-        phaseRef.current = "done";
-        setPhase("done");
-        if (!silent) sounds.finish();
-        return;
-      }
-      if (superset) {
-        clearTick();
-        currentSetRef.current += 1;
-        phaseRef.current = "next";
-        timeLeftRef.current = configRef.current.workSec;
-        setPhase("next");
-        setCurrentSet(currentSetRef.current);
-        setTimeLeft(configRef.current.workSec);
-        if (!silent) sounds.restStart();
-        return;
-      }
-      phaseRef.current = "rest";
-      timeLeftRef.current = configRef.current.restSec;
-      setPhase("rest");
-      setTimeLeft(configRef.current.restSec);
-      if (!silent) sounds.restStart();
-    };
-    const runTick = () => {
-      timeLeftRef.current -= 1;
-      if (timeLeftRef.current <= 0) {
-        if (phaseRef.current === "prep") {
-          enterWork();
-        } else if (phaseRef.current === "work") {
-          endWork(false);
-        } else if (phaseRef.current === "rest") {
-          currentSetRef.current += 1;
-          phaseRef.current = "work";
-          timeLeftRef.current = configRef.current.workSec;
-          setPhase("work");
-          setCurrentSet(currentSetRef.current);
-          setTimeLeft(configRef.current.workSec);
-          sounds.workStart();
-        }
-      } else {
-        setTimeLeft(timeLeftRef.current);
-        if (timeLeftRef.current <= 3 && timeLeftRef.current >= 1) sounds.countdown();
-      }
-    };
-    const enterWork = () => {
-      phaseRef.current = "work";
-      timeLeftRef.current = configRef.current.workSec;
-      setPhase("work");
-      setTimeLeft(configRef.current.workSec);
-      sounds.workStart();
+      rerender();
     };
     const beginWork = () => {
       getAudioCtx();
-      clearTick();
-      phaseRef.current = "prep";
-      timeLeftRef.current = PREP_SEC;
-      setPhase("prep");
-      setTimeLeft(PREP_SEC);
-      setPaused(false);
-      intervalRef.current = setInterval(runTick, 1e3);
+      timerRef.current.paused = false;
+      enter("prep", Date.now());
+      startTick();
+      report();
+      rerender();
     };
     const start = () => {
-      currentSetRef.current = 1;
-      completedRef.current = 0;
-      setCurrentSet(1);
+      timerRef.current.set = 1;
+      timerRef.current.completed = 0;
       beginWork();
     };
     const restart = () => {
       clearTick();
-      completedRef.current = 0;
-      phaseRef.current = "idle";
-      currentSetRef.current = 1;
-      timeLeftRef.current = configRef.current.workSec;
-      setPhase("idle");
-      setCurrentSet(1);
-      setTimeLeft(configRef.current.workSec);
-      setPaused(false);
+      timerRef.current = { completed: 0, phase: "idle", set: 1, endsAt: 0, remainingMs: 0, paused: false };
       report();
+      rerender();
     };
     const togglePause = () => {
-      if (paused) {
-        intervalRef.current = setInterval(runTick, 1e3);
-        setPaused(false);
+      const t2 = timerRef.current;
+      if (t2.paused) {
+        t2.endsAt = Date.now() + t2.remainingMs;
+        t2.paused = false;
+        startTick();
       } else {
+        t2.remainingMs = Math.max(0, t2.endsAt - Date.now());
+        t2.paused = true;
         clearTick();
-        setPaused(true);
       }
+      report();
+      rerender();
     };
     const skip = () => {
-      if (phaseRef.current === "prep") {
-        enterWork();
-      } else if (phaseRef.current === "rest") {
-        currentSetRef.current += 1;
-        phaseRef.current = "work";
-        timeLeftRef.current = configRef.current.workSec;
-        setPhase("work");
-        setCurrentSet(currentSetRef.current);
-        setTimeLeft(configRef.current.workSec);
-      } else if (phaseRef.current === "work") {
-        endWork(true);
-      }
+      const t2 = timerRef.current;
+      if (!RUNNING.includes(t2.phase)) return;
+      const now = Date.now();
+      const wasPrep = t2.phase === "prep";
+      t2.paused = false;
+      t2.endsAt = now;
+      advance(now, true);
+      if (wasPrep) sounds.workStart();
+      if (RUNNING.includes(t2.phase)) startTick();
+      report();
+      rerender();
     };
     useEffect5(() => () => clearTick(), []);
-    const running = phase === "prep" || phase === "work" || phase === "rest";
+    const t = timerRef.current;
+    const phase = t.phase;
+    const currentSet = t.set;
+    const paused = t.paused;
+    const isRunning = RUNNING.includes(phase);
+    const remainingMs = isRunning ? Math.max(0, paused ? t.remainingMs : t.endsAt - Date.now()) : 0;
+    const timeLeft = isRunning ? Math.ceil(remainingMs / 1e3) : workSec;
+    const running = isRunning;
     const phaseColor = phase === "prep" ? C.text : phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
     const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
-    const completed = phase === "done" ? completedRef.current >= totalSets ? totalSets : completedRef.current : completedRef.current;
+    const completed = phase === "done" ? Math.min(t.completed, totalSets) : t.completed;
     const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
-    const fraction = running ? phaseTotal > 0 ? timeLeft / phaseTotal : 0 : phase === "done" ? 0 : 1;
+    const fraction = running ? phaseTotal > 0 ? remainingMs / 1e3 / phaseTotal : 0 : phase === "done" ? 0 : 1;
     const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
+    const drainMs = running ? Math.max(0, Math.round(remainingMs - (timeLeft - 1) * 1e3)) : 0;
     return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 }), weighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: weight, onChange: setWeight, min: 0, step: 0.5, inc: 2.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
@@ -22018,12 +22085,13 @@ Now generate the exercises and/or routines described by the user's request that 
         fraction,
         nextFraction,
         color: phaseColor,
+        ms: drainMs,
         animate: running && !paused
       }
     ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
-  function Ring({ fraction, nextFraction, color, animate }) {
-    const drain = useDrain(fraction, nextFraction, 1e3, animate);
+  function Ring({ fraction, nextFraction, ms, color, animate }) {
+    const drain = useDrain(fraction, nextFraction, ms, animate);
     const size = 220, stroke = 10, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
     return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: `0 0 ${size} ${size}`, style: { transform: "rotate(-90deg)" }, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("circle", { cx: size / 2, cy: size / 2, r, fill: "none", stroke: C.surface2, strokeWidth: stroke }), /* @__PURE__ */ React.createElement(
       "circle",
@@ -22082,9 +22150,9 @@ Now generate the exercises and/or routines described by the user's request that 
     const [collapsed, setCollapsed] = useState7(false);
     const [progress, setProgress] = useState7(() => progressOf(exercise, initialLog));
     const complete = progress.total > 0 && progress.done >= progress.total;
-    const handleChange = (log) => {
+    const handleChange = (log, meta) => {
       setProgress(progressOf(exercise, log));
-      onChange(log);
+      onChange(log, meta);
     };
     return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, initialLog, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, initialLog, onChange: handleChange })));
   }
@@ -22253,7 +22321,26 @@ Now generate the exercises and/or routines described by the user's request that 
       };
     }, []);
   }
-  function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
+  var SCROLL_KEY = "climbing-tracker-session-scroll";
+  function useRestoredScroll(sessionId) {
+    useEffect8(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SCROLL_KEY));
+        if (saved && saved.id === sessionId && saved.y > 0) requestAnimationFrame(() => window.scrollTo(0, saved.y));
+      } catch {
+      }
+      const save = () => {
+        if (document.visibilityState !== "hidden") return;
+        try {
+          localStorage.setItem(SCROLL_KEY, JSON.stringify({ id: sessionId, y: window.scrollY }));
+        } catch {
+        }
+      };
+      document.addEventListener("visibilitychange", save);
+      return () => document.removeEventListener("visibilitychange", save);
+    }, [sessionId]);
+  }
+  function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onFinish, onNotesChange }) {
     var _a;
     const [order, setOrder] = useState10(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
@@ -22268,11 +22355,12 @@ Now generate the exercises and/or routines described by the user's request that 
       onOrderChange && onOrderChange(order);
     }, [order]);
     const [cardExercises] = useState10(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
-    const interRestTimer = useRestTimer();
+    const interRestTimer = useRestTimer({ saved: initialInterRest, onSave: onInterRestChange });
     const interRest = interRestTimer.rest;
     const [restDock, setRestDock] = useState10(null);
     const desktop = useIsDesktop();
     useWakeLock();
+    useRestoredScroll(session.id);
     const startInterRest = (restAfterSec, label = "Next exercise in") => {
       const notice = label === "Next round in" ? "Next superset round" : "Next exercise";
       interRestTimer.start(restAfterSec, { label, notice });
@@ -22288,7 +22376,7 @@ Now generate the exercises and/or routines described by the user's request that 
         return arr;
       });
     };
-    const handleCardChange = (exIdx, log) => {
+    const handleCardChange = (exIdx, log, meta) => {
       onLogChange(exIdx, log);
       const exercise = session.exercises[exIdx];
       const pos = order.findIndex((block2) => block2.includes(exIdx));
@@ -22302,6 +22390,7 @@ Now generate the exercises and/or routines described by the user's request that 
       doneCountRef.current[exIdx] = doneCountOf(exercise, log);
       const blockComplete = block.every((i) => completedRef.current[i]);
       const round2 = Math.min(...block.map((i) => doneCountRef.current[i]));
+      if (meta == null ? void 0 : meta.restored) return;
       if (blockComplete && !wasBlockComplete) {
         if (last.restAfterSec > 0 && !isLastPos) startInterRest(last.restAfterSec);
       } else if (block.length > 1 && !blockComplete && round2 > prevRound && last.restSec > 0) {
@@ -22328,7 +22417,7 @@ Now generate the exercises and/or routines described by the user's request that 
           position,
           total: order.length,
           label: isSuperset ? `${position + 1}${String.fromCharCode(65 + k)}` : null,
-          onChange: (log) => handleCardChange(exIdx, log),
+          onChange: (log, meta) => handleCardChange(exIdx, log, meta),
           onMove: (dir) => moveCard(position, dir),
           onNotesChange: (text) => onNotesChange(session.exercises[exIdx].id, text)
         }
@@ -27337,12 +27426,15 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const sessionLogsRef = useRef8((restored == null ? void 0 : restored.logs) || []);
     const sessionOrderRef = useRef8((restored == null ? void 0 : restored.order) || null);
+    const sessionInterRestRef = useRef8((restored == null ? void 0 : restored.interRest) || null);
     const persistSession = (session = activeSession) => writeActiveSession(session && {
       session,
       logs: sessionLogsRef.current,
-      order: sessionOrderRef.current
+      order: sessionOrderRef.current,
+      interRest: sessionInterRestRef.current
     });
     const setActiveSession = (session) => {
+      sessionInterRestRef.current = null;
       if (!session) {
         sessionLogsRef.current = [];
         sessionOrderRef.current = null;
@@ -27384,6 +27476,10 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const handleOrderChange = (order) => {
       sessionOrderRef.current = order;
+      persistSession();
+    };
+    const handleInterRestChange = (rest) => {
+      sessionInterRestRef.current = rest;
       persistSession();
     };
     const finishSession = () => {
@@ -27570,7 +27666,9 @@ Now generate the exercises and/or routines described by the user's request that 
           session: activeSession,
           initialLogs: sessionLogsRef.current,
           initialOrder: sessionOrderRef.current,
+          initialInterRest: sessionInterRestRef.current,
           onOrderChange: handleOrderChange,
+          onInterRestChange: handleInterRestChange,
           notesById: Object.fromEntries(exercises.map((e) => [e.id, e.notes || ""])),
           onCancel: requestCancelSession,
           onLogChange: handleLogChange,

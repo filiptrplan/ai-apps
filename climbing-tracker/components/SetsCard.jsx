@@ -46,10 +46,12 @@ export function SetsCard({ exercise, initialLog, onChange }) {
   };
 
   const [rows, setRows] = useState(() => initialLog?.rows?.length ? initialLog.rows : Array.from({ length: targetSets }, (_, i) => makeRow(i)));
-  const restTimer = useRestTimer();
+  // The running rest goes into the log too, so a reload resumes it.
+  const [savedRest, setSavedRest] = useState(() => initialLog?.rest || null);
+  const restTimer = useRestTimer({ saved: initialLog?.rest, onSave: setSavedRest });
   const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
 
-  useEffect(() => { onChange({ rows, restSec }); }, [rows, restSec]);
+  useEffect(() => { onChange({ rows, restSec, rest: savedRest }); }, [rows, restSec, savedRest]);
 
   const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
   const skipRest = restTimer.stop;

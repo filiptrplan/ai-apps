@@ -37,7 +37,8 @@ const roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
 
 // The workout in progress, kept in this device's localStorage (not synced)
 // so it survives the phone discarding the backgrounded app: { session, logs,
-// order }, written on every logged change and dropped on finish/cancel.
+// order, interRest }, written on every logged change (running timers
+// included) and dropped on finish/cancel.
 const ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
 
 function readActiveSession() {
@@ -226,10 +227,12 @@ export function ClimbingTrackerApp() {
   // localStorage so a reload resumes the workout where it was.
   const sessionLogsRef = useRef(restored?.logs || []);
   const sessionOrderRef = useRef(restored?.order || null);
+  const sessionInterRestRef = useRef(restored?.interRest || null);
   const persistSession = (session = activeSession) => writeActiveSession(session && {
-    session, logs: sessionLogsRef.current, order: sessionOrderRef.current,
+    session, logs: sessionLogsRef.current, order: sessionOrderRef.current, interRest: sessionInterRestRef.current,
   });
   const setActiveSession = (session) => {
+    sessionInterRestRef.current = null;
     if (!session) { sessionLogsRef.current = []; sessionOrderRef.current = null; }
     setActiveSessionState(session);
     persistSession(session);
@@ -265,6 +268,7 @@ export function ClimbingTrackerApp() {
   };
   const handleLogChange = (i, log) => { sessionLogsRef.current[i] = log; persistSession(); };
   const handleOrderChange = (order) => { sessionOrderRef.current = order; persistSession(); };
+  const handleInterRestChange = (rest) => { sessionInterRestRef.current = rest; persistSession(); };
   const finishSession = () => {
     const current = activeSession;
     const results = [];
@@ -465,7 +469,9 @@ export function ClimbingTrackerApp() {
             session={activeSession}
             initialLogs={sessionLogsRef.current}
             initialOrder={sessionOrderRef.current}
+            initialInterRest={sessionInterRestRef.current}
             onOrderChange={handleOrderChange}
+            onInterRestChange={handleInterRestChange}
             notesById={Object.fromEntries(exercises.map(e => [e.id, e.notes || ""]))}
             onCancel={requestCancelSession}
             onLogChange={handleLogChange}
