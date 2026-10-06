@@ -44,6 +44,26 @@ function useWakeLock() {
   }, []);
 }
 
+// The phone can discard the app while it's in the background, and it then
+// reloads on return. Remember how far down the workout was scrolled when it
+// was hidden, so the reload comes back to the same spot.
+const SCROLL_KEY = "climbing-tracker-session-scroll";
+
+function useRestoredScroll(sessionId) {
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SCROLL_KEY));
+      if (saved && saved.id === sessionId && saved.y > 0) requestAnimationFrame(() => window.scrollTo(0, saved.y));
+    } catch {}
+    const save = () => {
+      if (document.visibilityState !== "hidden") return;
+      try { localStorage.setItem(SCROLL_KEY, JSON.stringify({ id: sessionId, y: window.scrollY })); } catch {}
+    };
+    document.addEventListener("visibilitychange", save);
+    return () => document.removeEventListener("visibilitychange", save);
+  }, [sessionId]);
+}
+
 // All exercises in the session are shown on one page at once, so a routine
 // can be worked through in whatever order feels right rather than a forced
 // step-by-step sequence. Each card reports its live progress via onLogChange;
@@ -63,9 +83,10 @@ function useWakeLock() {
 // Notes come from the live exercise list (notesById) rather than the
 // session's snapshot, so an edit shows on every card for that exercise.
 //
-// initialLogs/initialOrder resume a workout restored after a reload; order
-// changes are reported via onOrderChange so they can be saved too.
-export function SessionPage({ session, initialLogs = [], initialOrder, notesById, onCancel, onLogChange, onOrderChange, onFinish, onNotesChange }) {
+// initialLogs/initialOrder/initialInterRest resume a workout restored after
+// a reload; order and between-exercise rest changes are reported via
+// onOrderChange/onInterRestChange so they can be saved too.
+export function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onFinish, onNotesChange }) {
   const [order, setOrder] = useState(() => initialOrder || groupSteps(session.exercises.map((_, i) => i), i => session.exercises[i].supersetGroup || null));
   const doneCountOf = (ex, log) => isIntervalType(ex.type)
     ? (log?.completedSets || 0)
@@ -81,13 +102,14 @@ export function SessionPage({ session, initialLogs = [], initialOrder, notesById
   // round rest replaces it. Interval members keep restSec (so it isn't
   // logged as changed) and skip their rest phase via IntervalCard's superset mode.
   const [cardExercises] = useState(() => session.exercises.map(ex => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
-  const interRestTimer = useRestTimer();
+  const interRestTimer = useRestTimer({ saved: initialInterRest, onSave: onInterRestChange });
   const interRest = interRestTimer.rest; // { label, timeLeft, total, paused }
 
   const [restDock, setRestDock] = useState(null);
 
   const desktop = useIsDesktop();
   useWakeLock();
+  useRestoredScroll(session.id);
 
   const startInterRest = (restAfterSec, label = "Next exercise in") => {
     const notice = label === "Next round in" ? "Next superset round" : "Next exercise";
@@ -106,7 +128,10 @@ export function SessionPage({ session, initialLogs = [], initialOrder, notesById
     });
   };
 
-  const handleCardChange = (exIdx, log) => {
+  // A restored card catching up on time spent away (an interval timer that
+  // kept running while the page was gone) updates progress but starts no
+  // rest - that moment has passed.
+  const handleCardChange = (exIdx, log, meta) => {
     onLogChange(exIdx, log);
     const exercise = session.exercises[exIdx];
     const pos = order.findIndex(block => block.includes(exIdx));
@@ -122,6 +147,7 @@ export function SessionPage({ session, initialLogs = [], initialOrder, notesById
     const blockComplete = block.every(i => completedRef.current[i]);
     const round = Math.min(...block.map(i => doneCountRef.current[i]));
 
+    if (meta?.restored) return;
     if (blockComplete && !wasBlockComplete) {
       if (last.restAfterSec > 0 && !isLastPos) startInterRest(last.restAfterSec);
     } else if (block.length > 1 && !blockComplete && round > prevRound && last.restSec > 0) {
@@ -153,7 +179,7 @@ export function SessionPage({ session, initialLogs = [], initialOrder, notesById
               position={position}
               total={order.length}
               label={isSuperset ? `${position + 1}${String.fromCharCode(65 + k)}` : null}
-              onChange={log => handleCardChange(exIdx, log)}
+              onChange={(log, meta) => handleCardChange(exIdx, log, meta)}
               onMove={dir => moveCard(position, dir)}
               onNotesChange={text => onNotesChange(session.exercises[exIdx].id, text)}
             />

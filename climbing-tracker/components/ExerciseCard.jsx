@@ -20,9 +20,9 @@ export function ExerciseCard({ exercise, initialLog, notes, position, total, lab
   const [progress, setProgress] = useState(() => progressOf(exercise, initialLog));
   const complete = progress.total > 0 && progress.done >= progress.total;
 
-  const handleChange = (log) => {
+  const handleChange = (log, meta) => {
     setProgress(progressOf(exercise, log));
-    onChange(log);
+    onChange(log, meta);
   };
 
   return (

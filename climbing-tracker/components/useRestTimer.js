@@ -13,15 +13,33 @@ const { useState, useEffect, useRef } = React;
 // rest is null when idle, else { total, timeLeft, remainingMs, paused, ...meta }
 // (remainingMs being the exact time left when timeLeft last changed) where
 // meta is whatever the caller passed to start (e.g. a label).
-export function useRestTimer() {
+//
+// onSave gets a plain snapshot of the timer ({ total, notice, meta, paused,
+// endsAt | remainingMs }, or null) whenever it starts, stops, pauses or
+// resumes; handing that back as `saved` after a reload picks the rest up
+// where it was. A rest that would have ended while the page was gone is
+// dropped quietly.
+export function useRestTimer({ saved, onSave } = {}) {
   const [rest, setRest] = useState(null);
   const endsAtRef = useRef(0);
   const remainingMsRef = useRef(0); // while paused
   const tickRef = useRef(null);
   const endRef = useRef(null);
   const noticeRef = useRef("");
+  const metaRef = useRef({});
+  const totalRef = useRef(0);
   const lastSecRef = useRef(0);
   const idRef = useRef({}); // this timer's key in restAlert's registry
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  const save = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
+    total: totalRef.current,
+    notice: noticeRef.current,
+    meta: metaRef.current,
+    paused,
+    ...(paused ? { remainingMs: remainingMsRef.current } : { endsAt: endsAtRef.current }),
+  });
 
   const clearTimers = () => {
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
@@ -34,6 +52,7 @@ export function useRestTimer() {
     sounds.workStart();
     notifyRestOver(noticeRef.current);
     setRest(null);
+    save(null);
   };
 
   const tick = () => {
@@ -57,25 +76,49 @@ export function useRestTimer() {
   const start = (sec, { notice = "", ...meta } = {}) => {
     clearTimers();
     noticeRef.current = notice;
+    metaRef.current = meta;
+    totalRef.current = sec;
     setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1000, paused: false });
     sounds.restStart();
     run(sec * 1000);
+    save(false);
   };
 
-  const stop = () => { clearTimers(); untrackRest(idRef.current); setRest(null); };
+  const stop = () => { clearTimers(); untrackRest(idRef.current); setRest(null); save(null); };
 
   const togglePause = () => {
     if (!rest) return;
     if (rest.paused) {
       run(remainingMsRef.current);
       setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
+      save(false);
     } else {
       remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
       clearTimers();
       trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
       setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
+      save(true);
     }
   };
+
+  // Restore a rest saved before a reload.
+  useEffect(() => {
+    if (!saved || !(saved.total > 0)) return;
+    noticeRef.current = saved.notice || "";
+    metaRef.current = saved.meta || {};
+    totalRef.current = saved.total;
+    const ms = saved.paused ? saved.remainingMs : saved.endsAt - Date.now();
+    if (!(ms > 0)) { save(null); return; }
+    const base = { ...metaRef.current, total: saved.total, timeLeft: Math.ceil(ms / 1000), remainingMs: ms };
+    if (saved.paused) {
+      remainingMsRef.current = ms;
+      trackRest(idRef.current, { paused: true, remainingMs: ms, label: noticeRef.current });
+      setRest({ ...base, paused: true });
+    } else {
+      run(ms);
+      setRest({ ...base, paused: false });
+    }
+  }, []);
 
   useEffect(() => () => { clearTimers(); untrackRest(idRef.current); }, []);
 
