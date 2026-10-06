@@ -159,7 +159,8 @@ export function ClimbingTrackerApp() {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
   };
   const updateRoutineStepById = (routineId, stepId, patch) => {
-    setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
+    // Functional update so several patches in one go (Update all) compose.
+    setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, steps: r.steps.map(step => step.id === stepId ? { ...step, ...patch } : step) } : r));
   };
   const removeFromRoutine = (routineId, idx) => {
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: normalizeSupersets(r.steps.filter((_, i) => i !== idx)) } : r));
@@ -328,7 +329,7 @@ export function ClimbingTrackerApp() {
     requestConfirm("Clear all history?", "All logged workouts will be permanently deleted. This cannot be undone.", clearHistory, "Clear all");
   };
   const updateExerciseTemplate = (exerciseId, patch) => {
-    setExercises(exercises.map(e => e.id === exerciseId ? { ...e, ...patch } : e));
+    setExercises(prev => prev.map(e => e.id === exerciseId ? { ...e, ...patch } : e));
   };
   // A drift can span both places at once - e.g. sets came from a routine
   // override while reps came from the exercise itself - so apply whichever
@@ -353,6 +354,10 @@ export function ClimbingTrackerApp() {
   const applyPostSessionDrift = (drift) => {
     applyDrift(drift);
     setPostSessionDrifts(postSessionDrifts.filter(d => driftKey(d) !== driftKey(drift)));
+  };
+  const applyAllPostSessionDrifts = () => {
+    postSessionDrifts.forEach(applyDrift);
+    setPostSessionDrifts([]);
   };
 
   // Export / import
@@ -875,7 +880,12 @@ export function ClimbingTrackerApp() {
               <button style={s.driftBtn} onClick={() => applyPostSessionDrift(drift)}>Update</button>
             </div>
           ))}
-          <button style={{ ...s.btnSecondary, ...s.btnBlock, marginTop: 16 }} onClick={() => setPostSessionDrifts([])}>Done</button>
+          <div style={{ ...s.btnRow, marginTop: 16 }}>
+            {postSessionDrifts.length > 1 && (
+              <button style={{ ...s.btnPrimary, flex: 1 }} onClick={applyAllPostSessionDrifts}>Update all</button>
+            )}
+            <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => setPostSessionDrifts([])}>Done</button>
+          </div>
         </Sheet>
       )}
 
