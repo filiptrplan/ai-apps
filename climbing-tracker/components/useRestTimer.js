@@ -26,6 +26,7 @@ export function useRestTimer({ saved, onSave } = {}) {
   const tickRef = useRef(null);
   const endRef = useRef(null);
   const noticeRef = useRef("");
+  const overTitleRef = useRef(undefined);
   const metaRef = useRef({});
   const totalRef = useRef(0);
   const lastSecRef = useRef(0);
@@ -36,6 +37,7 @@ export function useRestTimer({ saved, onSave } = {}) {
   const save = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
     total: totalRef.current,
     notice: noticeRef.current,
+    overTitle: overTitleRef.current,
     meta: metaRef.current,
     paused,
     ...(paused ? { remainingMs: remainingMsRef.current } : { endsAt: endsAtRef.current }),
@@ -50,7 +52,7 @@ export function useRestTimer({ saved, onSave } = {}) {
     clearTimers();
     untrackRest(idRef.current);
     sounds.workStart();
-    notifyRestOver(noticeRef.current);
+    notifyRestOver(noticeRef.current, overTitleRef.current);
     setRest(null);
     save(null);
   };
@@ -72,10 +74,12 @@ export function useRestTimer({ saved, onSave } = {}) {
     trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
   };
 
-  // notice: body text for the countdown and "Rest over" notifications.
-  const start = (sec, { notice = "", ...meta } = {}) => {
+  // notice: body text for the countdown and "Rest over" notifications;
+  // overTitle replaces that "Rest over" title.
+  const start = (sec, { notice = "", overTitle, ...meta } = {}) => {
     clearTimers();
     noticeRef.current = notice;
+    overTitleRef.current = overTitle;
     metaRef.current = meta;
     totalRef.current = sec;
     setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1000, paused: false });
@@ -105,6 +109,7 @@ export function useRestTimer({ saved, onSave } = {}) {
   useEffect(() => {
     if (!saved || !(saved.total > 0)) return;
     noticeRef.current = saved.notice || "";
+    overTitleRef.current = saved.overTitle;
     metaRef.current = saved.meta || {};
     totalRef.current = saved.total;
     const ms = saved.paused ? saved.remainingMs : saved.endsAt - Date.now();

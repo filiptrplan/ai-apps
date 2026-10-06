@@ -103,11 +103,11 @@ export function untrackRest(id) {
   if (rests.size > 0) { lastShown = ""; updateCountdown(); }
 }
 
-export async function notifyRestOver(body) {
+export async function notifyRestOver(body, title = "Rest over") {
   if (!canNotify()) return;
   // In the foreground the in-app beep and rest bar already cover it.
   if (document.visibilityState === "visible") return;
-  await show("Rest over", {
+  await show(title, {
     body,
     tag: OVER_TAG,
     renotify: true,
