@@ -32,10 +32,11 @@ function tracePath(samples, fs, from, to, x0, base) {
   return d;
 }
 
-// Rows of { label, segments: [{lead, from, to, x}] }.
-function layout(twelve, duration) {
+// Rows of { label, segments: [{lead, from, to, x}] }. A rhythm strip shows
+// the recording's `strip` leads (II and V1 when it has all twelve).
+function layout(twelve, duration, strip) {
   if (!twelve) {
-    return ["II", "V1"].map((lead) => ({ segments: [{ lead, from: 0, to: duration, x: LEFT }] }));
+    return strip.map((lead) => ({ segments: [{ lead, from: 0, to: duration, x: LEFT }] }));
   }
   const col = duration / 4;
   const rows = TWELVE_LAYOUT.map((leads) => ({
@@ -46,8 +47,8 @@ function layout(twelve, duration) {
 }
 
 export function EcgPaper({ signal, twelve, zoom = 1, onZoom, calipers = false }) {
-  const { leads, fs, duration } = signal;
-  const rows = layout(twelve, duration);
+  const { leads, fs, duration, strip } = signal;
+  const rows = layout(twelve, duration, strip);
   const width = LEFT + duration * SPEED + 4;
   const height = TOP + (rows.length - 1) * ROW + 18;
   const svgRef = useRef(null);
@@ -248,7 +249,7 @@ export function EcgPaper({ signal, twelve, zoom = 1, onZoom, calipers = false })
         viewBox={`0 0 ${width} ${height}`}
         style={boxW ? { width: `${baseW * zoom}px`, height: `${baseH * zoom}px` } : undefined}
         role="img"
-        aria-label={twelve ? "12-lead ECG" : "Rhythm strip, leads II and V1"}
+        aria-label={twelve ? "12-lead ECG" : `Rhythm strip, leads ${strip.join(" and ")}`}
         {...handlers}
       >
         <defs>

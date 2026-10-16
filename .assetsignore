@@ -12,3 +12,4 @@ LICENSE
 *.jsx
 worker.js
 mcp
+ekg-trainer/tools

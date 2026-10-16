@@ -20141,9 +20141,9 @@ ${suffix}`;
     }
     return d;
   }
-  function layout(twelve, duration) {
+  function layout(twelve, duration, strip) {
     if (!twelve) {
-      return ["II", "V1"].map((lead) => ({ segments: [{ lead, from: 0, to: duration, x: LEFT }] }));
+      return strip.map((lead) => ({ segments: [{ lead, from: 0, to: duration, x: LEFT }] }));
     }
     const col = duration / 4;
     const rows = TWELVE_LAYOUT.map((leads) => ({
@@ -20153,8 +20153,8 @@ ${suffix}`;
     return rows;
   }
   function EcgPaper({ signal, twelve, zoom = 1, onZoom, calipers = false }) {
-    const { leads, fs, duration } = signal;
-    const rows = layout(twelve, duration);
+    const { leads, fs, duration, strip } = signal;
+    const rows = layout(twelve, duration, strip);
     const width = LEFT + duration * SPEED + 4;
     const height = TOP + (rows.length - 1) * ROW + 18;
     const svgRef = useRef2(null);
@@ -20330,7 +20330,7 @@ ${suffix}`;
         viewBox: `0 0 ${width} ${height}`,
         style: boxW ? { width: `${baseW * zoom}px`, height: `${baseH * zoom}px` } : void 0,
         role: "img",
-        "aria-label": twelve ? "12-lead ECG" : "Rhythm strip, leads II and V1",
+        "aria-label": twelve ? "12-lead ECG" : `Rhythm strip, leads ${strip.join(" and ")}`,
         ...handlers
       },
       /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("pattern", { id: "ek-minor", width: "1", height: "1", patternUnits: "userSpaceOnUse", x: LEFT, y: TOP }, /* @__PURE__ */ React.createElement("path", { d: "M1 0H0V1", fill: "none", stroke: "var(--grid-minor)", strokeWidth: "0.06" })), /* @__PURE__ */ React.createElement("pattern", { id: "ek-major", width: "5", height: "5", patternUnits: "userSpaceOnUse", x: LEFT, y: TOP }, /* @__PURE__ */ React.createElement("rect", { width: "5", height: "5", fill: "url(#ek-minor)" }), /* @__PURE__ */ React.createElement("path", { d: "M5 0H0V5", fill: "none", stroke: "var(--grid-major)", strokeWidth: "0.16" }))),
@@ -20351,353 +20351,7 @@ ${suffix}`;
     ));
   }
 
-  // ekg-trainer/synth.js
-  var LEADS = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
-  var DEG = Math.PI / 180;
-  var LIMB = { I: [0, 1], II: [60, 1], III: [120, 1], aVR: [-150, 0.87], aVL: [-30, 0.87], aVF: [90, 0.87] };
-  var CHEST = {
-    V1: [118, 0, 1.25],
-    V2: [96, 0, 1.7],
-    V3: [76, 0.1, 1.7],
-    V4: [56, 0.2, 1.6],
-    V5: [32, 0.2, 1.35],
-    V6: [8, 0.2, 1.1]
-  };
-  function leadVector(name) {
-    if (LIMB[name]) {
-      const [a2, gain2] = LIMB[name];
-      return [Math.cos(a2 * DEG) * gain2, Math.sin(a2 * DEG) * gain2, 0];
-    }
-    const [a, tilt, gain] = CHEST[name];
-    const v = norm([Math.cos(a * DEG), tilt, Math.sin(a * DEG)], 1);
-    return v.map((c) => c * gain);
-  }
-  var LEAD_VECTORS = LEADS.map(leadVector);
-  function dot(a, b) {
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  }
-  function norm([x, y, z], mag) {
-    const n = Math.hypot(x, y, z) || 1;
-    return [x / n * mag, y / n * mag, z / n * mag];
-  }
-  function vec(frontal, z, mag) {
-    return norm([Math.cos(frontal * DEG), Math.sin(frontal * DEG), z], mag);
-  }
-  function g(t, s1, s2, v) {
-    return { kind: "g", t, s1, s2, v };
-  }
-  function plateau(from, to, rise, fall, v) {
-    return { kind: "p", from, to, rise, fall, v };
-  }
-  function sig(x) {
-    return 1 / (1 + Math.exp(-x));
-  }
-  function shape(c, tau) {
-    if (c.kind === "g") {
-      const d = tau - c.t;
-      const s = d < 0 ? c.s1 : c.s2;
-      return Math.exp(-(d * d) / (2 * s * s));
-    }
-    return sig((tau - c.from) / c.rise) * sig((c.to - tau) / c.fall);
-  }
-  function support(c) {
-    if (c.kind === "g") return [c.t - 5 * c.s1, c.t + 5 * c.s2];
-    return [c.from - 8 * c.rise, c.to + 8 * c.fall];
-  }
-  function extent(comps) {
-    let on = Infinity, end = -Infinity;
-    for (const c of comps) {
-      if (c.kind !== "g") continue;
-      on = Math.min(on, c.t - 2.5 * c.s1);
-      end = Math.max(end, c.t + 2.5 * c.s2);
-    }
-    return [on, end];
-  }
-  function netArea(comps, lead) {
-    const lv = leadVector(lead);
-    let a = 0;
-    for (const c of comps) {
-      if (c.kind !== "g") continue;
-      a += dot(lv, c.v) * Math.sqrt(Math.PI / 2) * (c.s1 + c.s2);
-    }
-    return a;
-  }
-  function gauss() {
-    let u = 0, v = 0;
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  }
-  function render({ events, continuous, duration = 10, fs = 500, noise = 1 }) {
-    const n = Math.round(duration * fs);
-    const out = LEADS.map(() => new Float32Array(n));
-    const L = LEADS.length;
-    for (const ev of events) {
-      for (const c of ev.comps) {
-        const proj = LEAD_VECTORS.map((lv) => dot(lv, c.v));
-        const [a, b] = support(c);
-        const i0 = Math.max(0, Math.ceil((ev.t + a) * fs));
-        const i1 = Math.min(n - 1, Math.floor((ev.t + b) * fs));
-        for (let i = i0; i <= i1; i++) {
-          const s = shape(c, i / fs - ev.t);
-          for (let l = 0; l < L; l++) out[l][i] += proj[l] * s;
-        }
-      }
-    }
-    if (continuous) {
-      for (let i = 0; i < n; i++) {
-        const v = continuous(i / fs);
-        for (let l = 0; l < L; l++) out[l][i] += dot(LEAD_VECTORS[l], v);
-      }
-    }
-    if (noise > 0) {
-      for (let l = 0; l < L; l++) {
-        const w1 = (0.02 + Math.random() * 0.03) * noise, f1 = 0.15 + Math.random() * 0.2, p1 = Math.random() * 6.3;
-        const w2 = 0.015 * noise, f2 = 0.05 + Math.random() * 0.08, p2 = Math.random() * 6.3;
-        const hiss = 6e-3 * noise;
-        for (let i = 0; i < n; i++) {
-          const t = i / fs;
-          out[l][i] += w1 * Math.sin(2 * Math.PI * f1 * t + p1) + w2 * Math.sin(2 * Math.PI * f2 * t + p2) + hiss * gauss();
-        }
-      }
-    }
-    const leads = {};
-    LEADS.forEach((name, l) => leads[name] = out[l]);
-    return { leads, fs, duration };
-  }
-
-  // ekg-trainer/morphology.js
-  var rand = (a, b) => a + Math.random() * (b - a);
-  var pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  var chance = (p) => Math.random() < p;
-  var clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-  function sinusP(amp = 0.1) {
-    return [
-      g(-0.012, 0.015, 0.015, norm([0.25, 0.9, 0.45], amp)),
-      g(0.014, 0.016, 0.016, norm([0.85, 0.45, -0.5], amp))
-    ];
-  }
-  function retroP(amp = 0.09) {
-    return [g(0, 0.018, 0.018, norm([-0.3, -0.9, 0.15], amp))];
-  }
-  function ectopicP() {
-    const dir = pick([[0.9, 0.1, -0.3], [-0.2, 0.7, 0.6], [0.7, 0.3, 0.6]]);
-    return [g(0, 0.019, 0.019, norm(dir, rand(0.07, 0.09)))];
-  }
-  function normalQrs(axis, amp, { septal = true, terminal = true, widen = 1 } = {}) {
-    const c = [];
-    if (septal) c.push(g(-0.024 * widen, 9e-3 * widen, 8e-3 * widen, norm([-0.6, 0.15, 0.8], 0.22)));
-    c.push(g(0, 0.0105 * widen, 0.0105 * widen, vec(axis, -0.2, amp)));
-    if (terminal) c.push(g(0.024 * widen, 9e-3 * widen, 9e-3 * widen, norm([-0.55, -0.6, -0.45], 0.3)));
-    return c;
-  }
-  function normalT(axis, amp = rand(0.3, 0.42)) {
-    return vec(clamp(axis, -5, 65), 0.45, amp);
-  }
-  function normalMorph({ axis = rand(5, 75), amp = rand(1.2, 1.7) } = {}) {
-    return { qrs: normalQrs(axis, amp), tVec: normalT(axis), qtc: rand(0.38, 0.43), st: [], axis };
-  }
-  function lbbbMorph() {
-    return {
-      qrs: [
-        // Septum depolarises right-to-left: no septal q in I/V6, no r in V1.
-        g(-0.045, 0.016, 0.016, norm([0.8, 0.2, -0.1], 0.6)),
-        g(0, 0.018, 0.018, norm([0.75, 0.35, -0.75], rand(1.6, 1.9))),
-        g(0.042, 0.016, 0.016, norm([0.7, 0.05, -0.6], 0.9))
-      ],
-      tVec: norm([-0.75, -0.2, 0.75], 0.42),
-      tS1: 0.06,
-      st: [{ v: norm([-0.75, -0.2, 0.75], 0.12), rise: 0.01, fall: 0.04 }],
-      qtc: rand(0.42, 0.45)
-    };
-  }
-  function rbbbMorph(axis = rand(10, 55)) {
-    return {
-      qrs: [
-        ...normalQrs(axis, rand(1, 1.4), { terminal: false }),
-        // Late, slow right-ventricular activation: R′ in V1, wide S in I/V6.
-        g(0.058, 0.019, 0.019, norm([-0.6, 0.05, 0.8], rand(0.75, 0.9)))
-      ],
-      tVec: norm([0.75, 0.55, -0.35], 0.33),
-      qtc: rand(0.41, 0.44),
-      st: []
-    };
-  }
-  function lafbMorph() {
-    const axis = rand(-75, -52);
-    return {
-      qrs: [
-        // Initial forces inferior-rightward: small r in II/III/aVF, q in I/aVL.
-        g(-0.026, 9e-3, 9e-3, norm([-0.3, 0.85, 0.3], 0.32)),
-        g(0, 0.011, 0.011, vec(axis, -0.45, rand(1.2, 1.6))),
-        g(0.024, 9e-3, 9e-3, norm([-0.3, -0.3, -0.75], 0.3))
-      ],
-      tVec: vec(rand(10, 45), 0.45, rand(0.25, 0.35)),
-      qtc: rand(0.38, 0.43),
-      st: []
-    };
-  }
-  function lvhMorph(strain) {
-    const axis = rand(-10, 40);
-    const m = {
-      qrs: normalQrs(axis, rand(2.6, 3.2), { widen: 1.12 }),
-      tVec: normalT(axis, rand(0.35, 0.5)),
-      qtc: rand(0.39, 0.44),
-      st: [],
-      axis
-    };
-    if (strain) {
-      const a = axis * (Math.PI / 180);
-      m.tVec = norm([-Math.cos(a), -Math.sin(a) * 0.5, 0.6], rand(0.3, 0.4));
-      m.tS1 = 0.06;
-      m.tS2 = 0.032;
-      m.st.push({ v: vec(axis, -0.4, -rand(0.1, 0.14)), rise: 0.01, fall: 0.05 });
-    }
-    return m;
-  }
-  function rvhMorph() {
-    const axis = rand(108, 140);
-    return {
-      qrs: [
-        g(-0.026, 8e-3, 8e-3, norm([0.2, 0.3, 0.6], 0.15)),
-        // Dominant right-anterior forces: tall R in V1, deep S in V6.
-        g(0, 0.012, 0.012, vec(axis, 0.75, rand(1.3, 1.6))),
-        g(0.026, 0.01, 0.01, norm([-0.5, -0.3, 0.2], 0.35))
-      ],
-      tVec: norm([0.65, 0.6, -0.6], 0.3),
-      qtc: rand(0.39, 0.43),
-      st: [{ v: norm([0.05, 0.1, -1], 0.08), rise: 0.01, fall: 0.05 }]
-    };
-  }
-  function wpwMorph() {
-    const axis = rand(10, 70);
-    const a = axis * (Math.PI / 180);
-    return {
-      qrs: [
-        // Delta wave: early, slow pre-excitation through the accessory pathway.
-        g(-0.03, 0.022, 0.03, vec(axis, 0.1, 0.45)),
-        g(0, 0.011, 0.011, vec(axis, -0.5, rand(1.3, 1.7))),
-        g(0.024, 9e-3, 9e-3, norm([-0.4, -0.5, -0.75], 0.35))
-      ],
-      tVec: norm([-Math.cos(a) * 0.8, -Math.sin(a) * 0.8, 0.5], 0.25),
-      qtc: rand(0.39, 0.43),
-      st: []
-    };
-  }
-  function ventricularMorph() {
-    const z = chance(0.5) ? -0.8 : 0.8;
-    let axis;
-    do
-      axis = rand(-180, 180);
-    while (Math.abs(dot(vec(axis, z, 1), leadVector("II"))) < 0.45);
-    const turn = rand(15, 35) * (chance(0.5) ? 1 : -1);
-    return {
-      qrs: [
-        g(-0.035, 0.022, 0.022, vec(axis + turn, z, rand(0.5, 0.8))),
-        g(0.022, 0.026, 0.026, vec(axis, z, rand(1.8, 2.3)))
-      ],
-      tVec: vec(axis + 180, -z, rand(0.45, 0.6)),
-      tS1: 0.06,
-      tS2: 0.045,
-      st: [{ v: vec(axis + 180, -z, 0.1), rise: 0.015, fall: 0.05 }],
-      qtc: rand(0.43, 0.46),
-      axis
-    };
-  }
-  var INJURY = {
-    inferior: [-0.3, 1, 0.05],
-    anterior: [0.25, 0.15, 1],
-    lateral: [1, -0.55, 0.15]
-  };
-  function stemiMorph(territory) {
-    const m = normalMorph();
-    const v = norm(INJURY[territory], rand(0.3, 0.42));
-    m.st.push({ v, rise: 6e-3, fall: 0.03 });
-    m.tVec = m.tVec.map((c, i) => c + v[i] * 0.6);
-    return m;
-  }
-  function posteriorMorph() {
-    const m = normalMorph();
-    m.qrs.push(g(4e-3, 0.012, 0.012, norm([0, 0, 1], rand(0.8, 1))));
-    m.st.push({ v: norm([0.1, 0.15, -1], rand(0.26, 0.34)), rise: 6e-3, fall: 0.03 });
-    return m;
-  }
-  function pericarditisMorph() {
-    const m = normalMorph({ axis: rand(30, 70) });
-    m.st.push({ v: norm([0.45, 0.75, 0.45], rand(0.2, 0.26)), rise: 0.02, fall: 0.04 });
-    m.prSeg = norm([-0.45, -0.75, -0.3], rand(0.08, 0.1));
-    return m;
-  }
-  function hyperkMorph() {
-    const axis = rand(15, 70);
-    return {
-      qrs: normalQrs(axis, rand(1.1, 1.5), { widen: 1.12 }),
-      tVec: vec(clamp(axis, 20, 60), 0.75, rand(0.75, 1)),
-      tS1: 0.032,
-      tS2: 0.03,
-      qtc: rand(0.37, 0.4),
-      st: [],
-      pAmp: 0.045
-    };
-  }
-  function hypokMorph() {
-    const m = normalMorph();
-    const tDir = m.tVec;
-    m.tVec = tDir.map((c) => c * 0.35);
-    m.u = norm(tDir, rand(0.13, 0.17));
-    m.st.push({ v: norm(tDir, -0.07), rise: 0.01, fall: 0.06 });
-    return m;
-  }
-  function longQtMorph() {
-    const m = normalMorph();
-    m.qtc = rand(0.52, 0.6);
-    m.tS1 = 0.08;
-    m.tS2 = 0.058;
-    return m;
-  }
-  function beat(m, rr) {
-    var _a, _b;
-    const [onset, end] = extent(m.qrs);
-    const f = Math.sqrt(clamp(rr, 0.45, 1.3));
-    const s1 = ((_a = m.tS1) != null ? _a : 0.055) * f;
-    const s2 = ((_b = m.tS2) != null ? _b : 0.04) * f;
-    const qt = m.qtc * Math.cbrt(clamp(rr, 0.3, 2));
-    const tPeak = onset + qt - 2.5 * s2;
-    const comps = [...m.qrs, g(tPeak, s1, s2, m.tVec)];
-    for (const st of m.st) comps.push(plateau(end - 4e-3, tPeak + 0.03, st.rise, st.fall, st.v));
-    if (m.u) comps.push(g(tPeak + 2.5 * s2 + 0.07, 0.035, 0.035, m.u));
-    return { comps, onset, end, qt };
-  }
-  var Timeline = class {
-    constructor() {
-      this.events = [];
-      this.qrs = [];
-      this.p = [];
-    }
-    // A P wave starting at `onset`. `segment` (PR-segment current) runs from
-    // the end of the P to `segmentUntil`.
-    addP(onset, comps, segment, segmentUntil) {
-      const [on, end] = extent(comps);
-      const all = segment ? [...comps, plateau(end, segmentUntil - onset + on, 8e-3, 8e-3, segment)] : comps;
-      this.events.push({ t: onset - on, comps: all });
-      this.p.push(onset);
-    }
-    // A ventricular complex (from beat()) whose QRS starts at `onset`.
-    addQrs(onset, b) {
-      this.events.push({ t: onset - b.onset, comps: b.comps });
-      this.qrs.push(onset);
-    }
-    // A sinus-conducted beat: P, then QRS after `pr`.
-    addConducted(qrsOnset, pr, b, m) {
-      var _a;
-      this.addP(qrsOnset - pr, sinusP((_a = m.pAmp) != null ? _a : rand(0.09, 0.12)), m.prSeg, qrsOnset);
-      this.addQrs(qrsOnset, b);
-    }
-  };
-
   // ekg-trainer/cases.js
-  var START = -2.5;
-  var END = 12;
   var QUESTIONS = [
     {
       id: "rate",
@@ -20783,334 +20437,11 @@ ${suffix}`;
     { id: "ventricular", title: "Ventricular" },
     { id: "block", title: "AV block" },
     { id: "conduction", title: "Conduction & hypertrophy" },
-    { id: "ischaemia", title: "Ischaemia & pericardium" },
-    { id: "metabolic", title: "Electrolytes & QT" }
+    { id: "ischaemia", title: "Ischaemia" },
+    { id: "metabolic", title: "QT" }
   ];
   var STRIP_GROUPS = /* @__PURE__ */ new Set(["sinus", "ventricular", "block"]);
-  function sinusRhythm({ rate, pr = rand(0.13, 0.19), m = normalMorph(), modulation = 0 }) {
-    const tl = new Timeline();
-    const rr = 60 / rate;
-    const b = beat(m, rr);
-    const phase = rand(0, 6.3);
-    for (let t = START + rand(0, rr); t < END; ) {
-      tl.addConducted(t, pr, b, m);
-      t += rr * (1 + modulation * Math.sin(phase + t * 2 * Math.PI / 4.5));
-    }
-    return { tl, m, pr };
-  }
-  function sinusWith(m, truth, opts = {}) {
-    var _a;
-    const { tl, pr } = sinusRhythm({ rate: (_a = opts.rate) != null ? _a : rand(62, 96), pr: opts.pr, m });
-    return {
-      tl,
-      morph: m,
-      truth: { rhythm: "regular", p: "normal", pr: "normal", qrs: "narrow", st: "normal", qt: "normal", ...truth },
-      facts: { pr: Math.round(pr * 1e3) }
-    };
-  }
-  function fibrillation(n, ampRange, freqRange, bias) {
-    const waves = Array.from({ length: n }, () => ({
-      f: rand(...freqRange),
-      p: rand(0, 6.3),
-      v: norm([rand(-1, 1) + bias[0], rand(-1, 1) + bias[1], rand(-1, 1) + bias[2]], rand(...ampRange)),
-      mf: rand(0.1, 0.5),
-      mp: rand(0, 6.3)
-    }));
-    return (t) => {
-      const out = [0, 0, 0];
-      for (const w of waves) {
-        const k = Math.sin(2 * Math.PI * w.f * t + w.p) * (0.6 + 0.4 * Math.sin(2 * Math.PI * w.mf * t + w.mp));
-        out[0] += w.v[0] * k;
-        out[1] += w.v[1] * k;
-        out[2] += w.v[2] * k;
-      }
-      return out;
-    };
-  }
-  var GENERATORS = {
-    nsr: () => sinusWith(normalMorph(), {}, { rate: rand(64, 96) }),
-    sinus_brady: () => sinusWith(normalMorph(), {}, { rate: rand(38, 54) }),
-    sinus_tachy: () => sinusWith(normalMorph(), {}, { rate: rand(108, 150), pr: rand(0.12, 0.16) }),
-    sinus_arrhythmia: () => {
-      const m = normalMorph();
-      const { tl, pr } = sinusRhythm({ rate: rand(66, 86), m, modulation: rand(0.18, 0.24) });
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regIrreg", p: "normal", pr: "normal", qrs: "narrow", st: "normal", qt: "normal" },
-        facts: { pr: Math.round(pr * 1e3) }
-      };
-    },
-    pac: () => {
-      const m = normalMorph();
-      const rr = 60 / rand(64, 88);
-      const pr = rand(0.13, 0.18);
-      const b = beat(m, rr);
-      const tl = new Timeline();
-      const count = pick([2, 2, 3]);
-      let last = -1;
-      let made = 0;
-      for (let t = START + rand(0, rr); t < END; ) {
-        tl.addConducted(t, pr, b, m);
-        const canPac = t > 0.3 && t < 8.8 && made < count && last !== tl.qrs.length - 1;
-        if (canPac && chance(0.35)) {
-          const at = t + rr * rand(0.58, 0.7);
-          const ppr = rand(0.14, 0.18);
-          tl.addP(at - ppr, ectopicP());
-          tl.addQrs(at, b);
-          last = tl.qrs.length - 1;
-          made++;
-          t = at + rr;
-        } else {
-          t += rr;
-        }
-      }
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regIrreg", p: "normal", pr: "normal", qrs: "narrow", st: "normal", qt: "normal" },
-        facts: { pr: Math.round(pr * 1e3), note: `${made} premature atrial beat${made === 1 ? "" : "s"}` },
-        valid: made >= 1
-      };
-    },
-    af: () => {
-      const m = normalMorph();
-      const mean = 60 / rand(72, 150);
-      const b = beat(m, mean);
-      const tl = new Timeline();
-      for (let t = START + rand(0, mean); t < END; ) {
-        tl.addQrs(t, b);
-        t += Math.max(0.32, mean * rand(0.6, 1.4));
-      }
-      const coarse = chance(0.4);
-      return {
-        tl,
-        morph: m,
-        continuous: fibrillation(5, coarse ? [0.04, 0.07] : [0.02, 0.04], [4.5, 8], [0, 0.3, 0.9]),
-        truth: { rhythm: "irregIrreg", p: "fib", pr: "na", qrs: "narrow", st: "normal" },
-        facts: { pr: "\u2014", note: coarse ? "coarse fibrillatory waves" : "fine fibrillatory waves" }
-      };
-    },
-    aflutter: () => {
-      const m = normalMorph();
-      const ar = rand(270, 320);
-      const period = 60 / ar;
-      const block = pick([2, 2, 4, "variable"]);
-      const mean = period * (block === "variable" ? 3 : block);
-      const b = beat(m, mean);
-      const tl = new Timeline();
-      const phase = rand(0, period);
-      const conduction = rand(0.2, 0.26);
-      for (let n = Math.ceil((START - phase) / period); ; ) {
-        const t = phase + n * period + conduction;
-        if (t > END) break;
-        tl.addQrs(t, b);
-        n += block === "variable" ? pick([2, 3, 4, 4]) : block;
-      }
-      const amp = rand(0.24, 0.3);
-      const dir = norm([0.1, -1, 0.35], 1);
-      return {
-        tl,
-        morph: m,
-        continuous: (t) => {
-          const u = ((t - phase) % period + period) % period / period;
-          const s = u < 0.8 ? -1 + 2 * u / 0.8 : 1 - 2 * (u - 0.8) / 0.2;
-          return [dir[0] * s * amp, dir[1] * s * amp, dir[2] * s * amp];
-        },
-        truth: {
-          rhythm: block === "variable" ? ["regIrreg", "irregIrreg"] : "regular",
-          p: "flutter",
-          pr: "na",
-          qrs: "narrow",
-          st: "normal"
-        },
-        facts: {
-          pr: "\u2014",
-          atrialRate: Math.round(ar),
-          note: block === "variable" ? "variable block" : `${block}:1 block`
-        }
-      };
-    },
-    svt: () => {
-      const m = normalMorph();
-      const rr = 60 / rand(155, 215);
-      const b = beat(m, rr);
-      b.comps = [...b.comps, ...retroP(0.05).map((c) => ({ ...c, t: c.t + 0.045 }))];
-      const tl = new Timeline();
-      for (let t = START + rand(0, rr); t < END; t += rr) tl.addQrs(t, b);
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regular", p: "absent", pr: "na", qrs: "narrow", st: "normal" },
-        facts: { pr: "\u2014" }
-      };
-    },
-    junctional: () => {
-      const m = normalMorph();
-      const rr = 60 / rand(42, 56);
-      const b = beat(m, rr);
-      const before = chance(0.6);
-      const pr = rand(0.06, 0.09);
-      const tl = new Timeline();
-      for (let t = START + rand(0, rr); t < END; t += rr) {
-        if (before) tl.addP(t - pr, retroP());
-        tl.addQrs(t, b);
-      }
-      return {
-        tl,
-        morph: m,
-        truth: {
-          rhythm: "regular",
-          p: before ? "retro" : "absent",
-          pr: before ? "short" : "na",
-          qrs: "narrow",
-          st: "normal",
-          qt: "normal"
-        },
-        facts: { pr: before ? Math.round(pr * 1e3) : "\u2014", note: before ? "retrograde P before each QRS" : "P waves hidden in the QRS" }
-      };
-    },
-    pvc: () => {
-      const m = normalMorph();
-      const pvc = ventricularMorph();
-      const rr = 60 / rand(62, 90);
-      const pr = rand(0.13, 0.18);
-      const b = beat(m, rr);
-      const bp = beat(pvc, rr);
-      const bigeminy = chance(0.35);
-      const tl = new Timeline();
-      let made = 0;
-      let lastPvc = -10;
-      let blocked = false;
-      for (let i = 0, t = START + rand(0, rr); t < END; i++, t += rr) {
-        if (blocked) {
-          tl.addP(t - pr, sinusP());
-          blocked = false;
-          continue;
-        }
-        tl.addConducted(t, pr, b, m);
-        const want = bigeminy ? true : t > 0.3 && t < 8.5 && i - lastPvc > 2 && made < 3 && chance(0.3);
-        if (want) {
-          tl.addQrs(t + rr * rand(0.55, 0.65), bp);
-          lastPvc = i;
-          made++;
-          blocked = true;
-        }
-      }
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regIrreg", p: "normal", pr: "normal", qrs: "narrow", st: "normal", qt: "normal" },
-        facts: { pr: Math.round(pr * 1e3), note: bigeminy ? "ventricular bigeminy" : "isolated PVCs" },
-        valid: made >= 1
-      };
-    },
-    vt: () => {
-      const m = ventricularMorph();
-      const rr = 60 / rand(150, 210);
-      const b = beat(m, rr);
-      const tl = new Timeline();
-      for (let t = START + rand(0, rr); t < END; t += rr) tl.addQrs(t, b);
-      const prr = 60 / rand(70, 95);
-      for (let t = START + rand(0, prr); t < END; t += prr) tl.addP(t, sinusP(0.06));
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regular", p: "absent", pr: ["na", "variable"], qrs: "wide" },
-        facts: { pr: "\u2014" }
-      };
-    },
-    vf: () => ({
-      tl: new Timeline(),
-      morph: null,
-      continuous: fibrillation(4, [0.25, 0.5], [3.5, 7], [0, 0, 0]),
-      truth: {},
-      facts: {}
-    }),
-    avb1: () => sinusWith(normalMorph(), { pr: "long" }, { rate: rand(62, 90), pr: rand(0.24, 0.36) }),
-    mobitz1: () => {
-      const m = normalMorph();
-      const pp = 60 / rand(74, 100);
-      const n = pick([3, 4, 4, 5]);
-      const pr0 = rand(0.15, 0.19);
-      const b = beat(m, pp * (n / (n - 1)));
-      const tl = new Timeline();
-      let k = Math.floor(rand(0, n));
-      let longest = pr0;
-      for (let t = START + rand(0, pp); t < END; t += pp, k = (k + 1) % n) {
-        if (k === n - 1) {
-          tl.addP(t, sinusP());
-          continue;
-        }
-        let pr = pr0;
-        for (let j = 1; j <= k; j++) pr += 0.1 * Math.pow(0.6, j - 1);
-        tl.addP(t, sinusP());
-        tl.addQrs(t + pr, b);
-        longest = Math.max(longest, pr);
-      }
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regIrreg", p: "more", pr: "progressive", qrs: "narrow", st: "normal" },
-        facts: { pr: `${Math.round(pr0 * 1e3)} to ${Math.round(longest * 1e3)}`, atrialRate: Math.round(60 / pp), note: `${n}:${n - 1} Wenckebach` }
-      };
-    },
-    mobitz2: () => {
-      const wide = chance(0.55);
-      const m = wide ? rbbbMorph() : normalMorph();
-      const pp = 60 / rand(76, 100);
-      const n = pick([3, 4]);
-      const pr = rand(0.14, 0.19);
-      const b = beat(m, pp * (n / (n - 1)));
-      const tl = new Timeline();
-      let k = Math.floor(rand(0, n));
-      for (let t = START + rand(0, pp); t < END; t += pp, k = (k + 1) % n) {
-        tl.addP(t, sinusP());
-        if (k !== n - 1) tl.addQrs(t + pr, b);
-      }
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regIrreg", p: "more", pr: "normal", qrs: wide ? "wide" : "narrow", st: wide ? ["secondary", "depression", "normal"] : "normal" },
-        facts: { pr: Math.round(pr * 1e3), atrialRate: Math.round(60 / pp), note: `${n}:${n - 1} conduction${wide ? " with RBBB" : ""}` }
-      };
-    },
-    avb3: () => {
-      const ventricular = chance(0.45);
-      const m = ventricular ? ventricularMorph() : normalMorph();
-      const rr = 60 / (ventricular ? rand(26, 40) : rand(38, 52));
-      const b = beat(m, rr);
-      const tl = new Timeline();
-      for (let t = START + rand(0, rr); t < END; t += rr) tl.addQrs(t, b);
-      const pp = 60 / rand(70, 100);
-      for (let t = START + rand(0, pp); t < END; t += pp) tl.addP(t, sinusP());
-      return {
-        tl,
-        morph: m,
-        truth: { rhythm: "regular", p: "more", pr: "variable", qrs: ventricular ? "wide" : "narrow", st: ventricular ? ["secondary", "depression"] : "normal" },
-        facts: { pr: "varies", atrialRate: Math.round(60 / pp), note: ventricular ? "ventricular escape rhythm" : "junctional escape rhythm" }
-      };
-    },
-    lbbb: () => sinusWith(lbbbMorph(), { qrs: "wide", st: "secondary" }),
-    rbbb: () => sinusWith(rbbbMorph(), { qrs: "wide", st: ["secondary", "depression"] }),
-    lafb: () => sinusWith(lafbMorph(), {}),
-    lvh: () => {
-      const strain = chance(0.65);
-      const r = sinusWith(lvhMorph(strain), { st: strain ? ["depression", "secondary"] : "normal" });
-      r.facts.note = strain ? "with strain pattern" : "voltage criteria only";
-      return r;
-    },
-    rvh: () => sinusWith(rvhMorph(), { st: ["depression", "secondary"] }),
-    wpw: () => sinusWith(wpwMorph(), { pr: "short", qrs: "wide", st: ["secondary", "depression", "normal"] }, { pr: rand(0.085, 0.105) }),
-    stemi_inf: () => sinusWith(stemiMorph("inferior"), { st: "regional" }),
-    stemi_ant: () => sinusWith(stemiMorph("anterior"), { st: "regional" }),
-    stemi_lat: () => sinusWith(stemiMorph("lateral"), { st: "regional" }),
-    stemi_post: () => sinusWith(posteriorMorph(), { st: "depression" }),
-    pericarditis: () => sinusWith(pericarditisMorph(), { st: "diffuse" }, { rate: rand(70, 96) }),
-    hyperk: () => sinusWith(hyperkMorph(), { st: "peaked" }),
-    hypok: () => sinusWith(hypokMorph(), { st: ["flatU", "depression"], qt: ["normal", "long"] }),
-    long_qt: () => sinusWith(longQtMorph(), { qt: "long" }, { rate: rand(62, 82) })
-  };
+  var TWELVE_ONLY = new Set(QUESTIONS.filter((q) => q.twelve).map((q) => q.id));
   var DIAGNOSES = [
     {
       id: "nsr",
@@ -21164,8 +20495,8 @@ ${suffix}`;
     {
       id: "svt",
       group: "sinus",
-      label: "SVT (AVNRT)",
-      features: ["Regular narrow-complex tachycardia, usually 150\u2013220", "No visible P waves \u2014 the retrograde P hides in or just after the QRS (pseudo-r\u2032 in V1, pseudo-S in II)"],
+      label: "Supraventricular tachycardia",
+      features: ["Regular narrow-complex tachycardia, usually 150\u2013220", "No visible P waves \u2014 in AVNRT the retrograde P hides in or just after the QRS (pseudo-r\u2032 in V1, pseudo-S in II)"],
       pearl: "Vagal manoeuvres (modified Valsalva) first, then adenosine."
     },
     {
@@ -21295,27 +20626,6 @@ ${suffix}`;
       pearl: "ST depression maximal in V1\u2013V3 is posterior STEMI until proven otherwise \u2014 flip the page over and look again."
     },
     {
-      id: "pericarditis",
-      group: "ischaemia",
-      label: "Acute pericarditis",
-      features: ["Diffuse concave (\u201Csaddle\u201D) ST elevation in limb and chest leads", "PR depression \u2014 with PR elevation and ST depression in aVR", "No reciprocal ST depression apart from aVR (\xB1 V1)"],
-      pearl: "Pleuritic pain, better leaning forward; friction rub. NSAIDs + colchicine."
-    },
-    {
-      id: "hyperk",
-      group: "metabolic",
-      label: "Hyperkalaemia",
-      features: ["Tall, narrow, peaked (\u201Ctented\u201D) T waves, best seen in V2\u2013V4", "Then: flattening P waves, longer PR, widening QRS \u2192 sine wave"],
-      pearl: "IV calcium to stabilise the myocardium first, then shift K\u207A (insulin + glucose, salbutamol)."
-    },
-    {
-      id: "hypok",
-      group: "metabolic",
-      label: "Hypokalaemia",
-      features: ["Flattened T waves", "Prominent U waves after the T", "ST depression; apparent long QT (really a long QU)"],
-      pearl: "Replace magnesium too \u2014 potassium won't correct while Mg\xB2\u207A is low."
-    },
-    {
       id: "long_qt",
       group: "metabolic",
       label: "Long QT",
@@ -21324,79 +20634,75 @@ ${suffix}`;
     }
   ];
   var DX = Object.fromEntries(DIAGNOSES.map((d) => [d.id, d]));
-  function stripDiagnoses() {
-    return DIAGNOSES.filter((d) => STRIP_GROUPS.has(d.group));
+  var SOURCES = {
+    ptbxl: { name: "PTB-XL", url: "https://physionet.org/content/ptb-xl/" },
+    sx: { name: "Shaoxing/Ningbo arrhythmia database", url: "https://physionet.org/content/ecg-arrhythmia/" },
+    vfdb: { name: "MIT-BIH Malignant Ventricular Ectopy Database", url: "https://physionet.org/content/vfdb/" },
+    mitdb: { name: "MIT-BIH Arrhythmia Database", url: "https://physionet.org/content/mitdb/" }
+  };
+  var BASE = "./ekg-trainer/cases/";
+  var indexPromise = null;
+  function loadIndex() {
+    indexPromise != null ? indexPromise : indexPromise = fetch(`${BASE}index.json`).then((r) => {
+      if (!r.ok) throw new Error(`Couldn't load the case list (${r.status})`);
+      return r.json();
+    }).catch((e) => {
+      indexPromise = null;
+      throw e;
+    });
+    return indexPromise;
   }
-  function rateOf(qrs) {
-    const q = qrs.filter((t) => t >= 0 && t <= 10).sort((a, b) => a - b);
-    if (q.length < 2) return null;
-    return 60 / ((q[q.length - 1] - q[0]) / (q.length - 1));
+  var isTwelveLead = (entry) => entry.leads.length === 8;
+  function casesFor(index, twelve) {
+    return index.filter((e) => {
+      var _a;
+      return (twelve ? isTwelveLead(e) : STRIP_GROUPS.has((_a = DX[e.dx]) == null ? void 0 : _a.group)) && DX[e.dx];
+    });
   }
-  function axisOf(m) {
-    if (!m) return null;
-    const x = netArea(m.qrs, "I");
-    const y = netArea(m.qrs, "aVF") / 0.87;
-    return Math.round(Math.atan2(y, x) * 180 / Math.PI);
-  }
-  function axisClass(a) {
-    if (a >= -30 && a <= 90) return "normal";
-    if (a < -30 && a >= -90) return "left";
-    if (a > 90 && a <= 180) return "right";
-    return "extreme";
-  }
-  function nearAny(x, marks, d) {
-    return marks.some((m) => Math.abs(x - m) < d);
+  function diagnosesFor(index, twelve) {
+    const have = new Set(casesFor(index, twelve).map((e) => e.dx));
+    return DIAGNOSES.filter((d) => have.has(d.id));
   }
   var caseCounter = 0;
-  var NO_QT = /* @__PURE__ */ new Set(["af", "aflutter", "svt", "vt", "vf", "pvc", "pac", "mobitz1", "mobitz2", "avb3", "sinus_arrhythmia", "lbbb", "rbbb", "wpw"]);
-  function generateCase(dxId, twelve) {
-    for (let attempt = 0; ; attempt++) {
-      const r = GENERATORS[dxId]();
-      const rate = rateOf(r.tl.qrs);
-      const axis = axisOf(r.morph);
-      const last = attempt > 40;
-      if (!last) {
-        if (r.valid === false) continue;
-        if (rate != null && nearAny(rate, [60, 100], 4)) continue;
-        if (twelve && axis != null && nearAny(axis, [-30, 90, -90], 9)) continue;
-        if (twelve && axis != null && Math.abs(axis) > 171) continue;
-      }
-      const truth = { ...r.truth };
-      if (rate != null) truth.rate = rate < 60 ? "slow" : rate > 100 ? "fast" : "normal";
-      if (axis != null) truth.axis = axisClass(axis);
-      const rr = rate ? 60 / rate : 1;
-      const b = r.morph ? beat(r.morph, rr) : null;
-      const qrsMs = b ? Math.round((b.end - b.onset) * 1e3 / 5) * 5 : null;
-      const qtMs = b ? Math.round(b.qt * 1e3 / 5) * 5 : null;
-      const qtcMs = b ? Math.round(b.qt / Math.sqrt(rr) * 1e3 / 5) * 5 : null;
-      const ask = [];
-      if (dxId !== "vf") {
-        ask.push("rate", "rhythm", "p", "pr", "qrs");
-        if (twelve && dxId !== "vt") {
-          ask.push("axis", "st");
-          if (!NO_QT.has(dxId) && truth.qrs === "narrow" && rate <= 100) ask.push("qt");
-        }
-      }
-      const answers = {};
-      for (const q of ask) answers[q] = [].concat(truth[q]);
-      const signal = render({ events: r.tl.events, continuous: r.continuous, duration: 10 });
-      return {
-        id: ++caseCounter,
-        dx: dxId,
-        twelve,
-        signal,
-        ask,
-        answers,
-        facts: {
-          ...r.facts,
-          rate: rate != null ? Math.round(rate) : null,
-          axis,
-          qrs: qrsMs,
-          qt: qtMs,
-          qtc: qtcMs
-        }
-      };
+  async function loadCase(entry, twelve) {
+    const r = await fetch(`${BASE}${entry.id}.bin`);
+    if (!r.ok) throw new Error(`Couldn't load the EKG (${r.status})`);
+    const raw = new Int16Array(await r.arrayBuffer());
+    const leads = {};
+    entry.leads.forEach((name, i) => {
+      const out = new Float32Array(entry.n);
+      for (let j = 0; j < entry.n; j++) out[j] = raw[i * entry.n + j] / 1e3;
+      leads[name] = out;
+    });
+    if (isTwelveLead(entry)) addDerivedLeads(leads, entry.n);
+    const strip = isTwelveLead(entry) ? ["II", "V1"] : entry.leads;
+    const ask = QUESTIONS.map((q) => q.id).filter((q) => entry.answers[q] && (twelve || !TWELVE_ONLY.has(q)));
+    const f = entry.facts;
+    return {
+      id: ++caseCounter,
+      entry,
+      dx: entry.dx,
+      twelve,
+      signal: { leads, fs: entry.fs, duration: entry.n / entry.fs, strip },
+      ask,
+      answers: entry.answers,
+      facts: { rate: f.hr, atrialRate: f.atrial, pr: f.pr, qrs: f.qrs, axis: f.axis, qt: f.qt, qtc: f.qtc }
+    };
+  }
+  function addDerivedLeads(leads, n) {
+    const { I, II } = leads;
+    const III = new Float32Array(n), aVR = new Float32Array(n), aVL = new Float32Array(n), aVF = new Float32Array(n);
+    for (let j = 0; j < n; j++) {
+      III[j] = II[j] - I[j];
+      aVR[j] = -(I[j] + II[j]) / 2;
+      aVL[j] = I[j] - II[j] / 2;
+      aVF[j] = II[j] - I[j] / 2;
     }
+    Object.assign(leads, { III, aVR, aVL, aVF });
+  }
+  function describeSource(entry) {
+    const who = [entry.age != null && `${entry.age} y`, entry.sex === "M" ? "male" : entry.sex === "F" ? "female" : null].filter(Boolean).join(", ");
+    return `${SOURCES[entry.src].name} \xB7 ${entry.src === "ptbxl" ? "#" : "record "}${entry.ref}${who ? ` \xB7 ${who}` : ""}`;
   }
   function explain(c, qid) {
     var _a;
@@ -21410,31 +20716,29 @@ ${suffix}`;
           regular: "R\u2013R intervals are constant.",
           regIrreg: "R\u2013R intervals vary, but in a repeating pattern or because of individual early/dropped beats.",
           irregIrreg: "No two R\u2013R intervals are alike and there is no pattern."
-        }[a[0]] + (f.note && STRIP_GROUPS.has(DX[c.dx].group) ? ` (${f.note})` : "");
+        }[a[0]];
       case "p":
         return {
           normal: "Upright in II, same shape each time, one before every (conducted) QRS.",
-          more: `P waves at \u2248 ${f.atrialRate}/min outnumber the QRS complexes.`,
+          more: `P waves${f.atrialRate ? ` at \u2248 ${f.atrialRate}/min` : ""} outnumber the QRS complexes.`,
           absent: "No P waves can be seen before the QRS complexes.",
           retro: "P waves are inverted in II \u2014 the atria are activated from below.",
           fib: "No organised atrial activity \u2014 just an irregular, wavy baseline.",
-          flutter: `Regular sawtooth flutter waves at \u2248 ${f.atrialRate}/min, clearest in II and V1.`
+          flutter: `Regular sawtooth flutter waves${f.atrialRate ? ` at \u2248 ${f.atrialRate}/min` : ""}, clearest in II and V1.`
         }[a[0]];
       case "pr":
-        if (typeof f.pr === "number") return `PR \u2248 ${f.pr} ms${a[0] === "normal" ? " and constant" : ""}.`;
-        return {
-          progressive: `PR grows from ${f.pr} ms, then a P wave isn't conducted.`,
-          na: "There are no P waves linked to the QRS, so there is no PR interval.",
-          variable: "P waves and QRS complexes beat independently, so the PR changes all the time."
-        }[a[0]];
+        if (a[0] === "progressive") return "The PR grows beat by beat until a P wave isn't conducted.";
+        if (a[0] === "na") return "There are no P waves linked to the QRS, so there is no PR interval.";
+        if (a[0] === "variable") return "P waves and QRS complexes beat independently, so the PR changes all the time.";
+        return f.pr ? `PR \u2248 ${f.pr} ms.` : { normal: "PR 120\u2013200 ms and constant.", short: "PR < 120 ms.", long: "PR > 200 ms and constant." }[a[0]];
       case "qrs":
-        return `QRS \u2248 ${f.qrs} ms.`;
+        return f.qrs ? `QRS \u2248 ${f.qrs} ms.` : a[0] === "wide" ? "QRS \u2265 120 ms." : "QRS < 120 ms.";
       case "axis":
         return `Axis \u2248 ${f.axis}\xB0.`;
       case "st":
         return {
           normal: "ST segments sit on the baseline and T waves follow the QRS.",
-          regional: "ST elevation confined to one coronary territory, with reciprocal depression.",
+          regional: "ST elevation confined to one coronary territory, usually with reciprocal depression.",
           diffuse: "ST elevation across most leads, without a single territory.",
           depression: "ST depression and/or inverted T waves.",
           peaked: "Tall, narrow, symmetrical T waves.",
@@ -21451,14 +20755,26 @@ ${suffix}`;
   // ekg-trainer/App.jsx
   var { useState: useState3, useMemo: useMemo2, useEffect: useEffect3, useRef: useRef3 } = React;
   var APP_ID = "ekg-trainer";
-  var DEFAULT_SETTINGS = { twelve: true, disabled: [], adaptive: true };
+  var DEFAULT_SETTINGS = { twelve: true, disabled: [], adaptive: true, flagged: [] };
   var EMPTY_STATS = { cases: 0, dxCorrect: 0, streak: 0, best: 0, perDx: {}, perQ: {} };
   var TABS = [["practice", "Practice"], ["library", "Library"], ["stats", "Stats"]];
   var QUESTION = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
-  function poolFor(settings) {
-    const base = settings.twelve ? DIAGNOSES : stripDiagnoses();
+  function usableCases(index, settings) {
+    var _a;
+    const flagged = new Set(((_a = settings.flagged) != null ? _a : []).map((f) => f.id));
+    return casesFor(index, settings.twelve).filter((e) => !flagged.has(e.id));
+  }
+  function poolFor(index, settings) {
+    const have = new Set(usableCases(index, settings).map((e) => e.dx));
+    const base = diagnosesFor(index, settings.twelve).filter((d) => have.has(d.id));
     const enabled = base.filter((d) => !settings.disabled.includes(d.id));
     return enabled.length ? enabled : base;
+  }
+  function pickEntry(index, settings, dx, recent) {
+    const all = usableCases(index, settings).filter((e) => e.dx === dx);
+    const fresh = all.filter((e) => !recent.includes(e.id));
+    const from = fresh.length ? fresh : all;
+    return from[Math.floor(Math.random() * from.length)];
   }
   function pickDx(pool, stats, adaptive, previous) {
     const options = pool.length > 1 ? pool.filter((d) => d.id !== previous) : pool;
@@ -21482,35 +20798,63 @@ ${suffix}`;
     const [settings, setSettings] = useSyncedStorage(APP_ID, "ekg-trainer-settings", DEFAULT_SETTINGS);
     const [stats, setStats, statsConflict] = useSyncedStorage(APP_ID, "ekg-trainer-stats", EMPTY_STATS);
     const [tab, setTab] = useState3("practice");
-    return /* @__PURE__ */ React.createElement("div", { className: "ek" }, /* @__PURE__ */ React.createElement("header", { className: "ek-header" }, /* @__PURE__ */ React.createElement("a", { className: "ek-back", href: "./", "aria-label": "All apps" }, "\u2039"), /* @__PURE__ */ React.createElement("h1", null, "EKG Trainer"), /* @__PURE__ */ React.createElement("nav", { className: "ek-tabs" }, TABS.map(([id, title]) => /* @__PURE__ */ React.createElement("button", { key: id, className: tab === id ? "on" : "", onClick: () => setTab(id) }, title)))), statsConflict && /* @__PURE__ */ React.createElement("div", { className: "ek-conflict", role: "alert" }, /* @__PURE__ */ React.createElement("span", null, "Your stats changed on another device."), /* @__PURE__ */ React.createElement("button", { onClick: statsConflict.keepRemote }, "Use theirs"), /* @__PURE__ */ React.createElement("button", { onClick: statsConflict.keepLocal }, "Keep mine")), tab === "practice" && /* @__PURE__ */ React.createElement(Practice, { settings, setSettings, stats, setStats }), tab === "library" && /* @__PURE__ */ React.createElement(Library, null), tab === "stats" && /* @__PURE__ */ React.createElement(Stats, { stats, setStats }));
+    const [index, setIndex] = useState3(null);
+    const [loadError, setLoadError] = useState3(null);
+    function fetchIndex() {
+      setLoadError(null);
+      loadIndex().then(setIndex, (e) => setLoadError(e.message));
+    }
+    useEffect3(fetchIndex, []);
+    return /* @__PURE__ */ React.createElement("div", { className: "ek" }, /* @__PURE__ */ React.createElement("header", { className: "ek-header" }, /* @__PURE__ */ React.createElement("a", { className: "ek-back", href: "./", "aria-label": "All apps" }, "\u2039"), /* @__PURE__ */ React.createElement("h1", null, "EKG Trainer"), /* @__PURE__ */ React.createElement("nav", { className: "ek-tabs" }, TABS.map(([id, title]) => /* @__PURE__ */ React.createElement("button", { key: id, className: tab === id ? "on" : "", onClick: () => setTab(id) }, title)))), statsConflict && /* @__PURE__ */ React.createElement("div", { className: "ek-conflict", role: "alert" }, /* @__PURE__ */ React.createElement("span", null, "Your stats changed on another device."), /* @__PURE__ */ React.createElement("button", { onClick: statsConflict.keepRemote }, "Use theirs"), /* @__PURE__ */ React.createElement("button", { onClick: statsConflict.keepLocal }, "Keep mine")), !index ? /* @__PURE__ */ React.createElement("main", { className: "ek-loading" }, loadError ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", null, loadError), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", onClick: fetchIndex }, "Try again")) : /* @__PURE__ */ React.createElement("p", { className: "ek-muted" }, "Loading EKGs\u2026")) : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "practice" && /* @__PURE__ */ React.createElement(Practice, { index, settings, setSettings, stats, setStats }), tab === "library" && /* @__PURE__ */ React.createElement(Library, { index }), tab === "stats" && /* @__PURE__ */ React.createElement(Stats, { index, stats, setStats, settings, setSettings })));
   }
-  function Practice({ settings, setSettings, stats, setStats }) {
-    const pool = poolFor(settings);
-    const [kase, setKase] = useState3(() => generateCase(pickDx(pool, stats, settings.adaptive), settings.twelve));
+  function Practice({ index, settings, setSettings, stats, setStats }) {
+    var _a;
+    const pool = poolFor(index, settings);
+    const [kase, setKase] = useState3(null);
+    const [loading, setLoading] = useState3(false);
+    const [error, setError] = useState3(null);
     const [picks, setPicks] = useState3({});
     const [checked, setChecked] = useState3(false);
     const [showFocus, setShowFocus] = useState3(false);
+    const recent = useRef3([]);
+    const request = useRef3(0);
     const topRef = useRef3(null);
     const teachRef = useRef3(null);
-    function next(s = settings) {
-      var _a;
-      const p = poolFor(s);
-      setKase(generateCase(pickDx(p, stats, s.adaptive, kase.dx), s.twelve));
-      setPicks({});
-      setChecked(false);
-      (_a = topRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth", block: "start" });
+    async function next(s = settings) {
+      var _a2;
+      const dx2 = pickDx(poolFor(index, s), stats, s.adaptive, kase == null ? void 0 : kase.dx);
+      const entry = pickEntry(index, s, dx2, recent.current);
+      const mine = ++request.current;
+      setLoading(true);
+      setError(null);
+      try {
+        const k = await loadCase(entry, s.twelve);
+        if (mine !== request.current) return;
+        recent.current = [...recent.current.filter((id) => id !== entry.id), entry.id].slice(-40);
+        setKase(k);
+        setPicks({});
+        setChecked(false);
+        (_a2 = topRef.current) == null ? void 0 : _a2.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) {
+        if (mine === request.current) setError(e.message);
+      } finally {
+        if (mine === request.current) setLoading(false);
+      }
     }
+    useEffect3(() => {
+      next();
+    }, []);
     function changeSettings(patch) {
       const s = { ...settings, ...patch };
       setSettings(s);
       if ("twelve" in patch) next(s);
     }
     useEffect3(() => {
-      if (!checked && !pool.some((d) => d.id === kase.dx)) next();
+      if (kase && !checked && !pool.some((d) => d.id === kase.dx)) next();
     }, [settings.disabled]);
-    const dxChoices = settings.twelve ? DIAGNOSES : stripDiagnoses();
+    const dxChoices = diagnosesFor(index, settings.twelve);
     const result = useMemo2(() => {
-      if (!checked) return null;
+      if (!checked || !kase) return null;
       const perQ = kase.ask.map((q) => ({ q, ok: kase.answers[q].includes(picks[q]) }));
       return { perQ, dxOk: picks.dx === kase.dx, score: perQ.filter((r) => r.ok).length + (picks.dx === kase.dx ? 1 : 0), total: perQ.length + 1 };
     }, [checked, kase, picks]);
@@ -21519,8 +20863,8 @@ ${suffix}`;
       const dxOk = picks.dx === kase.dx;
       setChecked(true);
       setStats((s) => {
-        var _a, _b;
-        const d = (_a = s.perDx[kase.dx]) != null ? _a : { seen: 0, correct: 0 };
+        var _a2, _b;
+        const d = (_a2 = s.perDx[kase.dx]) != null ? _a2 : { seen: 0, correct: 0 };
         const qs = { ...s.perQ };
         for (const { q, ok } of perQ) {
           const prev = (_b = qs[q]) != null ? _b : { seen: 0, correct: 0 };
@@ -21539,12 +20883,21 @@ ${suffix}`;
       });
     }
     useEffect3(() => {
-      var _a;
-      if (checked) (_a = teachRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      var _a2;
+      if (checked) (_a2 = teachRef.current) == null ? void 0 : _a2.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [checked]);
     const choose = (q, v) => !checked && setPicks((p) => ({ ...p, [q]: p[q] === v ? void 0 : v }));
+    const flagged = kase && ((_a = settings.flagged) != null ? _a : []).some((f) => f.id === kase.entry.id);
+    function toggleFlag() {
+      var _a2;
+      const rest = ((_a2 = settings.flagged) != null ? _a2 : []).filter((f) => f.id !== kase.entry.id);
+      setSettings({ ...settings, flagged: flagged ? rest : [...rest, { id: kase.entry.id, dx: kase.dx, at: (/* @__PURE__ */ new Date()).toISOString() }] });
+    }
+    if (!kase) {
+      return /* @__PURE__ */ React.createElement("main", { className: "ek-loading" }, error ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", null, error), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", onClick: () => next() }, "Try again")) : /* @__PURE__ */ React.createElement("p", { className: "ek-muted" }, "Loading EKG\u2026"));
+    }
     const dx = DX[kase.dx];
-    return /* @__PURE__ */ React.createElement("main", { className: "ek-practice", ref: topRef }, /* @__PURE__ */ React.createElement("div", { className: "ek-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "ek-segmented", role: "group", "aria-label": "Recording" }, /* @__PURE__ */ React.createElement("button", { className: !settings.twelve ? "on" : "", onClick: () => changeSettings({ twelve: false }) }, "Rhythm strip"), /* @__PURE__ */ React.createElement("button", { className: settings.twelve ? "on" : "", onClick: () => changeSettings({ twelve: true }) }, "12-lead")), /* @__PURE__ */ React.createElement("button", { className: `ek-chip-button${showFocus ? " on" : ""}`, onClick: () => setShowFocus((v) => !v), "aria-expanded": showFocus }, "Pick what to practise", settings.disabled.length ? ` \xB7 ${pool.length}` : ""), /* @__PURE__ */ React.createElement("span", { className: "ek-streak", title: "Correct diagnoses in a row" }, "\u{1F525} ", stats.streak)), showFocus && /* @__PURE__ */ React.createElement(FocusPanel, { settings, changeSettings }), /* @__PURE__ */ React.createElement("div", { className: "ek-workspace" }, /* @__PURE__ */ React.createElement("div", { className: "ek-workspace-ecg" }, /* @__PURE__ */ React.createElement(EcgViewer, { key: kase.id, kase })), /* @__PURE__ */ React.createElement("div", { className: "ek-workspace-side" }, /* @__PURE__ */ React.createElement("section", { className: "ek-questions" }, kase.ask.map((qid) => /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("main", { className: "ek-practice", ref: topRef }, /* @__PURE__ */ React.createElement("div", { className: "ek-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "ek-segmented", role: "group", "aria-label": "Recording" }, /* @__PURE__ */ React.createElement("button", { className: !settings.twelve ? "on" : "", onClick: () => changeSettings({ twelve: false }) }, "Rhythm strip"), /* @__PURE__ */ React.createElement("button", { className: settings.twelve ? "on" : "", onClick: () => changeSettings({ twelve: true }) }, "12-lead")), /* @__PURE__ */ React.createElement("button", { className: `ek-chip-button${showFocus ? " on" : ""}`, onClick: () => setShowFocus((v) => !v), "aria-expanded": showFocus }, "Pick what to practise", settings.disabled.length ? ` \xB7 ${pool.length}` : ""), /* @__PURE__ */ React.createElement("span", { className: "ek-streak", title: "Correct diagnoses in a row" }, "\u{1F525} ", stats.streak)), showFocus && /* @__PURE__ */ React.createElement(FocusPanel, { index, settings, changeSettings }), /* @__PURE__ */ React.createElement("div", { className: "ek-workspace" }, /* @__PURE__ */ React.createElement("div", { className: "ek-workspace-ecg" }, /* @__PURE__ */ React.createElement(EcgViewer, { key: kase.id, kase })), /* @__PURE__ */ React.createElement("div", { className: "ek-workspace-side" }, /* @__PURE__ */ React.createElement("section", { className: "ek-questions" }, kase.ask.map((qid) => /* @__PURE__ */ React.createElement(
       QuestionBlock,
       {
         key: qid,
@@ -21554,7 +20907,7 @@ ${suffix}`;
         note: checked ? explain(kase, qid) : null,
         onPick: (v) => choose(qid, v)
       }
-    )), kase.ask.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-small ek-span" }, "No intervals to measure on this one \u2014 go straight to the diagnosis."), /* @__PURE__ */ React.createElement("div", { className: "ek-q ek-span" }, /* @__PURE__ */ React.createElement("div", { className: "ek-q-head" }, /* @__PURE__ */ React.createElement("h3", null, "Diagnosis")), GROUPS.filter((g2) => dxChoices.some((d) => d.group === g2.id)).map((g2) => /* @__PURE__ */ React.createElement("div", { key: g2.id, className: "ek-dx-group" }, /* @__PURE__ */ React.createElement("p", { className: "ek-dx-group-title" }, g2.title), /* @__PURE__ */ React.createElement("div", { className: "ek-options" }, dxChoices.filter((d) => d.group === g2.id).map((d) => /* @__PURE__ */ React.createElement(
+    )), kase.ask.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-small ek-span" }, "No intervals to measure on this one \u2014 go straight to the diagnosis."), /* @__PURE__ */ React.createElement("div", { className: "ek-q ek-span" }, /* @__PURE__ */ React.createElement("div", { className: "ek-q-head" }, /* @__PURE__ */ React.createElement("h3", null, "Diagnosis")), GROUPS.filter((g) => dxChoices.some((d) => d.group === g.id)).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ek-dx-group" }, /* @__PURE__ */ React.createElement("p", { className: "ek-dx-group-title" }, g.title), /* @__PURE__ */ React.createElement("div", { className: "ek-options" }, dxChoices.filter((d) => d.group === g.id).map((d) => /* @__PURE__ */ React.createElement(
       Option,
       {
         key: d.id,
@@ -21563,7 +20916,7 @@ ${suffix}`;
         state: checked ? d.id === kase.dx ? "right" : picks.dx === d.id ? "wrong" : "" : "",
         onClick: () => choose("dx", d.id)
       }
-    ))))))), checked && /* @__PURE__ */ React.createElement(Teaching, { ref: teachRef, dx, kase, ok: result.dxOk }))), /* @__PURE__ */ React.createElement("div", { className: "ek-actionbar" }, checked ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ek-score" }, /* @__PURE__ */ React.createElement("strong", null, result.score, "/", result.total), " correct"), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", onClick: () => next() }, "Next EKG \u2192")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, picks.dx ? "Ready when you are" : "Pick a diagnosis to check"), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", disabled: !picks.dx, onClick: check }, "Check answers"))));
+    ))))))), checked && /* @__PURE__ */ React.createElement(Teaching, { ref: teachRef, dx, kase, ok: result.dxOk, flagged, onFlag: toggleFlag }))), /* @__PURE__ */ React.createElement("div", { className: "ek-actionbar" }, checked ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ek-score" }, /* @__PURE__ */ React.createElement("strong", null, result.score, "/", result.total), " correct"), error && /* @__PURE__ */ React.createElement("span", { className: "ek-small ek-error" }, error), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", disabled: loading, onClick: () => next() }, loading ? "Loading\u2026" : "Next EKG \u2192")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, picks.dx ? "Ready when you are" : "Pick a diagnosis to check"), /* @__PURE__ */ React.createElement("button", { className: "ek-primary", disabled: !picks.dx, onClick: check }, "Check answers"))));
   }
   function EcgViewer({ kase }) {
     const [zoom, setZoom] = useState3(1);
@@ -21586,7 +20939,7 @@ ${suffix}`;
       }
     ))), note && /* @__PURE__ */ React.createElement("p", { className: "ek-note" }, note));
   }
-  var Teaching = React.forwardRef(function Teaching2({ dx, kase, ok }, ref) {
+  var Teaching = React.forwardRef(function Teaching2({ dx, kase, ok, flagged, onFlag }, ref) {
     const f = kase.facts;
     const numbers = [
       f.rate != null && `rate ${f.rate}`,
@@ -21595,49 +20948,75 @@ ${suffix}`;
       kase.twelve && f.axis != null && `axis ${f.axis}\xB0`,
       kase.twelve && f.qtc != null && kase.ask.includes("qt") && `QTc ${f.qtc} ms`
     ].filter(Boolean);
-    return /* @__PURE__ */ React.createElement("section", { ref, className: `ek-teach ${ok ? "ok" : "bad"}` }, /* @__PURE__ */ React.createElement("p", { className: "ek-teach-verdict" }, ok ? "Correct!" : "The answer was"), /* @__PURE__ */ React.createElement("h2", null, dx.label, f.note ? /* @__PURE__ */ React.createElement("span", { className: "ek-muted" }, " \u2014 ", f.note) : null), numbers.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "ek-small ek-muted" }, "This tracing: ", numbers.join(" \xB7 ")), /* @__PURE__ */ React.createElement("ul", null, dx.features.map((t) => /* @__PURE__ */ React.createElement("li", { key: t }, t))), /* @__PURE__ */ React.createElement("p", { className: "ek-pearl" }, "\u{1F4A1} ", dx.pearl));
+    return /* @__PURE__ */ React.createElement("section", { ref, className: `ek-teach ${ok ? "ok" : "bad"}` }, /* @__PURE__ */ React.createElement("p", { className: "ek-teach-verdict" }, ok ? "Correct!" : "The answer was"), /* @__PURE__ */ React.createElement("h2", null, dx.label, f.note ? /* @__PURE__ */ React.createElement("span", { className: "ek-muted" }, " \u2014 ", f.note) : null), numbers.length > 0 && /* @__PURE__ */ React.createElement("p", { className: "ek-small ek-muted" }, "This tracing: ", numbers.join(" \xB7 ")), /* @__PURE__ */ React.createElement("ul", null, dx.features.map((t) => /* @__PURE__ */ React.createElement("li", { key: t }, t))), /* @__PURE__ */ React.createElement("p", { className: "ek-pearl" }, "\u{1F4A1} ", dx.pearl), /* @__PURE__ */ React.createElement("div", { className: "ek-source" }, /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, describeSource(kase.entry)), /* @__PURE__ */ React.createElement("span", { className: "ek-grow" }), /* @__PURE__ */ React.createElement("button", { className: `ek-link ek-flag${flagged ? " on" : ""}`, onClick: onFlag, "aria-pressed": flagged }, flagged ? "\u2691 Flagged \u2014 won't come up again" : "\u2691 Answer looks wrong for this EKG")));
   });
-  function FocusPanel({ settings, changeSettings }) {
-    const base = settings.twelve ? DIAGNOSES : stripDiagnoses();
+  function FocusPanel({ index, settings, changeSettings }) {
+    const base = diagnosesFor(index, settings.twelve);
     const off = new Set(settings.disabled);
     const toggle = (ids, on) => {
       const next = new Set(off);
       for (const id of ids) on ? next.delete(id) : next.add(id);
       changeSettings({ disabled: [...next] });
     };
-    return /* @__PURE__ */ React.createElement("section", { className: "ek-focus" }, /* @__PURE__ */ React.createElement("div", { className: "ek-focus-head" }, /* @__PURE__ */ React.createElement("strong", null, "Practise these"), /* @__PURE__ */ React.createElement("span", { className: "ek-grow" }), /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => toggle(base.map((d) => d.id), true) }, "All"), /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => toggle(base.map((d) => d.id), false) }, "None")), GROUPS.filter((g2) => base.some((d) => d.group === g2.id)).map((g2) => {
-      const ds = base.filter((d) => d.group === g2.id);
+    return /* @__PURE__ */ React.createElement("section", { className: "ek-focus" }, /* @__PURE__ */ React.createElement("div", { className: "ek-focus-head" }, /* @__PURE__ */ React.createElement("strong", null, "Practise these"), /* @__PURE__ */ React.createElement("span", { className: "ek-grow" }), /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => toggle(base.map((d) => d.id), true) }, "All"), /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => toggle(base.map((d) => d.id), false) }, "None")), GROUPS.filter((g) => base.some((d) => d.group === g.id)).map((g) => {
+      const ds = base.filter((d) => d.group === g.id);
       const allOn = ds.every((d) => !off.has(d.id));
-      return /* @__PURE__ */ React.createElement("div", { key: g2.id, className: "ek-focus-group" }, /* @__PURE__ */ React.createElement("label", { className: "ek-check ek-check-group" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: allOn, onChange: () => toggle(ds.map((d) => d.id), !allOn) }), g2.title), /* @__PURE__ */ React.createElement("div", { className: "ek-focus-items" }, ds.map((d) => /* @__PURE__ */ React.createElement("label", { key: d.id, className: "ek-check" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !off.has(d.id), onChange: () => toggle([d.id], off.has(d.id)) }), d.label))));
+      return /* @__PURE__ */ React.createElement("div", { key: g.id, className: "ek-focus-group" }, /* @__PURE__ */ React.createElement("label", { className: "ek-check ek-check-group" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: allOn, onChange: () => toggle(ds.map((d) => d.id), !allOn) }), g.title), /* @__PURE__ */ React.createElement("div", { className: "ek-focus-items" }, ds.map((d) => /* @__PURE__ */ React.createElement("label", { key: d.id, className: "ek-check" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !off.has(d.id), onChange: () => toggle([d.id], off.has(d.id)) }), d.label))));
     }), /* @__PURE__ */ React.createElement("label", { className: "ek-check ek-adaptive" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: settings.adaptive, onChange: () => changeSettings({ adaptive: !settings.adaptive }) }), "Show the ones I get wrong more often"));
   }
-  function Library() {
+  function Library({ index }) {
     const [selected, setSelected] = useState3(null);
     const [kase, setKase] = useState3(null);
-    function open(id) {
+    const [error, setError] = useState3(null);
+    const shown = useRef3(0);
+    async function open(id, step = 0) {
+      const all = index.filter((e) => e.dx === id).sort((a, b) => isTwelveLead(b) - isTwelveLead(a));
+      shown.current = id === selected ? (shown.current + step) % all.length : 0;
+      const entry = all[shown.current];
       setSelected(id);
-      setKase(generateCase(id, true));
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setError(null);
+      if (step === 0) window.scrollTo({ top: 0, behavior: "smooth" });
+      try {
+        setKase(await loadCase(entry, isTwelveLead(entry)));
+      } catch (e) {
+        setError(e.message);
+      }
     }
+    const available = new Set(index.map((e) => e.dx));
+    const count = (id) => index.filter((e) => e.dx === id).length;
     if (selected) {
       const dx = DX[selected];
-      return /* @__PURE__ */ React.createElement("main", { className: "ek-library" }, /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => setSelected(null) }, "\u2039 All diagnoses"), /* @__PURE__ */ React.createElement("h2", { className: "ek-lib-title" }, dx.label, kase.facts.note ? /* @__PURE__ */ React.createElement("span", { className: "ek-muted" }, " \u2014 ", kase.facts.note) : null), /* @__PURE__ */ React.createElement(EcgViewer, { key: kase.id, kase }), /* @__PURE__ */ React.createElement("section", { className: "ek-teach neutral" }, /* @__PURE__ */ React.createElement("ul", null, dx.features.map((t) => /* @__PURE__ */ React.createElement("li", { key: t }, t))), /* @__PURE__ */ React.createElement("p", { className: "ek-pearl" }, "\u{1F4A1} ", dx.pearl)), /* @__PURE__ */ React.createElement("button", { className: "ek-primary ek-another", onClick: () => open(selected) }, "Another example"));
+      return /* @__PURE__ */ React.createElement("main", { className: "ek-library" }, /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => (setSelected(null), setKase(null)) }, "\u2039 All diagnoses"), /* @__PURE__ */ React.createElement("h2", { className: "ek-lib-title" }, dx.label), error && /* @__PURE__ */ React.createElement("p", { className: "ek-error" }, error), kase && kase.dx === selected ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-small" }, "Example ", shown.current + 1, " of ", count(selected), " \xB7 ", describeSource(kase.entry)), /* @__PURE__ */ React.createElement(EcgViewer, { key: kase.id, kase })) : !error && /* @__PURE__ */ React.createElement("p", { className: "ek-muted" }, "Loading EKG\u2026"), /* @__PURE__ */ React.createElement("section", { className: "ek-teach neutral" }, /* @__PURE__ */ React.createElement("ul", null, dx.features.map((t) => /* @__PURE__ */ React.createElement("li", { key: t }, t))), /* @__PURE__ */ React.createElement("p", { className: "ek-pearl" }, "\u{1F4A1} ", dx.pearl)), count(selected) > 1 && /* @__PURE__ */ React.createElement("button", { className: "ek-primary ek-another", onClick: () => open(selected, 1) }, "Next example"));
     }
-    return /* @__PURE__ */ React.createElement("main", { className: "ek-library" }, /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-intro" }, "Every diagnosis the trainer can draw, with the features to look for. Each example is freshly generated, so open one a few times to see the variation."), GROUPS.map((g2) => /* @__PURE__ */ React.createElement("section", { key: g2.id, className: "ek-lib-group" }, /* @__PURE__ */ React.createElement("h3", null, g2.title), /* @__PURE__ */ React.createElement("div", { className: "ek-lib-list" }, DIAGNOSES.filter((d) => d.group === g2.id).map((d) => /* @__PURE__ */ React.createElement("button", { key: d.id, className: "ek-lib-item", onClick: () => open(d.id) }, /* @__PURE__ */ React.createElement("span", { className: "ek-lib-name" }, d.label), /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, d.features[0])))))));
+    return /* @__PURE__ */ React.createElement("main", { className: "ek-library" }, /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-intro" }, "Every diagnosis the trainer covers, with the features to look for. All examples are real patient recordings."), GROUPS.map((g) => {
+      const ds = Object.values(DX).filter((d) => d.group === g.id && available.has(d.id));
+      if (!ds.length) return null;
+      return /* @__PURE__ */ React.createElement("section", { key: g.id, className: "ek-lib-group" }, /* @__PURE__ */ React.createElement("h3", null, g.title), /* @__PURE__ */ React.createElement("div", { className: "ek-lib-list" }, ds.map((d) => /* @__PURE__ */ React.createElement("button", { key: d.id, className: "ek-lib-item", onClick: () => open(d.id) }, /* @__PURE__ */ React.createElement("span", { className: "ek-lib-name" }, d.label), /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, d.features[0])))));
+    }), /* @__PURE__ */ React.createElement(Credits, null));
   }
-  function Stats({ stats, setStats }) {
+  function Credits() {
+    return /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-small ek-credits" }, "Recordings from", " ", Object.values(SOURCES).map((s, i, all) => /* @__PURE__ */ React.createElement(React.Fragment, { key: s.url }, /* @__PURE__ */ React.createElement("a", { href: s.url, target: "_blank", rel: "noreferrer" }, s.name), i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : "")), " ", "on PhysioNet (CC BY 4.0 / ODC-By), filtered for display. Answers come from the databases' labels and machine measurements, so the occasional one may be off \u2014 flag it.");
+  }
+  function Stats({ index, stats, setStats, settings, setSettings }) {
+    var _a;
     const [confirmReset, setConfirmReset] = useState3(false);
-    const rows = DIAGNOSES.map((d) => {
-      var _a;
-      return { d, s: (_a = stats.perDx[d.id]) != null ? _a : { seen: 0, correct: 0 } };
+    const flagged = (_a = settings.flagged) != null ? _a : [];
+    const rows = Object.values(DX).map((d) => {
+      var _a2;
+      return { d, s: (_a2 = stats.perDx[d.id]) != null ? _a2 : { seen: 0, correct: 0 } };
     }).filter((r) => r.s.seen > 0).sort((a, b) => a.s.correct / a.s.seen - b.s.correct / b.s.seen || b.s.seen - a.s.seen);
+    const flaggedCard = flagged.length > 0 && /* @__PURE__ */ React.createElement("section", { className: "ek-card" }, /* @__PURE__ */ React.createElement("h3", null, "Flagged EKGs ", /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, "left out of practice")), flagged.map((f) => {
+      var _a2, _b;
+      const entry = index.find((e) => e.id === f.id);
+      return /* @__PURE__ */ React.createElement("div", { key: f.id, className: "ek-flagged" }, /* @__PURE__ */ React.createElement("span", null, (_b = (_a2 = DX[f.dx]) == null ? void 0 : _a2.label) != null ? _b : f.dx, /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, " \xB7 ", entry ? describeSource(entry) : f.id)), /* @__PURE__ */ React.createElement("button", { className: "ek-link", onClick: () => setSettings({ ...settings, flagged: flagged.filter((x) => x.id !== f.id) }) }, "Unflag"));
+    }));
     if (!stats.cases) {
-      return /* @__PURE__ */ React.createElement("main", { className: "ek-stats" }, /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-intro" }, "No EKGs checked yet. Your accuracy per diagnosis and per step shows up here once you've done a few."));
+      return /* @__PURE__ */ React.createElement("main", { className: "ek-stats" }, /* @__PURE__ */ React.createElement("p", { className: "ek-muted ek-intro" }, "No EKGs checked yet. Your accuracy per diagnosis and per step shows up here once you've done a few."), flaggedCard);
     }
     return /* @__PURE__ */ React.createElement("main", { className: "ek-stats" }, /* @__PURE__ */ React.createElement("div", { className: "ek-tiles" }, /* @__PURE__ */ React.createElement(Tile, { value: stats.cases, label: "EKGs read" }), /* @__PURE__ */ React.createElement(Tile, { value: `${pct(stats.dxCorrect, stats.cases)}%`, label: "Diagnosis correct" }), /* @__PURE__ */ React.createElement(Tile, { value: stats.streak, label: "Current streak" }), /* @__PURE__ */ React.createElement(Tile, { value: stats.best, label: "Best streak" })), /* @__PURE__ */ React.createElement("section", { className: "ek-card" }, /* @__PURE__ */ React.createElement("h3", null, "By step"), QUESTIONS.filter((q) => stats.perQ[q.id]).map((q) => {
       const s = stats.perQ[q.id];
       return /* @__PURE__ */ React.createElement(Bar, { key: q.id, label: q.title, correct: s.correct, seen: s.seen });
-    })), /* @__PURE__ */ React.createElement("section", { className: "ek-card" }, /* @__PURE__ */ React.createElement("h3", null, "By diagnosis ", /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, "weakest first")), rows.map(({ d, s }) => /* @__PURE__ */ React.createElement(Bar, { key: d.id, label: d.label, correct: s.correct, seen: s.seen }))), /* @__PURE__ */ React.createElement(
+    })), /* @__PURE__ */ React.createElement("section", { className: "ek-card" }, /* @__PURE__ */ React.createElement("h3", null, "By diagnosis ", /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, "weakest first")), rows.map(({ d, s }) => /* @__PURE__ */ React.createElement(Bar, { key: d.id, label: d.label, correct: s.correct, seen: s.seen }))), flaggedCard, /* @__PURE__ */ React.createElement(
       "button",
       {
         className: `ek-reset${confirmReset ? " armed" : ""}`,

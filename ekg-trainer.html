@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>EKG Trainer</title>
-  <meta name="description" content="Practise reading EKGs: freshly generated rhythm strips and 12-leads, read step by step.">
+  <meta name="description" content="Practise reading EKGs on real patient recordings: rhythm strips and 12-leads, read step by step.">
   <meta name="theme-color" content="#F6F4F4" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#141314" media="(prefers-color-scheme: dark)">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -104,6 +104,14 @@
     .ek-option.right.picked{background:var(--ok);color:var(--card)}
     .ek-option.wrong{background:var(--badSoft);border-color:var(--bad);color:var(--bad);text-decoration:line-through}
     .ek-note{margin:10px 0 0;font-size:.85rem;color:var(--muted)}
+    .ek-loading{padding:48px 0;text-align:center;display:grid;gap:12px;justify-items:center}
+    .ek-error{color:var(--bad)}
+    .ek-source{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+    .ek-flag{color:var(--muted);font-weight:500;font-size:.82rem}
+    .ek-flag.on{color:var(--bad);font-weight:600}
+    .ek-flagged{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--line)}
+    .ek-credits{margin-top:24px;max-width:70ch}
+    .ek-credits a{color:inherit}
     .ek-dx-group{margin-top:10px}
     .ek-dx-group+.ek-dx-group{margin-top:12px}
     .ek-dx-group .ek-options{margin-top:6px}

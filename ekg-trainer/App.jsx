@@ -1,19 +1,34 @@
 import { useSyncedStorage } from "../shared/syncStorage.js";
 import { EcgPaper, MIN_ZOOM, MAX_ZOOM } from "./EcgPaper.jsx";
-import { QUESTIONS, GROUPS, DIAGNOSES, DX, generateCase, explain, stripDiagnoses } from "./cases.js";
+import { QUESTIONS, GROUPS, DX, SOURCES, loadIndex, casesFor, diagnosesFor, isTwelveLead, loadCase, describeSource, explain } from "./cases.js";
 
 const { useState, useMemo, useEffect, useRef } = React;
 
 const APP_ID = "ekg-trainer";
-const DEFAULT_SETTINGS = { twelve: true, disabled: [], adaptive: true };
+const DEFAULT_SETTINGS = { twelve: true, disabled: [], adaptive: true, flagged: [] };
 const EMPTY_STATS = { cases: 0, dxCorrect: 0, streak: 0, best: 0, perDx: {}, perQ: {} };
 const TABS = [["practice", "Practice"], ["library", "Library"], ["stats", "Stats"]];
 const QUESTION = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
 
-function poolFor(settings) {
-  const base = settings.twelve ? DIAGNOSES : stripDiagnoses();
+// Recordings she has flagged as mislabelled are left out everywhere.
+function usableCases(index, settings) {
+  const flagged = new Set((settings.flagged ?? []).map((f) => f.id));
+  return casesFor(index, settings.twelve).filter((e) => !flagged.has(e.id));
+}
+
+function poolFor(index, settings) {
+  const have = new Set(usableCases(index, settings).map((e) => e.dx));
+  const base = diagnosesFor(index, settings.twelve).filter((d) => have.has(d.id));
   const enabled = base.filter((d) => !settings.disabled.includes(d.id));
   return enabled.length ? enabled : base;
+}
+
+// A recording of `dx`, preferring ones she hasn't seen lately.
+function pickEntry(index, settings, dx, recent) {
+  const all = usableCases(index, settings).filter((e) => e.dx === dx);
+  const fresh = all.filter((e) => !recent.includes(e.id));
+  const from = fresh.length ? fresh : all;
+  return from[Math.floor(Math.random() * from.length)];
 }
 
 // Diagnoses she gets wrong come up more often (Laplace-smoothed accuracy).
@@ -40,6 +55,14 @@ export function EkgTrainerApp() {
   const [settings, setSettings] = useSyncedStorage(APP_ID, "ekg-trainer-settings", DEFAULT_SETTINGS);
   const [stats, setStats, statsConflict] = useSyncedStorage(APP_ID, "ekg-trainer-stats", EMPTY_STATS);
   const [tab, setTab] = useState("practice");
+  const [index, setIndex] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  function fetchIndex() {
+    setLoadError(null);
+    loadIndex().then(setIndex, (e) => setLoadError(e.message));
+  }
+  useEffect(fetchIndex, []);
 
   return (
     <div className="ek">
@@ -61,31 +84,67 @@ export function EkgTrainerApp() {
         </div>
       )}
 
-      {tab === "practice" && <Practice settings={settings} setSettings={setSettings} stats={stats} setStats={setStats} />}
-      {tab === "library" && <Library />}
-      {tab === "stats" && <Stats stats={stats} setStats={setStats} />}
+      {!index ? (
+        <main className="ek-loading">
+          {loadError ? (
+            <>
+              <p>{loadError}</p>
+              <button className="ek-primary" onClick={fetchIndex}>Try again</button>
+            </>
+          ) : (
+            <p className="ek-muted">Loading EKGs…</p>
+          )}
+        </main>
+      ) : (
+        <>
+          {tab === "practice" && <Practice index={index} settings={settings} setSettings={setSettings} stats={stats} setStats={setStats} />}
+          {tab === "library" && <Library index={index} />}
+          {tab === "stats" && <Stats index={index} stats={stats} setStats={setStats} settings={settings} setSettings={setSettings} />}
+        </>
+      )}
     </div>
   );
 }
 
 // --- Practice --------------------------------------------------------------
 
-function Practice({ settings, setSettings, stats, setStats }) {
-  const pool = poolFor(settings);
-  const [kase, setKase] = useState(() => generateCase(pickDx(pool, stats, settings.adaptive), settings.twelve));
+function Practice({ index, settings, setSettings, stats, setStats }) {
+  const pool = poolFor(index, settings);
+  const [kase, setKase] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [picks, setPicks] = useState({});
   const [checked, setChecked] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
+  const recent = useRef([]); // recordings shown lately, newest last
+  const request = useRef(0);
   const topRef = useRef(null);
   const teachRef = useRef(null);
 
-  function next(s = settings) {
-    const p = poolFor(s);
-    setKase(generateCase(pickDx(p, stats, s.adaptive, kase.dx), s.twelve));
-    setPicks({});
-    setChecked(false);
-    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  async function next(s = settings) {
+    const dx = pickDx(poolFor(index, s), stats, s.adaptive, kase?.dx);
+    const entry = pickEntry(index, s, dx, recent.current);
+    const mine = ++request.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const k = await loadCase(entry, s.twelve);
+      if (mine !== request.current) return;
+      recent.current = [...recent.current.filter((id) => id !== entry.id), entry.id].slice(-40);
+      setKase(k);
+      setPicks({});
+      setChecked(false);
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      if (mine === request.current) setError(e.message);
+    } finally {
+      if (mine === request.current) setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    next();
+  }, []);
 
   function changeSettings(patch) {
     const s = { ...settings, ...patch };
@@ -95,12 +154,12 @@ function Practice({ settings, setSettings, stats, setStats }) {
 
   // The case was drawn for a mode or focus she has since changed.
   useEffect(() => {
-    if (!checked && !pool.some((d) => d.id === kase.dx)) next();
+    if (kase && !checked && !pool.some((d) => d.id === kase.dx)) next();
   }, [settings.disabled]);
 
-  const dxChoices = settings.twelve ? DIAGNOSES : stripDiagnoses();
+  const dxChoices = diagnosesFor(index, settings.twelve);
   const result = useMemo(() => {
-    if (!checked) return null;
+    if (!checked || !kase) return null;
     const perQ = kase.ask.map((q) => ({ q, ok: kase.answers[q].includes(picks[q]) }));
     return { perQ, dxOk: picks.dx === kase.dx, score: perQ.filter((r) => r.ok).length + (picks.dx === kase.dx ? 1 : 0), total: perQ.length + 1 };
   }, [checked, kase, picks]);
@@ -135,6 +194,27 @@ function Practice({ settings, setSettings, stats, setStats }) {
   }, [checked]);
 
   const choose = (q, v) => !checked && setPicks((p) => ({ ...p, [q]: p[q] === v ? undefined : v }));
+
+  const flagged = kase && (settings.flagged ?? []).some((f) => f.id === kase.entry.id);
+  function toggleFlag() {
+    const rest = (settings.flagged ?? []).filter((f) => f.id !== kase.entry.id);
+    setSettings({ ...settings, flagged: flagged ? rest : [...rest, { id: kase.entry.id, dx: kase.dx, at: new Date().toISOString() }] });
+  }
+
+  if (!kase) {
+    return (
+      <main className="ek-loading">
+        {error ? (
+          <>
+            <p>{error}</p>
+            <button className="ek-primary" onClick={() => next()}>Try again</button>
+          </>
+        ) : (
+          <p className="ek-muted">Loading EKG…</p>
+        )}
+      </main>
+    );
+  }
   const dx = DX[kase.dx];
 
   return (
@@ -150,7 +230,7 @@ function Practice({ settings, setSettings, stats, setStats }) {
         <span className="ek-streak" title="Correct diagnoses in a row">🔥 {stats.streak}</span>
       </div>
 
-      {showFocus && <FocusPanel settings={settings} changeSettings={changeSettings} />}
+      {showFocus && <FocusPanel index={index} settings={settings} changeSettings={changeSettings} />}
 
       {/* The EKG stays in view on the left while the questions scroll past on the right. */}
       <div className="ek-workspace">
@@ -196,7 +276,7 @@ function Practice({ settings, setSettings, stats, setStats }) {
             </div>
           </section>
 
-          {checked && <Teaching ref={teachRef} dx={dx} kase={kase} ok={result.dxOk} />}
+          {checked && <Teaching ref={teachRef} dx={dx} kase={kase} ok={result.dxOk} flagged={flagged} onFlag={toggleFlag} />}
         </div>
       </div>
 
@@ -206,7 +286,8 @@ function Practice({ settings, setSettings, stats, setStats }) {
             <span className="ek-score">
               <strong>{result.score}/{result.total}</strong> correct
             </span>
-            <button className="ek-primary" onClick={() => next()}>Next EKG →</button>
+            {error && <span className="ek-small ek-error">{error}</span>}
+            <button className="ek-primary" disabled={loading} onClick={() => next()}>{loading ? "Loading…" : "Next EKG →"}</button>
           </>
         ) : (
           <>
@@ -274,7 +355,7 @@ function QuestionBlock({ q, picked, answers, note, onPick }) {
   );
 }
 
-const Teaching = React.forwardRef(function Teaching({ dx, kase, ok }, ref) {
+const Teaching = React.forwardRef(function Teaching({ dx, kase, ok, flagged, onFlag }, ref) {
   const f = kase.facts;
   const numbers = [
     f.rate != null && `rate ${f.rate}`,
@@ -292,12 +373,19 @@ const Teaching = React.forwardRef(function Teaching({ dx, kase, ok }, ref) {
         {dx.features.map((t) => <li key={t}>{t}</li>)}
       </ul>
       <p className="ek-pearl">💡 {dx.pearl}</p>
+      <div className="ek-source">
+        <span className="ek-muted ek-small">{describeSource(kase.entry)}</span>
+        <span className="ek-grow" />
+        <button className={`ek-link ek-flag${flagged ? " on" : ""}`} onClick={onFlag} aria-pressed={flagged}>
+          {flagged ? "⚑ Flagged — won't come up again" : "⚑ Answer looks wrong for this EKG"}
+        </button>
+      </div>
     </section>
   );
 });
 
-function FocusPanel({ settings, changeSettings }) {
-  const base = settings.twelve ? DIAGNOSES : stripDiagnoses();
+function FocusPanel({ index, settings, changeSettings }) {
+  const base = diagnosesFor(index, settings.twelve);
   const off = new Set(settings.disabled);
   const toggle = (ids, on) => {
     const next = new Set(off);
@@ -342,64 +430,136 @@ function FocusPanel({ settings, changeSettings }) {
 
 // --- Library ---------------------------------------------------------------
 
-function Library() {
+function Library({ index }) {
   const [selected, setSelected] = useState(null);
   const [kase, setKase] = useState(null);
+  const [error, setError] = useState(null);
+  const shown = useRef(0);
 
-  function open(id) {
+  // Steps through the recordings of a diagnosis, 12-leads first.
+  async function open(id, step = 0) {
+    const all = index.filter((e) => e.dx === id).sort((a, b) => isTwelveLead(b) - isTwelveLead(a));
+    shown.current = id === selected ? (shown.current + step) % all.length : 0;
+    const entry = all[shown.current];
     setSelected(id);
-    setKase(generateCase(id, true));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setError(null);
+    if (step === 0) window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      setKase(await loadCase(entry, isTwelveLead(entry)));
+    } catch (e) {
+      setError(e.message);
+    }
   }
+
+  const available = new Set(index.map((e) => e.dx));
+  const count = (id) => index.filter((e) => e.dx === id).length;
 
   if (selected) {
     const dx = DX[selected];
     return (
       <main className="ek-library">
-        <button className="ek-link" onClick={() => setSelected(null)}>‹ All diagnoses</button>
-        <h2 className="ek-lib-title">{dx.label}{kase.facts.note ? <span className="ek-muted"> — {kase.facts.note}</span> : null}</h2>
-        <EcgViewer key={kase.id} kase={kase} />
+        <button className="ek-link" onClick={() => (setSelected(null), setKase(null))}>‹ All diagnoses</button>
+        <h2 className="ek-lib-title">{dx.label}</h2>
+        {error && <p className="ek-error">{error}</p>}
+        {kase && kase.dx === selected ? (
+          <>
+            <p className="ek-muted ek-small">
+              Example {shown.current + 1} of {count(selected)} · {describeSource(kase.entry)}
+            </p>
+            <EcgViewer key={kase.id} kase={kase} />
+          </>
+        ) : (
+          !error && <p className="ek-muted">Loading EKG…</p>
+        )}
         <section className="ek-teach neutral">
           <ul>
             {dx.features.map((t) => <li key={t}>{t}</li>)}
           </ul>
           <p className="ek-pearl">💡 {dx.pearl}</p>
         </section>
-        <button className="ek-primary ek-another" onClick={() => open(selected)}>Another example</button>
+        {count(selected) > 1 && (
+          <button className="ek-primary ek-another" onClick={() => open(selected, 1)}>Next example</button>
+        )}
       </main>
     );
   }
 
   return (
     <main className="ek-library">
-      <p className="ek-muted ek-intro">Every diagnosis the trainer can draw, with the features to look for. Each example is freshly generated, so open one a few times to see the variation.</p>
-      {GROUPS.map((g) => (
-        <section key={g.id} className="ek-lib-group">
-          <h3>{g.title}</h3>
-          <div className="ek-lib-list">
-            {DIAGNOSES.filter((d) => d.group === g.id).map((d) => (
-              <button key={d.id} className="ek-lib-item" onClick={() => open(d.id)}>
-                <span className="ek-lib-name">{d.label}</span>
-                <span className="ek-muted ek-small">{d.features[0]}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
+      <p className="ek-muted ek-intro">Every diagnosis the trainer covers, with the features to look for. All examples are real patient recordings.</p>
+      {GROUPS.map((g) => {
+        const ds = Object.values(DX).filter((d) => d.group === g.id && available.has(d.id));
+        if (!ds.length) return null;
+        return (
+          <section key={g.id} className="ek-lib-group">
+            <h3>{g.title}</h3>
+            <div className="ek-lib-list">
+              {ds.map((d) => (
+                <button key={d.id} className="ek-lib-item" onClick={() => open(d.id)}>
+                  <span className="ek-lib-name">{d.label}</span>
+                  <span className="ek-muted ek-small">{d.features[0]}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+      <Credits />
     </main>
+  );
+}
+
+function Credits() {
+  return (
+    <p className="ek-muted ek-small ek-credits">
+      Recordings from{" "}
+      {Object.values(SOURCES).map((s, i, all) => (
+        <React.Fragment key={s.url}>
+          <a href={s.url} target="_blank" rel="noreferrer">{s.name}</a>
+          {i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : ""}
+        </React.Fragment>
+      ))}{" "}
+      on PhysioNet (CC BY 4.0 / ODC-By), filtered for display. Answers come from the databases' labels and machine measurements, so the occasional one may be off — flag it.
+    </p>
   );
 }
 
 // --- Stats -----------------------------------------------------------------
 
-function Stats({ stats, setStats }) {
+function Stats({ index, stats, setStats, settings, setSettings }) {
   const [confirmReset, setConfirmReset] = useState(false);
-  const rows = DIAGNOSES.map((d) => ({ d, s: stats.perDx[d.id] ?? { seen: 0, correct: 0 } }))
+  const flagged = settings.flagged ?? [];
+  const rows = Object.values(DX).map((d) => ({ d, s: stats.perDx[d.id] ?? { seen: 0, correct: 0 } }))
     .filter((r) => r.s.seen > 0)
     .sort((a, b) => a.s.correct / a.s.seen - b.s.correct / b.s.seen || b.s.seen - a.s.seen);
 
+  const flaggedCard = flagged.length > 0 && (
+    <section className="ek-card">
+      <h3>Flagged EKGs <span className="ek-muted ek-small">left out of practice</span></h3>
+      {flagged.map((f) => {
+        const entry = index.find((e) => e.id === f.id);
+        return (
+          <div key={f.id} className="ek-flagged">
+            <span>
+              {DX[f.dx]?.label ?? f.dx}
+              <span className="ek-muted ek-small"> · {entry ? describeSource(entry) : f.id}</span>
+            </span>
+            <button className="ek-link" onClick={() => setSettings({ ...settings, flagged: flagged.filter((x) => x.id !== f.id) })}>
+              Unflag
+            </button>
+          </div>
+        );
+      })}
+    </section>
+  );
+
   if (!stats.cases) {
-    return <main className="ek-stats"><p className="ek-muted ek-intro">No EKGs checked yet. Your accuracy per diagnosis and per step shows up here once you've done a few.</p></main>;
+    return (
+      <main className="ek-stats">
+        <p className="ek-muted ek-intro">No EKGs checked yet. Your accuracy per diagnosis and per step shows up here once you've done a few.</p>
+        {flaggedCard}
+      </main>
+    );
   }
 
   return (
@@ -423,6 +583,8 @@ function Stats({ stats, setStats }) {
         <h3>By diagnosis <span className="ek-muted ek-small">weakest first</span></h3>
         {rows.map(({ d, s }) => <Bar key={d.id} label={d.label} correct={s.correct} seen={s.seen} />)}
       </section>
+
+      {flaggedCard}
 
       <button
         className={`ek-reset${confirmReset ? " armed" : ""}`}
