@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>EKG Trainer</title>
+  <meta name="description" content="Practise reading EKGs: freshly generated rhythm strips and 12-leads, read step by step.">
+  <meta name="theme-color" content="#F6F4F4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141314" media="(prefers-color-scheme: dark)">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#F6F4F4;--card:#FFFFFF;--fg:#1D1B1C;--muted:#6D686A;--line:#E6E0E1;
+      --accent:#C8344F;--accentText:#FFFFFF;--accentSoft:#FBE6EA;
+      --ok:#1E7F45;--okSoft:#E2F3E8;--bad:#BF2A1F;--badSoft:#FBE5E3;
+      --paper:#FFFBFA;--grid-minor:#F4C9C9;--grid-major:#E49A9A;--trace:#1A1416;
+    }
+    @media (prefers-color-scheme:dark){
+      :root{
+        --bg:#141314;--card:#1E1C1D;--fg:#EEEAEB;--muted:#A29C9E;--line:#332F31;
+        --accent:#FF8197;--accentText:#2A0710;--accentSoft:#3A1E25;
+        --ok:#7FD3A0;--okSoft:#17301F;--bad:#FF9A90;--badSoft:#3A1C1A;
+        --paper:#FFF8F7;
+      }
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body,#app{margin:0;min-height:100%}
+    body{background:var(--bg);color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+    button,input{font:inherit;color:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    button:disabled{opacity:.45;cursor:default}
+    button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    .ek{max-width:1440px;margin:0 auto;padding:0 16px calc(96px + env(safe-area-inset-bottom))}
+    .ek-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:calc(14px + env(safe-area-inset-top)) 0 12px}
+    .ek-header h1{margin:0;font-size:1.35rem;font-weight:700;margin-right:auto}
+    .ek-back{color:var(--muted);text-decoration:none;font-size:1.8rem;line-height:1;padding:0 6px 4px 0}
+    .ek-tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+    .ek-tabs button{border:none;background:transparent;padding:6px 12px;border-radius:7px;font-weight:600;font-size:.9rem;color:var(--muted)}
+    .ek-tabs button.on{background:var(--accentSoft);color:var(--accent)}
+
+    .ek-muted{color:var(--muted)}
+    .ek-small{font-size:.85rem}
+    .ek-grow{flex:1}
+    .ek-intro{margin:4px 0 16px;max-width:60ch}
+    .ek-link{background:none;border:none;padding:4px 0;color:var(--accent);font-weight:600;font-size:.9rem}
+    .ek-conflict{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px;border-radius:10px;background:var(--accentSoft);font-size:.9rem}
+    .ek-conflict button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 10px;font-weight:600}
+
+    .ek-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .ek-segmented{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+    .ek-segmented button{border:none;background:transparent;padding:7px 12px;font-size:.9rem;font-weight:600;color:var(--muted)}
+    .ek-segmented button+button{border-left:1px solid var(--line)}
+    .ek-segmented button.on{background:var(--accent);color:var(--accentText)}
+    .ek-chip-button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;font-size:.9rem;font-weight:600}
+    .ek-chip-button.on{border-color:var(--accent);color:var(--accent);background:var(--accentSoft)}
+    .ek-streak{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+
+    .ek-focus{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:grid;gap:10px}
+    .ek-focus-head{display:flex;align-items:center;gap:14px}
+    .ek-focus-items{display:flex;flex-wrap:wrap;gap:4px 16px;padding-left:26px}
+    .ek-check{display:flex;gap:8px;align-items:center;font-size:.9rem;cursor:pointer}
+    .ek-check input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--accent)}
+    .ek-check-group{font-weight:600;margin-bottom:4px}
+    .ek-adaptive{border-top:1px solid var(--line);padding-top:10px}
+
+    .ek-ecg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:14px}
+    .ek-paper-scroll{overflow-x:auto;border-radius:6px;-webkit-overflow-scrolling:touch}
+    .ek-paper{display:block;min-width:640px;height:auto;user-select:none;-webkit-user-select:none}
+    .ek-paper-12{min-width:760px}
+    .ek-calipers{cursor:crosshair;touch-action:none}
+    .ek-lead{font:600 3.6px ui-sans-serif,system-ui,sans-serif;fill:var(--trace)}
+    .ek-scale{font:2.6px ui-sans-serif,system-ui,sans-serif;fill:#9b6b6b}
+    .ek-measure path{stroke:#1F5FD1;stroke-width:.35;fill:none}
+    .ek-measure text{font:600 3.4px ui-sans-serif,system-ui,sans-serif;fill:#1F5FD1;paint-order:stroke;stroke:#fff;stroke-width:.9px}
+    .ek-ecg-tools{display:flex;align-items:center;gap:8px;padding:8px 2px 0;flex-wrap:wrap}
+    .ek-icon{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:1.15rem;line-height:1}
+    .ek-zoom{min-width:2.4em;text-align:center;font-variant-numeric:tabular-nums}
+
+    /* Wide screens: EKG pinned on the left, the questions in a column beside it. */
+    @media (min-width:1100px){
+      .ek-workspace{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
+      .ek-workspace-ecg{position:sticky;top:12px}
+      .ek-workspace .ek-questions{grid-template-columns:minmax(0,1fr)}
+    }
+
+    .ek-questions{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+    .ek-span{grid-column:1/-1}
+    .ek-q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+    .ek-q.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+    .ek-q.bad{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+    .ek-q-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .ek-q h3{margin:0;font-size:1rem}
+    .ek-hint{margin:2px 0 0;font-size:.8rem;color:var(--muted)}
+    .ek-mark{font-weight:800;font-size:1.05rem}
+    .ek-mark.ok{color:var(--ok)}
+    .ek-mark.bad{color:var(--bad)}
+    .ek-options{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .ek-option{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;font-size:.88rem;text-align:left;line-height:1.25}
+    .ek-option:hover{border-color:var(--accent)}
+    .ek-option.picked{background:var(--accent);border-color:var(--accent);color:var(--accentText);font-weight:600}
+    .ek-option.right{background:var(--okSoft);border-color:var(--ok);color:var(--ok);font-weight:700}
+    .ek-option.right.picked{background:var(--ok);color:var(--card)}
+    .ek-option.wrong{background:var(--badSoft);border-color:var(--bad);color:var(--bad);text-decoration:line-through}
+    .ek-note{margin:10px 0 0;font-size:.85rem;color:var(--muted)}
+    .ek-dx-group{margin-top:10px}
+    .ek-dx-group+.ek-dx-group{margin-top:12px}
+    .ek-dx-group .ek-options{margin-top:6px}
+    .ek-dx-group-title{margin:0;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+
+    .ek-teach{margin-top:14px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px}
+    .ek-teach.ok{border-left-color:var(--ok)}
+    .ek-teach.bad{border-left-color:var(--bad)}
+    .ek-teach-verdict{margin:0;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+    .ek-teach.ok .ek-teach-verdict{color:var(--ok)}
+    .ek-teach h2{margin:2px 0 4px;font-size:1.2rem}
+    .ek-teach h2 .ek-muted{font-weight:500;font-size:1rem}
+    .ek-teach ul{margin:10px 0;padding-left:20px}
+    .ek-teach li{margin:3px 0}
+    .ek-pearl{margin:0;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:.92rem}
+
+    .ek-actionbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:10px max(16px,calc((100% - 1408px)/2)) calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+    .ek-actionbar > span{margin-right:auto}
+    .ek-score strong{font-size:1.1rem}
+    .ek-primary{padding:11px 18px;border:none;border-radius:12px;background:var(--accent);color:var(--accentText);font-weight:700}
+
+    .ek-library .ek-link{margin-bottom:6px}
+    .ek-lib-title{margin:0 0 10px;font-size:1.25rem}
+    .ek-lib-title .ek-muted{font-weight:500;font-size:1rem}
+    .ek-lib-group h3{margin:18px 0 8px;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+    .ek-lib-list{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    .ek-lib-item{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+    .ek-lib-item:hover{border-color:var(--accent)}
+    .ek-lib-name{font-weight:600}
+    .ek-another{margin-top:14px}
+    .ek-teach.neutral{margin-top:0}
+
+    .ek-stats{display:grid;gap:14px}
+    .ek-tiles{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+    .ek-tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column}
+    .ek-tile-value{font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+    .ek-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+    .ek-card h3{margin:0 0 4px;font-size:1rem}
+    .ek-bar{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr auto;gap:10px;align-items:center;font-size:.88rem}
+    .ek-bar-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ek-bar-track{height:8px;border-radius:99px;background:var(--bg);overflow:hidden}
+    .ek-bar-fill{display:block;height:100%;background:var(--accent);border-radius:99px}
+    .ek-bar-num{font-variant-numeric:tabular-nums;min-width:7.5em;text-align:right}
+    .ek-reset{justify-self:start;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;color:var(--muted)}
+    .ek-reset.armed{border-color:var(--bad);color:var(--bad)}
+    @media (max-width:520px){
+      .ek-bar{grid-template-columns:1fr auto}
+      .ek-bar-track{grid-column:1/-1;grid-row:2}
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="./ekg-trainer-app.js"></script>
+</body>
+</html>

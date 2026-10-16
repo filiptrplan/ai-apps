@@ -20289,13 +20289,13 @@ ${lines.join("\n")}` : null;
   }
 
   // shared/prices.js
-  var estimatePrices = (items) => callAI("price-estimate", { items });
-  var estimateKey = (items) => JSON.stringify(items.map((i) => [i.id, i.q, i.name]));
-  function runEstimate(items, set) {
-    const key = estimateKey(items);
+  var estimatePrices = (items, tier = "normal") => callAI("price-estimate", { items, tier });
+  var estimateKey = (items, tier = "normal") => JSON.stringify([tier, items.map((i) => [i.id, i.q, i.name])]);
+  function runEstimate(items, set, tier = "normal") {
+    const key = estimateKey(items, tier);
     set(() => ({ key, items, loading: true }));
     const done = (patch) => set((cur) => cur && cur.key === key && cur.loading ? { key, items, ...patch } : cur);
-    estimatePrices(items).then(
+    estimatePrices(items, tier).then(
       (result) => done({ result }),
       (err) => done({ error: err.message || "Couldn't estimate prices." })
     );
