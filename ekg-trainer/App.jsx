@@ -1,5 +1,5 @@
 import { useSyncedStorage } from "../shared/syncStorage.js";
-import { EcgPaper } from "./EcgPaper.jsx";
+import { EcgPaper, MIN_ZOOM, MAX_ZOOM } from "./EcgPaper.jsx";
 import { QUESTIONS, GROUPS, DIAGNOSES, DX, generateCase, explain, stripDiagnoses } from "./cases.js";
 
 const { useState, useMemo, useEffect, useRef } = React;
@@ -226,16 +226,16 @@ function EcgViewer({ kase }) {
   const [calipers, setCalipers] = useState(false);
   return (
     <section className="ek-ecg">
-      <EcgPaper signal={kase.signal} twelve={kase.twelve} zoom={zoom} calipers={calipers} />
+      <EcgPaper signal={kase.signal} twelve={kase.twelve} zoom={zoom} onZoom={setZoom} calipers={calipers} />
       <div className="ek-ecg-tools">
         <button className={`ek-chip-button${calipers ? " on" : ""}`} onClick={() => setCalipers((v) => !v)}>
           📏 Calipers
         </button>
-        {calipers && <span className="ek-muted ek-small">Drag across the paper to measure</span>}
+        <span className="ek-muted ek-small">{calipers ? "Drag across the paper to measure" : "Pinch to zoom"}</span>
         <span className="ek-grow" />
-        <button className="ek-icon" onClick={() => setZoom((z) => Math.max(1, z - 0.5))} disabled={zoom <= 1} aria-label="Zoom out">−</button>
-        <span className="ek-small ek-zoom">{zoom}×</span>
-        <button className="ek-icon" onClick={() => setZoom((z) => Math.min(3, z + 0.5))} disabled={zoom >= 3} aria-label="Zoom in">+</button>
+        <button className="ek-icon" onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - 0.5))} disabled={zoom <= MIN_ZOOM} aria-label="Zoom out">−</button>
+        <span className="ek-small ek-zoom">{zoom.toFixed(1)}×</span>
+        <button className="ek-icon" onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + 0.5))} disabled={zoom >= MAX_ZOOM} aria-label="Zoom in">+</button>
       </div>
     </section>
   );

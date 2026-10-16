@@ -20116,7 +20116,10 @@ ${suffix}`;
   }
 
   // ekg-trainer/EcgPaper.jsx
-  var { useState: useState2, useRef: useRef2, useMemo } = React;
+  var { useState: useState2, useRef: useRef2, useMemo, useEffect: useEffect2, useLayoutEffect } = React;
+  var MIN_ZOOM = 1;
+  var MAX_ZOOM = 4;
+  var clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
   var SPEED = 25;
   var GAIN = 10;
   var LEFT = 10;
@@ -20149,14 +20152,132 @@ ${suffix}`;
     rows.push({ segments: [{ lead: "II", from: 0, to: duration, x: LEFT }] });
     return rows;
   }
-  function EcgPaper({ signal, twelve, zoom = 1, calipers = false }) {
+  function EcgPaper({ signal, twelve, zoom = 1, onZoom, calipers = false }) {
     const { leads, fs, duration } = signal;
     const rows = layout(twelve, duration);
     const width = LEFT + duration * SPEED + 4;
     const height = TOP + (rows.length - 1) * ROW + 18;
     const svgRef = useRef2(null);
+    const boxRef = useRef2(null);
     const [measure, setMeasure] = useState2(null);
-    const dragging = useRef2(false);
+    const dragPointer = useRef2(null);
+    const beforeDrag = useRef2(null);
+    const [boxW, setBoxW] = useState2(0);
+    useLayoutEffect(() => {
+      const box = boxRef.current;
+      setBoxW(box.offsetWidth);
+      const ro = new ResizeObserver(() => setBoxW(box.offsetWidth));
+      ro.observe(box);
+      return () => ro.disconnect();
+    }, []);
+    const baseW = Math.max(boxW, twelve ? 760 : 640);
+    const baseH = baseW * height / width;
+    const zoomRef = useRef2(zoom);
+    const shownZoom = useRef2(zoom);
+    const pending = useRef2(null);
+    const onZoomRef = useRef2(onZoom);
+    onZoomRef.current = onZoom;
+    useLayoutEffect(() => {
+      const box = boxRef.current;
+      const prev = shownZoom.current;
+      shownZoom.current = zoom;
+      zoomRef.current = zoom;
+      let p = pending.current;
+      pending.current = null;
+      if (!p && prev !== zoom) {
+        const cx = box.clientWidth / 2;
+        const cy = box.clientHeight / 2;
+        p = { left: (box.scrollLeft + cx) * zoom / prev - cx, top: (box.scrollTop + cy) * zoom / prev - cy };
+      }
+      if (p) {
+        box.scrollLeft = p.left;
+        box.scrollTop = p.top;
+      }
+    }, [zoom]);
+    const view = useRef2(null);
+    view.current = {
+      scroll() {
+        const box = boxRef.current;
+        return pending.current || { left: box.scrollLeft, top: box.scrollTop };
+      },
+      set(z, left, top) {
+        var _a;
+        z = clampZoom(z);
+        if (z === zoomRef.current) {
+          boxRef.current.scrollLeft = left;
+          boxRef.current.scrollTop = top;
+          return;
+        }
+        pending.current = { left, top };
+        zoomRef.current = z;
+        (_a = onZoomRef.current) == null ? void 0 : _a.call(onZoomRef, z);
+      },
+      cancelDrag() {
+        if (dragPointer.current == null) return;
+        dragPointer.current = null;
+        setMeasure(beforeDrag.current);
+      }
+    };
+    useEffect2(() => {
+      const box = boxRef.current;
+      let pinch = null;
+      function fingers(touches) {
+        const r = box.getBoundingClientRect();
+        const [a, b] = touches;
+        return {
+          x: (a.clientX + b.clientX) / 2 - r.left,
+          y: (a.clientY + b.clientY) / 2 - r.top,
+          d: Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY))
+        };
+      }
+      function start(e) {
+        if (e.touches.length !== 2) return;
+        e.preventDefault();
+        view.current.cancelDrag();
+        const f = fingers(e.touches);
+        const s = view.current.scroll();
+        const z = zoomRef.current;
+        pinch = { z, d: f.d, ux: (s.left + f.x) / z, uy: (s.top + f.y) / z };
+      }
+      function move(e) {
+        if (!pinch || e.touches.length !== 2) return;
+        e.preventDefault();
+        const f = fingers(e.touches);
+        const z = clampZoom(pinch.z * f.d / pinch.d);
+        view.current.set(z, pinch.ux * z - f.x, pinch.uy * z - f.y);
+      }
+      function end(e) {
+        if (e.touches.length < 2) pinch = null;
+      }
+      function wheel(e) {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        const r = box.getBoundingClientRect();
+        const x = e.clientX - r.left;
+        const y = e.clientY - r.top;
+        const s = view.current.scroll();
+        const z0 = zoomRef.current;
+        const z = clampZoom(z0 * Math.exp(-e.deltaY * 0.01));
+        view.current.set(z, (s.left + x) * z / z0 - x, (s.top + y) * z / z0 - y);
+      }
+      const stop = (e) => e.preventDefault();
+      box.addEventListener("touchstart", start, { passive: false });
+      box.addEventListener("touchmove", move, { passive: false });
+      box.addEventListener("touchend", end);
+      box.addEventListener("touchcancel", end);
+      box.addEventListener("wheel", wheel, { passive: false });
+      box.addEventListener("gesturestart", stop);
+      box.addEventListener("gesturechange", stop);
+      return () => {
+        box.removeEventListener("touchstart", start);
+        box.removeEventListener("touchmove", move);
+        box.removeEventListener("touchend", end);
+        box.removeEventListener("touchcancel", end);
+        box.removeEventListener("wheel", wheel);
+        box.removeEventListener("gesturestart", stop);
+        box.removeEventListener("gesturechange", stop);
+      };
+    }, []);
     const traces = useMemo(
       () => rows.map((row, r) => {
         const base = TOP + r * ROW;
@@ -20174,19 +20295,25 @@ ${suffix}`;
     }
     const handlers = calipers ? {
       onPointerDown: (e) => {
+        if (dragPointer.current != null) return;
         e.currentTarget.setPointerCapture(e.pointerId);
-        dragging.current = true;
+        dragPointer.current = e.pointerId;
+        beforeDrag.current = measure;
         const p = toPaper(e);
         setMeasure({ a: p, b: p });
       },
       onPointerMove: (e) => {
-        if (!dragging.current) return;
+        if (e.pointerId !== dragPointer.current) return;
         const p = toPaper(e);
         setMeasure((m) => m ? { ...m, b: p } : m);
       },
-      onPointerUp: () => {
-        dragging.current = false;
+      onPointerUp: (e) => {
+        if (e.pointerId !== dragPointer.current) return;
+        dragPointer.current = null;
         setMeasure((m) => m && Math.abs(m.b.x - m.a.x) < 1 ? null : m);
+      },
+      onPointerCancel: (e) => {
+        if (e.pointerId === dragPointer.current) view.current.cancelDrag();
       }
     } : {};
     let label = null;
@@ -20195,13 +20322,13 @@ ${suffix}`;
       const mv = (measure.a.y - measure.b.y) / GAIN;
       label = `${Math.round(ms)} ms \xB7 ${Math.round(6e4 / ms)} bpm${Math.abs(mv) >= 0.05 ? ` \xB7 ${mv > 0 ? "+" : ""}${mv.toFixed(1)} mV` : ""}`;
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "ek-paper-scroll" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "ek-paper-scroll", ref: boxRef, style: boxW ? { height: `${baseH}px` } : void 0 }, /* @__PURE__ */ React.createElement(
       "svg",
       {
         ref: svgRef,
         className: `ek-paper${twelve ? " ek-paper-12" : ""}${calipers ? " ek-calipers" : ""}`,
         viewBox: `0 0 ${width} ${height}`,
-        style: { width: `${zoom * 100}%` },
+        style: boxW ? { width: `${baseW * zoom}px`, height: `${baseH * zoom}px` } : void 0,
         role: "img",
         "aria-label": twelve ? "12-lead ECG" : "Rhythm strip, leads II and V1",
         ...handlers
@@ -21322,7 +21449,7 @@ ${suffix}`;
   }
 
   // ekg-trainer/App.jsx
-  var { useState: useState3, useMemo: useMemo2, useEffect: useEffect2, useRef: useRef3 } = React;
+  var { useState: useState3, useMemo: useMemo2, useEffect: useEffect3, useRef: useRef3 } = React;
   var APP_ID = "ekg-trainer";
   var DEFAULT_SETTINGS = { twelve: true, disabled: [], adaptive: true };
   var EMPTY_STATS = { cases: 0, dxCorrect: 0, streak: 0, best: 0, perDx: {}, perQ: {} };
@@ -21378,7 +21505,7 @@ ${suffix}`;
       setSettings(s);
       if ("twelve" in patch) next(s);
     }
-    useEffect2(() => {
+    useEffect3(() => {
       if (!checked && !pool.some((d) => d.id === kase.dx)) next();
     }, [settings.disabled]);
     const dxChoices = settings.twelve ? DIAGNOSES : stripDiagnoses();
@@ -21411,7 +21538,7 @@ ${suffix}`;
         };
       });
     }
-    useEffect2(() => {
+    useEffect3(() => {
       var _a;
       if (checked) (_a = teachRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [checked]);
@@ -21441,7 +21568,7 @@ ${suffix}`;
   function EcgViewer({ kase }) {
     const [zoom, setZoom] = useState3(1);
     const [calipers, setCalipers] = useState3(false);
-    return /* @__PURE__ */ React.createElement("section", { className: "ek-ecg" }, /* @__PURE__ */ React.createElement(EcgPaper, { signal: kase.signal, twelve: kase.twelve, zoom, calipers }), /* @__PURE__ */ React.createElement("div", { className: "ek-ecg-tools" }, /* @__PURE__ */ React.createElement("button", { className: `ek-chip-button${calipers ? " on" : ""}`, onClick: () => setCalipers((v) => !v) }, "\u{1F4CF} Calipers"), calipers && /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, "Drag across the paper to measure"), /* @__PURE__ */ React.createElement("span", { className: "ek-grow" }), /* @__PURE__ */ React.createElement("button", { className: "ek-icon", onClick: () => setZoom((z) => Math.max(1, z - 0.5)), disabled: zoom <= 1, "aria-label": "Zoom out" }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "ek-small ek-zoom" }, zoom, "\xD7"), /* @__PURE__ */ React.createElement("button", { className: "ek-icon", onClick: () => setZoom((z) => Math.min(3, z + 0.5)), disabled: zoom >= 3, "aria-label": "Zoom in" }, "+")));
+    return /* @__PURE__ */ React.createElement("section", { className: "ek-ecg" }, /* @__PURE__ */ React.createElement(EcgPaper, { signal: kase.signal, twelve: kase.twelve, zoom, onZoom: setZoom, calipers }), /* @__PURE__ */ React.createElement("div", { className: "ek-ecg-tools" }, /* @__PURE__ */ React.createElement("button", { className: `ek-chip-button${calipers ? " on" : ""}`, onClick: () => setCalipers((v) => !v) }, "\u{1F4CF} Calipers"), /* @__PURE__ */ React.createElement("span", { className: "ek-muted ek-small" }, calipers ? "Drag across the paper to measure" : "Pinch to zoom"), /* @__PURE__ */ React.createElement("span", { className: "ek-grow" }), /* @__PURE__ */ React.createElement("button", { className: "ek-icon", onClick: () => setZoom((z) => Math.max(MIN_ZOOM, z - 0.5)), disabled: zoom <= MIN_ZOOM, "aria-label": "Zoom out" }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "ek-small ek-zoom" }, zoom.toFixed(1), "\xD7"), /* @__PURE__ */ React.createElement("button", { className: "ek-icon", onClick: () => setZoom((z) => Math.min(MAX_ZOOM, z + 0.5)), disabled: zoom >= MAX_ZOOM, "aria-label": "Zoom in" }, "+")));
   }
   function Option({ label, picked, state, onClick }) {
     return /* @__PURE__ */ React.createElement("button", { className: `ek-option${picked ? " picked" : ""}${state ? ` ${state}` : ""}`, onClick, "aria-pressed": picked }, label);
