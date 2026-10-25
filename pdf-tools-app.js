@@ -20084,8 +20084,10 @@
     const [settings, setSettings] = useLocalStorage("pdf-tools-split", DEFAULT_SETTINGS2);
     const { file, loading: loading2, open } = usePdfFile();
     const [ranges, setRanges] = useState4("");
+    const [active, setActive] = useState4(0);
     const [busy, setBusy] = useState4(null);
     const [error2, setError] = useState4("");
+    const anchorRef = useRef3(null);
     const { mode, every } = settings;
     const update = (patch) => setSettings({ ...settings, ...patch });
     const pageCount = (_a = file == null ? void 0 : file.doc.numPages) != null ? _a : 0;
@@ -20095,10 +20097,38 @@
     const pageParts = Array.from({ length: pageCount }, () => []);
     parts.forEach(({ pages }, i) => pages.forEach((p) => pageParts[p].includes(i) || pageParts[p].push(i)));
     const unused = pageParts.filter((p) => p.length === 0).length;
+    const activePart = Math.min(active, parts.length);
+    function selectPart(i) {
+      setActive(i);
+      anchorRef.current = null;
+    }
+    function clickPage(page, shift) {
+      var _a2;
+      if (rangeError) return;
+      const next = parts.map((p) => [...p.pages]);
+      const pages = (_a2 = next[activePart]) != null ? _a2 : next[activePart] = [];
+      const sorted = pages.every((p, k) => k === 0 || pages[k - 1] < p);
+      const anchor = anchorRef.current;
+      if (shift && anchor !== null && anchor !== page) {
+        const step = page > anchor ? 1 : -1;
+        for (let p = anchor; p !== page + step; p += step) if (!pages.includes(p)) pages.push(p);
+      } else if (pages.includes(page)) {
+        pages.splice(pages.indexOf(page), 1);
+      } else {
+        pages.push(page);
+      }
+      if (sorted) pages.sort((a, b) => a - b);
+      anchorRef.current = page;
+      const kept = next.filter((p) => p.length > 0);
+      setRanges(kept.map(describePages).join("\n"));
+      setActive(pages.length > 0 ? activePart : kept.length);
+      if (mode !== "ranges") update({ mode: "ranges" });
+    }
     async function loadFile(f) {
       setError("");
       try {
         await open(f);
+        selectPart(0);
       } catch (err) {
         setError(err.message);
       }
@@ -20128,7 +20158,19 @@
     return /* @__PURE__ */ React.createElement("div", { className: "pt-tool" }, /* @__PURE__ */ React.createElement("section", { className: "pt-controls" }, /* @__PURE__ */ React.createElement(PdfDrop, { file, loading: loading2, onFile: loadFile }), /* @__PURE__ */ React.createElement("div", { className: "pt-card" }, /* @__PURE__ */ React.createElement("div", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", { className: "pt-label" }, "Split"), /* @__PURE__ */ React.createElement("div", { className: "pt-segmented", role: "group", "aria-label": "Split mode" }, [
       ["ranges", "By ranges"],
       ["every", "Every N pages"]
-    ].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, className: id === mode ? "on" : "", "aria-pressed": id === mode, onClick: () => update({ mode: id }) }, label)))), mode === "ranges" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    ].map(([id, label]) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: id,
+        className: id === mode ? "on" : "",
+        "aria-pressed": id === mode,
+        onClick: () => {
+          update({ mode: id });
+          selectPart(0);
+        }
+      },
+      label
+    )))), mode === "ranges" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       "textarea",
       {
         className: "pt-ranges",
@@ -20139,7 +20181,7 @@
         spellCheck: false,
         "aria-label": "Page ranges, one file per line"
       }
-    ), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "One file per line. Combine pages with commas, like ", /* @__PURE__ */ React.createElement("code", null, "1-3, 7"), ". ", /* @__PURE__ */ React.createElement("code", null, "8-"), " runs to the last page.")) : /* @__PURE__ */ React.createElement("label", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", null, "Pages per file"), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "Click pages in the preview, or type one file per line. Combine pages with commas, like ", /* @__PURE__ */ React.createElement("code", null, "1-3, 7"), ". ", /* @__PURE__ */ React.createElement("code", null, "8-"), " runs to the last page.")) : /* @__PURE__ */ React.createElement("label", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", null, "Pages per file"), /* @__PURE__ */ React.createElement(
       "input",
       {
         className: "pt-num",
@@ -20150,9 +20192,19 @@
         value: every,
         onChange: (e) => update({ every: e.target.value })
       }
-    ))), (rangeError || error2) && /* @__PURE__ */ React.createElement("p", { className: "pt-error" }, rangeError || error2), file && parts.length > 0 && !rangeError && /* @__PURE__ */ React.createElement("div", { className: "pt-card pt-files" }, /* @__PURE__ */ React.createElement("div", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", { className: "pt-label" }, parts.length, " ", parts.length === 1 ? "file" : "files"), unused > 0 && /* @__PURE__ */ React.createElement("span", { className: "pt-muted pt-small" }, unused, " ", unused === 1 ? "page" : "pages", " left out")), /* @__PURE__ */ React.createElement("ol", { className: "pt-file-list" }, parts.map(({ pages }, i) => /* @__PURE__ */ React.createElement("li", { key: i, className: "pt-file", style: { "--part": partColor(i) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages" }, pages.length === 1 ? "Page" : "Pages", " ", describePages(pages)), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: busy !== null, onClick: () => downloadPart(i) }, busy === i ? "Saving\u2026" : "Download"))))), /* @__PURE__ */ React.createElement("button", { className: "pt-primary", disabled: !canSave, onClick: downloadAll }, busy === "all" ? "Saving\u2026" : parts.length > 1 ? "Download all (.zip)" : "Download PDF"), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "Your PDF never leaves this device. Pages keep their text, links and annotations; bookmarks aren't carried over.")), /* @__PURE__ */ React.createElement("section", { className: "pt-preview" }, file ? /* @__PURE__ */ React.createElement("div", { className: "pt-thumbs" }, pageParts.map((inParts, i) => /* @__PURE__ */ React.createElement(Thumb, { key: i, doc: file.doc, pageIndex: i, parts: inParts }))) : /* @__PURE__ */ React.createElement("div", { className: "pt-placeholder" }, "Page thumbnails show up here.")));
+    ))), (rangeError || error2) && /* @__PURE__ */ React.createElement("p", { className: "pt-error" }, rangeError || error2), file && !rangeError && /* @__PURE__ */ React.createElement("div", { className: "pt-card pt-files" }, /* @__PURE__ */ React.createElement("div", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", { className: "pt-label" }, parts.length || "No", " ", parts.length === 1 ? "file" : "files", unused > 0 && parts.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "pt-muted pt-small pt-unused" }, " ", "\xB7 ", unused, " ", unused === 1 ? "page" : "pages", " left out")), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: activePart === parts.length, onClick: () => selectPart(parts.length) }, "+ New file")), /* @__PURE__ */ React.createElement("ol", { className: "pt-file-list" }, parts.map(({ pages }, i) => /* @__PURE__ */ React.createElement("li", { key: i, className: `pt-file${i === activePart ? " active" : ""}`, style: { "--part": partColor(i) } }, /* @__PURE__ */ React.createElement("button", { className: "pt-file-select", "aria-pressed": i === activePart, onClick: () => selectPart(i) }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages" }, pages.length === 1 ? "Page" : "Pages", " ", describePages(pages))), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: busy !== null, onClick: () => downloadPart(i) }, busy === i ? "Saving\u2026" : "Download"))), activePart === parts.length && /* @__PURE__ */ React.createElement("li", { className: "pt-file active", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-file-select" }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages pt-muted" }, "New file \xB7 click pages to add them"))))), /* @__PURE__ */ React.createElement("button", { className: "pt-primary", disabled: !canSave, onClick: downloadAll }, busy === "all" ? "Saving\u2026" : parts.length > 1 ? "Download all (.zip)" : "Download PDF"), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "Your PDF never leaves this device. Pages keep their text, links and annotations; bookmarks aren't carried over.")), /* @__PURE__ */ React.createElement("section", { className: "pt-preview" }, file ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small pt-hint", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), "Click pages to add them to file ", activePart + 1, ". Shift-click to add a whole run of pages."), /* @__PURE__ */ React.createElement("div", { className: "pt-thumbs" }, pageParts.map((inParts, i) => /* @__PURE__ */ React.createElement(
+      Thumb,
+      {
+        key: i,
+        doc: file.doc,
+        pageIndex: i,
+        parts: inParts,
+        activePart,
+        onClick: (shift) => clickPage(i, shift)
+      }
+    )))) : /* @__PURE__ */ React.createElement("div", { className: "pt-placeholder" }, "Page thumbnails show up here.")));
   }
-  function Thumb({ doc, pageIndex, parts }) {
+  function Thumb({ doc, pageIndex, parts, activePart, onClick }) {
     const ref = useRef3(null);
     const canvasRef = useRef3(null);
     const [visible, setVisible] = useState4(false);
@@ -20185,7 +20237,20 @@
       };
     }, [visible, doc, pageIndex]);
     const used = parts.length > 0;
-    return /* @__PURE__ */ React.createElement("figure", { ref, className: `pt-thumb${used ? "" : " unused"}`, style: used ? { "--part": partColor(parts[0]) } : void 0 }, /* @__PURE__ */ React.createElement("div", { className: "pt-thumb-page" }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: ready ? "" : "pending" }), used && /* @__PURE__ */ React.createElement("div", { className: "pt-badges" }, parts.map((p) => /* @__PURE__ */ React.createElement("span", { key: p, className: "pt-badge", style: { "--part": partColor(p) } }, p + 1)))), /* @__PURE__ */ React.createElement("figcaption", { className: "pt-muted" }, pageIndex + 1));
+    const selected = parts.includes(activePart);
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        ref,
+        className: `pt-thumb${used ? "" : " unused"}`,
+        style: used ? { "--part": partColor(selected ? activePart : parts[0]) } : void 0,
+        "aria-pressed": selected,
+        "aria-label": `Page ${pageIndex + 1}`,
+        onClick: (e) => onClick(e.shiftKey)
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "pt-thumb-page" }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: ready ? "" : "pending" }), used && /* @__PURE__ */ React.createElement("span", { className: "pt-badges" }, parts.map((p) => /* @__PURE__ */ React.createElement("span", { key: p, className: "pt-badge", style: { "--part": partColor(p) } }, p + 1)))),
+      /* @__PURE__ */ React.createElement("span", { className: "pt-muted" }, pageIndex + 1)
+    );
   }
 
   // pdf-tools/App.jsx

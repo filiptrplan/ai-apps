@@ -83,16 +83,20 @@
     .pt-num{width:88px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:right;font-variant-numeric:tabular-nums}
     .pt-small code{font-size:.9em;padding:0 3px;border-radius:4px;background:var(--bg)}
     .pt-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;max-height:280px;overflow-y:auto}
-    .pt-file{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:.92rem}
-    .pt-file+.pt-file{border-top:1px solid var(--line)}
+    .pt-file{display:flex;align-items:center;gap:10px;padding:2px 8px 2px 0;border-radius:8px;font-size:.92rem}
+    .pt-file.active{background:var(--accentSoft)}
+    .pt-file-select{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:6px 0 6px 8px;border:none;background:none;text-align:left}
+    .pt-unused{font-weight:400}
+    .pt-hint{display:flex;align-items:center;gap:8px}
     .pt-file-pages{flex:1;min-width:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
     .pt-dot{width:10px;height:10px;border-radius:50%;background:var(--part);flex:none}
 
     .pt-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px;padding:16px;background:var(--stage);border-radius:12px}
     @media (min-width:600px){.pt-thumbs{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
-    .pt-thumb{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.8rem;font-variant-numeric:tabular-nums}
-    .pt-thumb-page{position:relative;width:100%;border-radius:3px;outline:3px solid var(--part);outline-offset:2px}
-    .pt-thumb.unused .pt-thumb-page{outline:none;opacity:.35}
+    .pt-thumb{margin:0;padding:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.8rem;font-variant-numeric:tabular-nums;user-select:none;-webkit-user-select:none}
+    .pt-thumb-page{position:relative;display:block;width:100%;border-radius:3px;outline:3px solid var(--part);outline-offset:2px}
+    .pt-thumb.unused .pt-thumb-page{outline:none;opacity:.35;transition:opacity .1s}
+    .pt-thumb.unused:hover .pt-thumb-page{opacity:.7}
     .pt-thumb canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18)}
     .pt-thumb canvas.pending{aspect-ratio:1/1.414}
     .pt-badges{position:absolute;top:4px;right:4px;display:flex;gap:3px}
