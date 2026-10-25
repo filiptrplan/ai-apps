@@ -1,5 +1,6 @@
 import { UNITS, SIDES, marginsForPage, extendMargins } from "./margins.js";
-import { openPdf } from "./pdfjs.js";
+import { usePdfFile, PdfDrop } from "./PdfDrop.jsx";
+import { downloadPdf } from "./download.js";
 import { useLocalStorage } from "./useLocalStorage.js";
 
 const { useState, useEffect, useRef } = React;
@@ -35,33 +36,22 @@ function outputName(name) {
 
 export function MarginExtender() {
   const [settings, setSettings] = useLocalStorage("pdf-tools-margins", DEFAULT_SETTINGS);
-  const [file, setFile] = useState(null); // { name, bytes, doc }
+  const { file, loading: loadingFile, open } = usePdfFile();
   const [pageIndex, setPageIndex] = useState(0);
-  const [loadingFile, setLoadingFile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef(null);
 
   const { unit, margins, linked, mirror } = settings;
   const unitInfo = UNITS[unit];
   const update = (patch) => setSettings({ ...settings, ...patch });
 
-  useEffect(() => () => file?.doc.loadingTask.destroy(), [file]);
-
   async function loadFile(f) {
-    if (!f) return;
     setError("");
-    setLoadingFile(true);
     try {
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      const doc = await openPdf(bytes);
-      setFile({ name: f.name, bytes, doc });
+      await open(f);
       setPageIndex(0);
     } catch (err) {
-      setError(err?.name === "PasswordException" ? "This PDF is password-protected." : "This file couldn't be opened as a PDF.");
-    } finally {
-      setLoadingFile(false);
+      setError(err.message);
     }
   }
 
@@ -87,12 +77,7 @@ export function MarginExtender() {
     setError("");
     try {
       const out = await extendMargins(file.bytes, toPoints(margins, unit), { mirror });
-      const url = URL.createObjectURL(new Blob([out], { type: "application/pdf" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = outputName(file.name);
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      downloadPdf(out, outputName(file.name));
     } catch (err) {
       setError(err.message || "Something went wrong while saving.");
     } finally {
@@ -100,50 +85,13 @@ export function MarginExtender() {
     }
   }
 
-  const onDrop = (e) => {
-    e.preventDefault();
-    setDragging(false);
-    loadFile(e.dataTransfer.files[0]);
-  };
-
   const pageMargins = marginsForPage(toPoints(margins, unit), pageIndex, mirror);
   const pageCount = file?.doc.numPages ?? 0;
 
   return (
     <div className="pt-tool">
       <section className="pt-controls">
-        <div
-          className={`pt-drop${dragging ? " over" : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            hidden
-            onChange={(e) => {
-              loadFile(e.target.files[0]);
-              e.target.value = "";
-            }}
-          />
-          {file ? (
-            <>
-              <span className="pt-filename">{file.name}</span>
-              <span className="pt-muted">{pageCount} {pageCount === 1 ? "page" : "pages"}</span>
-              <button className="pt-link" onClick={() => inputRef.current.click()}>Choose another</button>
-            </>
-          ) : (
-            <>
-              <span>{loadingFile ? "Opening…" : "Drop a PDF here"}</span>
-              <button className="pt-primary" disabled={loadingFile} onClick={() => inputRef.current.click()}>Choose PDF</button>
-            </>
-          )}
-        </div>
+        <PdfDrop file={file} loading={loadingFile} onFile={loadFile} />
 
         <div className="pt-card">
           <div className="pt-row">

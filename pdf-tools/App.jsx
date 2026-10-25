@@ -1,4 +1,5 @@
 import { MarginExtender } from "./MarginExtender.jsx";
+import { Splitter } from "./Splitter.jsx";
 
 const { useState, useEffect } = React;
 
@@ -8,6 +9,12 @@ const TOOLS = [
     title: "Margin extender",
     desc: "Add blank space around every page, e.g. room for handwritten notes next to lecture slides.",
     Component: MarginExtender,
+  },
+  {
+    id: "split",
+    title: "Splitter",
+    desc: "Split a PDF into several files by page ranges, or into chunks of a fixed number of pages.",
+    Component: Splitter,
   },
 ];
 

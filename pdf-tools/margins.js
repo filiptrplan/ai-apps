@@ -1,4 +1,4 @@
-import { PDFDocument, EncryptedPDFError } from "pdf-lib";
+import { loadPdfDocument } from "./pdflib.js";
 
 export const UNITS = {
   mm: { label: "mm", pt: 72 / 25.4, max: 100, step: 1 },
@@ -36,13 +36,7 @@ function toBoxSides({ top, right, bottom, left }, rotation) {
 // page content isn't touched, so text, links and annotations all survive;
 // viewers and printers show the new area as blank paper.
 export async function extendMargins(bytes, margins, { mirror = false } = {}) {
-  let doc;
-  try {
-    doc = await PDFDocument.load(bytes, { updateMetadata: false });
-  } catch (err) {
-    if (err instanceof EncryptedPDFError) throw new Error("This PDF is encrypted, so its pages can't be changed.");
-    throw new Error("This file couldn't be read as a PDF.");
-  }
+  const doc = await loadPdfDocument(bytes);
 
   doc.getPages().forEach((page, i) => {
     const rotation = (((page.getRotation().angle % 360) + 360) % 360);
