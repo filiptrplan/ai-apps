@@ -18,11 +18,26 @@ import {
   isIntervalType,
   isStepComplete,
 } from "./format.js";
+import {
+  emptyPlan,
+  newDay,
+  dayLabel,
+  isRoutineItem,
+  planProgress,
+  dayCompletedBy,
+  toggleDay,
+  allDaysDone,
+  startNewCycle,
+  removeRoutineFromPlan,
+  cycleSummary,
+} from "./plan.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
 import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
+import { DayEditPage } from "./components/DayEditPage.jsx";
+import { useDragReorder } from "./components/useDragReorder.js";
 import { ExerciseStatsPage } from "./components/ExerciseStatsPage.jsx";
 import { ConfirmModal } from "./components/ConfirmModal.jsx";
 import { HistoryEditForm } from "./components/HistoryEditForm.jsx";
@@ -56,6 +71,7 @@ function writeActiveSession(saved) {
 }
 
 const TABS = [
+  { id: "Plan", label: "Plan", icon: "plan" },
   { id: "Exercises", label: "Exercises", icon: "exercises" },
   { id: "Routines", label: "Routines", icon: "routines" },
   { id: "History", label: "History", icon: "history" },
@@ -64,11 +80,12 @@ const TABS = [
 
 export function ClimbingTrackerApp() {
   const desktop = useIsDesktop();
-  const [tab, setTab] = useState("Exercises");
+  const [tab, setTab] = useState("Plan");
   const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
   const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
   const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
   const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
+  const [plan, setPlan] = useStorage(STORAGE_KEYS.plan, null);
   const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
 
   const [restored] = useState(readActiveSession);
@@ -151,7 +168,52 @@ export function ClimbingTrackerApp() {
     if (r && !r.name.trim() && r.steps.length === 0) deleteRoutine(r.id);
     setEditingRoutineId(null);
   };
-  const deleteRoutine = (id) => setRoutines(routines.filter(r => r.id !== id));
+  const deleteRoutine = (id) => {
+    setRoutines(routines.filter(r => r.id !== id));
+    setPlan(p => p && removeRoutineFromPlan(p, id));
+  };
+
+  // Week plan. As with routines, a new day opens straight into its editor
+  // and is discarded on the way out if left empty.
+  const [editingDayId, setEditingDayId] = useState(null);
+  const [postSessionDayId, setPostSessionDayId] = useState(null);
+  const updatePlanDays = (mutate) => setPlan(p => {
+    const base = p || emptyPlan();
+    return { ...base, days: mutate(base.days) };
+  });
+  const updateDay = (id, patch) => updatePlanDays(days => days.map(day => day.id === id ? { ...day, ...patch } : day));
+  const moveInList = (list, from, to) => {
+    const next = [...list];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    return next;
+  };
+  const dayDrag = useDragReorder((_, from, to) => updatePlanDays(days => moveInList(days, from, to)));
+  const createDay = () => {
+    const day = newDay();
+    updatePlanDays(days => [...days, day]);
+    setEditingDayId(day.id);
+  };
+  const closeDayEditor = () => {
+    const day = plan?.days.find(x => x.id === editingDayId);
+    if (day && !day.title.trim() && !day.description.trim() && day.items.length === 0) deleteDay(day.id);
+    setEditingDayId(null);
+  };
+  const deleteDay = (id) => updatePlanDays(days => days.filter(day => day.id !== id));
+  // Ticking the last day offers the next cycle right away; if that's
+  // dismissed, the Plan tab keeps a "Start new cycle" button.
+  const toggleDayDone = (id) => {
+    const next = toggleDay(plan, id);
+    setPlan(next);
+    if (allDaysDone(next)) {
+      requestConfirm(
+        "Start a new cycle?",
+        "Every day is done. Untick them all and begin the next cycle?",
+        () => setPlan(p => startNewCycle(p)),
+        "Start new cycle",
+        "primary"
+      );
+    }
+  };
   const renameRoutine = (id, name) => setRoutines(routines.map(r => r.id === id ? { ...r, name } : r));
   const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
@@ -295,6 +357,7 @@ export function ClimbingTrackerApp() {
       setHistory([entry, ...history]);
       const drifts = entry.steps.map(step => computeTemplateDrift(entry, step, exercises, routines)).filter(Boolean);
       if (drifts.length > 0) setPostSessionDrifts(drifts);
+      setPostSessionDayId(dayCompletedBy(plan, history, entry));
     }
     setActiveSession(null);
   };
@@ -370,7 +433,7 @@ export function ClimbingTrackerApp() {
   const [llmCopied, setLlmCopied] = useState(false);
 
   const openExport = (scope) => {
-    const payload = scope === "all" ? { exercises, routines, history, settings } : { exercises, routines };
+    const payload = scope === "all" ? { exercises, routines, history, settings, plan } : { exercises, routines };
     setTransferText(JSON.stringify(payload, null, 2));
     setTransferScope(scope);
     setCopied(false);
@@ -407,6 +470,7 @@ export function ClimbingTrackerApp() {
       if (Array.isArray(data.routines)) setRoutines(data.routines);
       if (Array.isArray(data.history)) setHistory(data.history);
       if (data.settings && typeof data.settings === "object") setSettings(data.settings);
+      if (data.plan && typeof data.plan === "object") setPlan(data.plan);
     } else {
       if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
       if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
@@ -420,7 +484,7 @@ export function ClimbingTrackerApp() {
       if (transferScope === "all") {
         requestConfirm(
           "Replace all data?",
-          "This will overwrite all your exercises, routines, and history with the imported data. This cannot be undone.",
+          "This will overwrite all your exercises, routines, plan, and history with the imported data. This cannot be undone.",
           () => commitImport(data),
           "Replace"
         );
@@ -495,10 +559,15 @@ export function ClimbingTrackerApp() {
   }
 
   const editingRoutine = editingRoutineId ? routines.find(r => r.id === editingRoutineId) : null;
+  const editingDay = editingDayId ? plan?.days.find(x => x.id === editingDayId) : null;
+  const progress = plan ? planProgress(plan, history) : [];
+  const postSessionDay = postSessionDayId ? plan?.days.find(x => x.id === postSessionDayId && !x.doneAt) : null;
+  const closePostSession = () => { setPostSessionDrifts([]); setPostSessionDayId(null); };
   const editingHistoryEntry = editingHistoryId ? history.find(h => h.id === editingHistoryId) : null;
   const statsExercise = statsExerciseId ? exercises.find(e => e.id === statsExerciseId) : null;
   const changeTab = (t) => {
     if (editingRoutine) closeRoutineEditor();
+    if (editingDay) closeDayEditor();
     setStatsExerciseId(null);
     setTab(t);
     window.scrollTo(0, 0);
@@ -533,7 +602,21 @@ export function ClimbingTrackerApp() {
       )}
 
       <main style={desktop ? d.main : undefined}>
-      {editingRoutine ? (
+      {editingDay ? (
+        <DayEditPage
+          label={dayLabel(plan, plan.days.indexOf(editingDay))}
+          day={editingDay}
+          routines={routines}
+          onBack={closeDayEditor}
+          onDelete={() => requestConfirm(
+            "Delete day?",
+            `Delete ${dayLabel(plan, plan.days.indexOf(editingDay))}? This cannot be undone.`,
+            () => { deleteDay(editingDay.id); setEditingDayId(null); }
+          )}
+          onChange={patch => updateDay(editingDay.id, patch)}
+          onMoveItem={(from, to) => updateDay(editingDay.id, { items: moveInList(editingDay.items, from, to) })}
+        />
+      ) : editingRoutine ? (
         <RoutineEditPage
           routine={editingRoutine}
           exercises={exercises}
@@ -632,6 +715,99 @@ export function ClimbingTrackerApp() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === "Plan" && (
+        <>
+          <Header title="Plan" right={plan?.days.length > 0 && addButton(createDay, "New day")} />
+          <div style={{ ...pageStyle, ...(desktop && d.pageNarrow) }}>
+            {!plan || plan.days.length === 0 ? (
+              <EmptyState
+                icon="plan"
+                title="No plan yet"
+                text="Lay out the days of your training week and link routines to each. Tick them off in any order."
+                action={<button style={s.btnPrimary} onClick={createDay}><Icon.plus size={20} /> New day</button>}
+              />
+            ) : (
+              <>
+                <div style={s.list}>
+                  {plan.days.map((day, i) => {
+                    const done = !!day.doneAt;
+                    const label = dayLabel(plan, i);
+                    return (
+                      <div key={day.id} data-drag-list="days" style={{ ...s.dayCard, ...(done && s.dayCardDone) }}>
+                        <button {...dayDrag.handleProps("days", i)} style={{ ...s.dragHandle, ...dayDrag.handleProps("days", i).style }} aria-label={`Reorder ${label}`}>
+                          <Icon.grip size={20} />
+                        </button>
+                        <button
+                          style={{ ...s.tickBtn, ...(done && s.tickBtnDone) }}
+                          onClick={() => toggleDayDone(day.id)}
+                          aria-pressed={done}
+                          aria-label={`${label} done`}
+                        >
+                          <Icon.check size={22} />
+                        </button>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <button style={{ ...s.rowMain, width: "100%", padding: "6px 8px 0 4px" }} onClick={() => setEditingDayId(day.id)}>
+                            <div style={s.rowTitle}>{label}</div>
+                            {day.description && <div style={s.dayDescription}>{day.description}</div>}
+                          </button>
+                          {day.items.length > 0 && (
+                            <div style={{ ...s.dayItems, paddingLeft: 4 }}>
+                              {day.items.map(item => {
+                                if (!isRoutineItem(item)) {
+                                  return <div key={item.id} style={{ ...s.dayItem, ...s.dayItemNote }}>{item.text}</div>;
+                                }
+                                const routine = routines.find(r => r.id === item.routineId);
+                                if (!routine) return null;
+                                const logged = progress[i]?.credited.has(item.id);
+                                return (
+                                  <div key={item.id} style={s.dayItem}>
+                                    <span style={{ ...s.loggedMark, ...(logged && s.loggedMarkDone) }} aria-label={logged ? "Logged this cycle" : "Not logged yet"}>
+                                      {logged && <Icon.check size={12} />}
+                                    </span>
+                                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      {routine.name || "Untitled routine"}
+                                    </span>
+                                    <button
+                                      style={s.miniPlay}
+                                      onClick={() => startRoutine(routine)}
+                                      disabled={routine.steps.length === 0}
+                                      aria-label={`Start ${routine.name || "routine"}`}
+                                    >
+                                      <Icon.play size={14} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {(() => {
+                  const summary = cycleSummary(plan);
+                  return (
+                    <div style={{ ...s.hint, marginTop: 16, textAlign: "center" }}>
+                      Cycle {summary.number} · started {new Date(summary.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      {summary.avgDays != null ? ` · avg ${summary.avgDays} days` : ""}
+                    </div>
+                  );
+                })()}
+                {allDaysDone(plan) && (
+                  <button
+                    style={{ ...s.btnPrimary, ...s.btnBlock }}
+                    onClick={() => setPlan(startNewCycle(plan))}
+                  >
+                    <Icon.restart size={18} /> Start new cycle
+                  </button>
+                )}
+              </>
             )}
           </div>
         </>
@@ -814,7 +990,7 @@ export function ClimbingTrackerApp() {
       )}
       </main>
 
-      {!desktop && !editingRoutine && !statsExercise && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
+      {!desktop && !editingRoutine && !editingDay && !statsExercise && <TabBar tabs={TABS} active={tab} onChange={changeTab} />}
 
       {formOpen && (
         <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>
@@ -871,9 +1047,17 @@ export function ClimbingTrackerApp() {
         </Sheet>
       )}
 
-      {postSessionDrifts.length > 0 && (
-        <Sheet title="Update templates?" onClose={() => setPostSessionDrifts([])}>
-          <p style={s.sheetMessage}>What you just logged differs from the saved targets.</p>
+      {(postSessionDrifts.length > 0 || postSessionDay) && (
+        <Sheet title={postSessionDrifts.length > 0 ? "Update templates?" : "Day complete"} onClose={closePostSession}>
+          {postSessionDay && (
+            <div style={{ ...s.drift, marginBottom: 12 }}>
+              <span style={s.driftText}>{dayLabel(plan, plan.days.indexOf(postSessionDay))}: all routines done</span>
+              <button style={s.driftBtn} onClick={() => { toggleDayDone(postSessionDay.id); setPostSessionDayId(null); }}>Mark done</button>
+            </div>
+          )}
+          {postSessionDrifts.length > 0 && (
+            <p style={s.sheetMessage}>What you just logged differs from the saved targets.</p>
+          )}
           {postSessionDrifts.map(drift => (
             <div key={driftKey(drift)} style={s.drift}>
               <span style={s.driftText}>{drift.exercise.name}: {formatDriftSummary(drift)}</span>
@@ -884,7 +1068,7 @@ export function ClimbingTrackerApp() {
             {postSessionDrifts.length > 1 && (
               <button style={{ ...s.btnPrimary, flex: 1 }} onClick={applyAllPostSessionDrifts}>Update all</button>
             )}
-            <button style={{ ...s.btnSecondary, flex: 1 }} onClick={() => setPostSessionDrifts([])}>Done</button>
+            <button style={{ ...s.btnSecondary, flex: 1 }} onClick={closePostSession}>Done</button>
           </div>
         </Sheet>
       )}

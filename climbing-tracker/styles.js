@@ -372,6 +372,46 @@ export const s = {
   timerDigits: { fontSize: 60, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
   timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
   controls: { display: "flex", gap: 10 },
+
+  // Week plan
+  dayCard: {
+    display: "flex", alignItems: "flex-start", gap: 4,
+    background: C.surface, borderWidth: 1, borderStyle: "solid", borderColor: C.border, borderRadius: 16,
+    padding: "10px 8px 10px 4px", transition: "border-color .2s",
+  },
+  dayCardDone: { borderColor: "rgba(76,195,138,0.45)" },
+  tickBtn: {
+    width: 44, height: 44, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 22, borderWidth: 2, borderStyle: "solid", borderColor: C.border, background: "transparent", color: "transparent",
+    cursor: "pointer", margin: "2px 6px 0 8px", padding: 0,
+  },
+  tickBtnDone: { background: C.green, borderColor: C.green, color: C.greenInk },
+  dayDescription: { fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.4, whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+  dayItems: { marginTop: 8, display: "flex", flexDirection: "column", gap: 4 },
+  dayItem: { display: "flex", alignItems: "center", gap: 8, minHeight: 32, fontSize: 14 },
+  dayItemNote: { color: C.muted, fontStyle: "italic" },
+  loggedMark: {
+    width: 18, height: 18, flexShrink: 0, borderRadius: 9, display: "inline-flex", alignItems: "center",
+    justifyContent: "center", background: C.surface2, color: C.dim,
+  },
+  loggedMarkDone: { background: C.greenSoft, color: C.green },
+  miniPlay: {
+    width: 32, height: 32, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 16, border: "none", background: C.accentSoft, color: C.accent, cursor: "pointer", marginLeft: "auto",
+  },
+  descriptionArea: {
+    display: "block", width: "100%", minHeight: 72, resize: "vertical", padding: "10px 12px", marginBottom: 18,
+    borderRadius: 12, background: C.surface2, border: `1px solid ${C.border}`, color: C.text,
+    fontSize: 16, lineHeight: 1.45, fontFamily: "inherit", outline: "none",
+  },
+  planItemRow: {
+    display: "flex", alignItems: "center", gap: 4, background: C.surface, border: `1px solid ${C.border}`,
+    borderRadius: 14, padding: "4px 4px 4px 0", marginBottom: 8,
+  },
+  planNoteInput: {
+    flex: 1, minWidth: 0, height: 40, padding: "0 4px", border: "none", background: "transparent",
+    color: C.text, fontSize: 16, outline: "none",
+  },
 };
 
 // Desktop overrides, merged over `s` when useIsDesktop() is true. The phone

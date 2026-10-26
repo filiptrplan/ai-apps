@@ -11,6 +11,7 @@ function Svg({ size = 22, strokeWidth = 2, children }) {
 }
 
 export const Icon = {
+  plan: p => <Svg {...p}><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-11zM4 10.5h16M8 4v4M16 4v4M9.5 15l2 2 3.5-3.5" /></Svg>,
   exercises: p => <Svg {...p}><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" /></Svg>,
   routines: p => <Svg {...p}><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1.2" /><circle cx="4.5" cy="12" r="1.2" /><circle cx="4.5" cy="18" r="1.2" /></Svg>,
   history: p => <Svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Svg>,

@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   routines: "climbing-tracker-routines",
   history: "climbing-tracker-history",
   settings: "climbing-tracker-settings",
+  plan: "climbing-tracker-plan",
 };
 
 export function uid() {
