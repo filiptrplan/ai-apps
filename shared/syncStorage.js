@@ -63,36 +63,74 @@ export function useSyncedStorage(appId, key, fallback) {
   const dataRef = useRef(data);
   dataRef.current = data;
 
+  // Pushes go out one at a time: concurrent upserts can land out of order
+  // (leaving an older value on the server), and their Realtime echoes can
+  // arrive after a newer save and look like a fresh remote change. While a
+  // push is in flight, later saves just replace `pending`, so only the
+  // latest value is sent next. `written` remembers the updated_at of our
+  // recent writes so their late echoes can be told apart from real
+  // remote changes.
+  const pushQueueRef = useRef({ inFlight: false, pending: undefined, written: [] });
+
   const pushRemote = useCallback(async (val) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const { data: row } = await supabase
-      .from("app_data")
-      .upsert(
-        { user_id: session.user.id, app_id: appId, key, value: val },
-        { onConflict: "user_id,app_id,key" }
-      )
-      .select("updated_at")
-      .single();
-    if (row) writeSyncedState(key, row.updated_at, val);
+    const queue = pushQueueRef.current;
+    if (queue.inFlight) {
+      queue.pending = val;
+      return;
+    }
+    queue.inFlight = true;
+    try {
+      let next = val;
+      while (next !== undefined) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          queue.pending = undefined;
+          break;
+        }
+        const { data: row } = await supabase
+          .from("app_data")
+          .upsert(
+            { user_id: session.user.id, app_id: appId, key, value: next },
+            { onConflict: "user_id,app_id,key" }
+          )
+          .select("updated_at")
+          .single();
+        if (row) {
+          writeSyncedState(key, row.updated_at, next);
+          queue.written = [...queue.written.slice(-19), row.updated_at];
+        }
+        next = queue.pending;
+        queue.pending = undefined;
+      }
+    } finally {
+      queue.inFlight = false;
+    }
   }, [appId, key]);
 
   const save = useCallback((val) => {
     setConflict(null);
-    setData((prev) => {
-      const next = typeof val === "function" ? val(prev) : val;
-      writeLocal(key, next);
-      pushRemote(next);
-      return next;
-    });
+    // Resolve against dataRef rather than inside a setData updater, so
+    // several saves in one tick chain correctly and the side effects
+    // below run exactly once.
+    const next = typeof val === "function" ? val(dataRef.current) : val;
+    dataRef.current = next;
+    setData(next);
+    writeLocal(key, next);
+    pushRemote(next);
   }, [key, pushRemote]);
 
   // Applies an incoming remote row, unless it conflicts with a local value
   // we can't confirm is stale — in which case it surfaces `conflict`
   // instead of picking a side.
   const reconcile = useCallback((row) => {
+    // A local save is still on its way up and will overwrite this row
+    // anyway; applying it now would briefly revert the user's edits.
+    if (pushQueueRef.current.inFlight) return;
+
     const localMarker = localStorage.getItem(markerKey(key));
     if (localMarker === row.updated_at) return; // already in sync
+    // A late Realtime echo of one of our own earlier writes.
+    if (pushQueueRef.current.written.includes(row.updated_at)) return;
 
     if (sameValue(row.value, dataRef.current)) {
       writeSyncedState(key, row.updated_at, row.value); // catch up the marker only

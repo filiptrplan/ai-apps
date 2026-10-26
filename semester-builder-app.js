@@ -20052,27 +20052,50 @@ ${suffix}`;
     const [conflict, setConflict] = useState(null);
     const dataRef = useRef(data);
     dataRef.current = data;
+    const pushQueueRef = useRef({ inFlight: false, pending: void 0, written: [] });
     const pushRemote = useCallback(async (val) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data: row } = await supabase.from("app_data").upsert(
-        { user_id: session.user.id, app_id: appId, key, value: val },
-        { onConflict: "user_id,app_id,key" }
-      ).select("updated_at").single();
-      if (row) writeSyncedState(key, row.updated_at, val);
+      const queue = pushQueueRef.current;
+      if (queue.inFlight) {
+        queue.pending = val;
+        return;
+      }
+      queue.inFlight = true;
+      try {
+        let next = val;
+        while (next !== void 0) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            queue.pending = void 0;
+            break;
+          }
+          const { data: row } = await supabase.from("app_data").upsert(
+            { user_id: session.user.id, app_id: appId, key, value: next },
+            { onConflict: "user_id,app_id,key" }
+          ).select("updated_at").single();
+          if (row) {
+            writeSyncedState(key, row.updated_at, next);
+            queue.written = [...queue.written.slice(-19), row.updated_at];
+          }
+          next = queue.pending;
+          queue.pending = void 0;
+        }
+      } finally {
+        queue.inFlight = false;
+      }
     }, [appId, key]);
     const save = useCallback((val) => {
       setConflict(null);
-      setData((prev) => {
-        const next = typeof val === "function" ? val(prev) : val;
-        writeLocal(key, next);
-        pushRemote(next);
-        return next;
-      });
+      const next = typeof val === "function" ? val(dataRef.current) : val;
+      dataRef.current = next;
+      setData(next);
+      writeLocal(key, next);
+      pushRemote(next);
     }, [key, pushRemote]);
     const reconcile = useCallback((row) => {
+      if (pushQueueRef.current.inFlight) return;
       const localMarker = localStorage.getItem(markerKey(key));
       if (localMarker === row.updated_at) return;
+      if (pushQueueRef.current.written.includes(row.updated_at)) return;
       if (sameValue(row.value, dataRef.current)) {
         writeSyncedState(key, row.updated_at, row.value);
         return;
