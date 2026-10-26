@@ -9,6 +9,7 @@ const K = {
   routines: "climbing-tracker-routines",
   history: "climbing-tracker-history",
   settings: "climbing-tracker-settings",
+  plan: "climbing-tracker-plan",
 };
 
 // In-memory stand-in for createAppData(); `beforeWrite` lets a test change
@@ -75,7 +76,7 @@ test("lists every climbing tool", async () => {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(t => t.name).filter(n => n.startsWith("climbing_")).sort(), [
     "climbing_delete", "climbing_get_exercise_progress", "climbing_get_history", "climbing_get_overview",
-    "climbing_log_workout", "climbing_save_exercise", "climbing_save_routine", "climbing_set_bodyweight",
+    "climbing_log_workout", "climbing_save_exercise", "climbing_save_plan", "climbing_save_routine", "climbing_set_bodyweight",
     "climbing_update_workout",
   ]);
   assert.equal(tools.find(t => t.name === "climbing_delete").annotations.destructiveHint, true);
@@ -311,4 +312,76 @@ test("weighted intervals: create, log with a weight, drift and progress", async 
   assert.deepEqual(progress.metrics.map(m => m.id), ["topWeight", "totalLoad", "timeOn", "completedSets", "workSec"]);
   assert.equal(progress.metrics[0].best.value, "BW +12.5kg");
   assert.equal(progress.metrics[1].best.value, "82.5kg");
+});
+
+const routineEntry = (id, date) => ({ id, date, kind: "routine", refId: "r-1", refName: "Pull day", durationSec: 60, steps: [] });
+
+test("saves a week plan and shows it in the overview", async () => {
+  const { call, appData } = await connect(seed());
+  assert.equal((await call("climbing_get_overview")).plan, null);
+  const { plan } = await call("climbing_save_plan", {
+    days: [
+      { title: "Pull", description: "Heavy day", items: [{ routineId: "r-1" }, { note: "Stretch" }] },
+      { items: [{ note: "Rest or run" }] },
+    ],
+  });
+  assert.deepEqual(plan.days.map(d => d.label), ["Day 1 · Pull", "Day 2"]);
+  assert.equal(plan.days[0].items[0].routine, "Pull day");
+  assert.equal(plan.days[0].items[0].loggedThisCycle, false);
+  assert.equal(plan.cycle.number, 1);
+  assert.equal(appData.rows.get(K.plan).days[0].items[1].text, "Stretch");
+  assert.deepEqual((await call("climbing_get_overview")).plan, plan);
+});
+
+test("editing the plan keeps day ids and ticks, and validates ids", async () => {
+  const { call, appData } = await connect(seed());
+  const { plan } = await call("climbing_save_plan", { days: [{ title: "A", items: [{ routineId: "r-1" }] }, { title: "B" }] });
+  const [a, b] = plan.days;
+  await call("climbing_save_plan", { days: [{ id: a.id, done: true }, { id: b.id }] });
+  const [savedA, savedB] = appData.rows.get(K.plan).days;
+  assert.equal(savedA.id, a.id);
+  assert.ok(savedA.doneAt);
+  assert.equal(savedA.items[0].id, a.items[0].id); // items kept when not passed
+  assert.equal(savedB.doneAt, null);
+  // Reordering keeps a routine item's id, so its logged status survives.
+  await call("climbing_save_plan", { days: [{ id: a.id, items: [{ note: "Warm up" }, { routineId: "r-1" }] }] });
+  assert.equal(appData.rows.get(K.plan).days[0].items[1].id, a.items[0].id);
+  assert.match((await call("climbing_save_plan", { days: [{ items: [{ routineId: "nope" }] }] })).error, /No routine/);
+  assert.match((await call("climbing_save_plan", { days: [{ id: "nope" }] })).error, /No day/);
+});
+
+test("starting a new cycle unticks days and records the finished one", async () => {
+  const { call, appData } = await connect(seed());
+  await call("climbing_save_plan", { days: [{ title: "A", done: true }] });
+  const { plan } = await call("climbing_save_plan", { startNewCycle: true });
+  assert.equal(plan.days[0].done, false);
+  assert.equal(plan.cycle.number, 2);
+  assert.equal(appData.rows.get(K.plan).cycles.length, 1);
+});
+
+test("a workout counts toward the first unticked day with that routine", async () => {
+  const plan = {
+    cycleStartedAt: "2026-09-01T00:00:00.000Z",
+    cycles: [],
+    days: [
+      { id: "d1", title: "", description: "", doneAt: null, items: [{ id: "i1", routineId: "r-1" }] },
+      { id: "d2", title: "", description: "", doneAt: null, items: [{ id: "i2", routineId: "r-1" }] },
+    ],
+  };
+  const { call } = await connect({ ...seed(), [K.plan]: plan, [K.history]: [routineEntry("h1", "2026-09-03T10:00:00.000Z")] });
+  const logged = o => o.plan.days.map(d => d.items[0].loggedThisCycle);
+  assert.deepEqual(logged(await call("climbing_get_overview")), [true, false]);
+
+  const both = await connect({ ...seed(), [K.plan]: plan, [K.history]: [routineEntry("h2", "2026-09-04T10:00:00.000Z"), routineEntry("h1", "2026-09-03T10:00:00.000Z")] });
+  assert.deepEqual(logged(await both.call("climbing_get_overview")), [true, true]);
+
+  const before = await connect({ ...seed(), [K.plan]: plan, [K.history]: [routineEntry("h0", "2026-08-30T10:00:00.000Z")] });
+  assert.deepEqual(logged(await before.call("climbing_get_overview")), [false, false]);
+});
+
+test("deleting a routine removes it from the plan", async () => {
+  const { call, appData } = await connect(seed());
+  await call("climbing_save_plan", { days: [{ items: [{ routineId: "r-1" }, { note: "Stretch" }] }] });
+  await call("climbing_delete", { kind: "routine", id: "r-1" });
+  assert.deepEqual(appData.rows.get(K.plan).days[0].items.map(i => i.text), ["Stretch"]);
 });

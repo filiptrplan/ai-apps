@@ -16,6 +16,15 @@ import {
   groupSteps,
   normalizeSupersets,
 } from "../../climbing-tracker/format.js";
+import {
+  cycleSummary,
+  dayLabel,
+  emptyPlan,
+  isRoutineItem,
+  planProgress,
+  removeRoutineFromPlan,
+  startNewCycle,
+} from "../../climbing-tracker/plan.js";
 import { RANGES, collectExerciseSessions, filterByRange, metricsFor, personalRecords } from "../../climbing-tracker/stats.js";
 import { EXERCISE_GUIDANCE, ROUTINE_GUIDANCE } from "../../climbing-tracker/llmGuidance.js";
 
@@ -32,7 +41,7 @@ const TYPE_FIELDS = {
 const TYPES = Object.keys(TYPE_FIELDS);
 const ALL_TYPE_FIELDS = ["sets", "reps", "weight", "weightMode", "workSec", "restSec"];
 
-export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets) and a history of logged workouts. Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
+export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets), a history of logged workouts, and a week plan (numbered days, each with routines and notes, ticked off in any order and reset as a cycle). Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
 
 // Thrown for anything the caller can fix; McpServer turns it into an
 // isError tool result with this message.
@@ -99,6 +108,30 @@ function describeRoutine(r, exercises) {
         target: ex ? formatTargetSummary(applyRoutineStep(ex, step)) : null,
       });
     }),
+  };
+}
+
+function describePlan(plan, routines, history) {
+  if (!plan) return null;
+  const progress = planProgress(plan, history);
+  return {
+    days: plan.days.map((day, i) => withoutNulls({
+      id: day.id,
+      label: dayLabel(plan, i),
+      title: day.title || null,
+      description: day.description || null,
+      done: !!day.doneAt,
+      doneAt: day.doneAt,
+      items: day.items.map(item => isRoutineItem(item)
+        ? {
+            id: item.id,
+            routineId: item.routineId,
+            routine: routines.find(r => r.id === item.routineId)?.name ?? "(deleted routine)",
+            loggedThisCycle: progress[i].credited.has(item.id),
+          }
+        : { id: item.id, note: item.text }),
+    })),
+    cycle: cycleSummary(plan),
   };
 }
 
@@ -275,11 +308,12 @@ export function register(server, { appData }) {
 
   server.registerTool("climbing_get_overview", {
     title: "Climbing: overview",
-    description: "All of the user's climbing exercises (with targets and notes), routines (with their steps), bodyweight, and a summary of recent training. Call this first: it has the ids the other climbing tools take.",
+    description: "All of the user's climbing exercises (with targets and notes), routines (with their steps), the week plan (days, their routines and notes, which are ticked, and which routines are logged this cycle), bodyweight, and a summary of recent training. Call this first: it has the ids the other climbing tools take.",
     inputSchema: {},
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async () => {
     const [exercises, routines, history, settings] = await readAll();
+    const plan = await read("plan", null);
     const now = Date.now();
     const since = days => history.filter(h => new Date(h.date).getTime() >= now - days * DAY_MS).length;
     const lastEntry = pred => history.find(pred)?.date ?? null;
@@ -294,6 +328,7 @@ export function register(server, { appData }) {
         ...describeRoutine(r, exercises),
         lastDone: lastEntry(h => h.kind === "routine" && h.refId === r.id),
       })),
+      plan: describePlan(plan, routines, history),
       history: {
         totalWorkouts: history.length,
         last7Days: since(7),
@@ -574,9 +609,64 @@ ${ROUTINE_GUIDANCE}`,
     return json({ [created ? "created" : "updated"]: describeRoutine(saved, exercises) });
   });
 
+  server.registerTool("climbing_save_plan", {
+    title: "Climbing: save week plan",
+    description: `Create or change the week plan: numbered days (position gives "Day N"), each with a title, a short description, and an ordered mix of routines and free-text notes. The user ticks days off in any order; once all are ticked the app offers a new cycle. \`days\` replaces the whole list: to keep an existing day (and whether it is ticked), include it with its id from climbing_get_overview; leave id out for new days. Item ids are not needed: pass { routineId } or { note } in order. Every routineId must be an existing routine (climbing_save_routine creates them). \`done\` ticks or unticks a day. \`startNewCycle\` unticks every day and records the finished cycle.`,
+    inputSchema: {
+      days: z.array(z.object({
+        id: z.string().optional().describe("Existing day id, to keep that day. Leave out for new days."),
+        title: z.string().optional().describe('Optional, e.g. "Strength". Shown as "Day 2 · Strength".'),
+        description: z.string().optional(),
+        items: z.array(z.union([
+          z.object({ routineId: z.string() }),
+          z.object({ note: z.string().min(1) }),
+        ])).optional(),
+        done: z.boolean().optional(),
+      })).optional(),
+      startNewCycle: z.boolean().optional(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  }, async ({ days, startNewCycle: restart }) => {
+    const [routines, history] = await Promise.all([read("routines", []), read("history", [])]);
+    for (const item of (days ?? []).flatMap(day => day.items ?? [])) {
+      if (item.routineId) findRoutine(routines, item.routineId);
+    }
+    const now = new Date().toISOString();
+    const saved = await update("plan", null, current => {
+      let plan = current ?? emptyPlan(now);
+      if (days) {
+        plan = {
+          ...plan,
+          days: days.map(input => {
+            const existing = input.id ? plan.days.find(d => d.id === input.id) : null;
+            if (input.id && !existing) fail(`No day with id "${input.id}". Call climbing_get_overview for valid ids.`);
+            const keep = new Map((existing?.items ?? []).map(it => [isRoutineItem(it) ? `r:${it.routineId}` : `n:${it.text}`, it]));
+            return {
+              id: existing?.id ?? uid(),
+              title: (input.title ?? existing?.title ?? "").trim(),
+              description: (input.description ?? existing?.description ?? "").trim(),
+              doneAt: input.done === undefined ? (existing?.doneAt ?? null) : input.done ? (existing?.doneAt ?? now) : null,
+              items: input.items
+                ? input.items.map(item => {
+                    const key = item.routineId ? `r:${item.routineId}` : `n:${item.note}`;
+                    const old = keep.get(key);
+                    keep.delete(key);
+                    return old ?? (item.routineId ? { id: uid(), routineId: item.routineId } : { id: uid(), text: item.note });
+                  })
+                : (existing?.items ?? []),
+            };
+          }),
+        };
+      }
+      if (restart) plan = startNewCycle(plan, now);
+      return plan;
+    });
+    return json({ plan: describePlan(saved, routines, history) });
+  });
+
   server.registerTool("climbing_delete", {
     title: "Climbing: delete",
-    description: "Permanently delete an exercise (also removed from every routine; its logged workouts stay in history), a routine (its logged workouts stay), or a logged workout. Confirm with the user first.",
+    description: "Permanently delete an exercise (also removed from every routine; its logged workouts stay in history), a routine (also removed from the week plan; its logged workouts stay), or a logged workout. Confirm with the user first.",
     inputSchema: {
       kind: z.enum(["exercise", "routine", "workout"]),
       id: z.string(),
@@ -603,6 +693,7 @@ ${ROUTINE_GUIDANCE}`,
         name = findRoutine(routines, id).name;
         return routines.filter(r => r.id !== id);
       });
+      await update("plan", null, plan => plan && removeRoutineFromPlan(plan, id));
       return json({ deleted: { kind, id, name } });
     }
     let entry;
