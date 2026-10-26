@@ -10,6 +10,7 @@ const K = {
   history: "climbing-tracker-history",
   settings: "climbing-tracker-settings",
   plan: "climbing-tracker-plan",
+  categories: "climbing-tracker-categories",
 };
 
 // In-memory stand-in for createAppData(); `beforeWrite` lets a test change
@@ -76,7 +77,7 @@ test("lists every climbing tool", async () => {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(t => t.name).filter(n => n.startsWith("climbing_")).sort(), [
     "climbing_delete", "climbing_get_exercise_progress", "climbing_get_history", "climbing_get_overview",
-    "climbing_log_workout", "climbing_save_exercise", "climbing_save_plan", "climbing_save_routine", "climbing_set_bodyweight",
+    "climbing_log_workout", "climbing_save_category", "climbing_save_exercise", "climbing_save_plan", "climbing_save_routine", "climbing_set_bodyweight",
     "climbing_update_workout",
   ]);
   assert.equal(tools.find(t => t.name === "climbing_delete").annotations.destructiveHint, true);
@@ -384,4 +385,27 @@ test("deleting a routine removes it from the plan", async () => {
   await call("climbing_save_plan", { days: [{ items: [{ routineId: "r-1" }, { note: "Stretch" }] }] });
   await call("climbing_delete", { kind: "routine", id: "r-1" });
   assert.deepEqual(appData.rows.get(K.plan).days[0].items.map(i => i.text), ["Stretch"]);
+});
+
+test("categories: create, order, assign, and delete", async () => {
+  const { call, appData } = await connect(seed());
+  const fingers = (await call("climbing_save_category", { name: "Fingers" })).created;
+  const core = (await call("climbing_save_category", { name: "Core" })).created;
+  assert.match((await call("climbing_save_category", { name: "core" })).error, /already exists/);
+  const moved = await call("climbing_save_category", { id: core.id, position: 0 });
+  assert.deepEqual(moved.order, ["Core", "Fingers"]);
+  assert.equal((await call("climbing_save_category", { id: core.id, name: "Core & abs" })).updated.name, "Core & abs");
+
+  assert.match((await call("climbing_save_exercise", { id: "ex-hang", categoryId: "nope" })).error, /No category/);
+  const saved = await call("climbing_save_exercise", { id: "ex-hang", categoryId: fingers.id });
+  assert.equal(saved.updated.category, "Fingers");
+  assert.equal((await call("climbing_save_exercise", { id: "ex-hang", notes: "x" })).updated.categoryId, fingers.id);
+
+  const overview = await call("climbing_get_overview");
+  assert.deepEqual(overview.categories.map(c => [c.name, c.exerciseCount]), [["Core & abs", 0], ["Fingers", 1]]);
+
+  const del = await call("climbing_delete", { kind: "category", id: fingers.id });
+  assert.deepEqual(del.nowUncategorized, ["Repeaters"]);
+  assert.equal(appData.rows.get(K.exercises).find(e => e.id === "ex-hang").categoryId, null);
+  assert.equal((await call("climbing_save_exercise", { id: "ex-hang", categoryId: null })).updated.category, undefined);
 });

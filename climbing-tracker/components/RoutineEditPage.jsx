@@ -1,5 +1,5 @@
 import { s, d, C } from "../styles.js";
-import { resolveStepTargetSets, formatTargetSummary, groupSteps, isIntervalType } from "../format.js";
+import { resolveStepTargetSets, formatTargetSummary, groupByCategory, groupSteps, isIntervalType } from "../format.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
 import { NumberField } from "./NumberField.jsx";
 import { Header, Sheet, useIsDesktop } from "./Layout.jsx";
@@ -21,7 +21,7 @@ const toStepValue = (v) => v === "" ? null : Math.round(v);
 // bracketed as one unit: numbered 1A/1B, dragged as a whole by the grip in
 // its own header, and its rests (stored on the last member) edited at its
 // foot. A member card's grip only reorders it within its superset.
-export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
+export function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
   const desktop = useIsDesktop();
   const [pickerOpen, setPickerOpen] = useState(false);
   const resolved = routine.steps
@@ -174,18 +174,23 @@ export function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete,
           {exercises.length === 0 && (
             <p style={s.sheetMessage}>No exercises yet — create some in the Exercises tab first.</p>
           )}
-          {exercises.map(ex => (
-            <button
-              key={ex.id}
-              style={s.pickerItem}
-              onClick={() => { onAddStep(ex.id); setPickerOpen(false); }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{ex.name}</span>
-                <span style={{ display: "block", fontSize: 13, color: C.muted, marginTop: 2 }}>{formatTargetSummary(ex)}</span>
-              </span>
-              <span style={{ color: C.accent }}><Icon.plus size={22} /></span>
-            </button>
+          {groupByCategory(exercises, categories).map(({ category, exercises: group }) => (
+            <div key={category?.id ?? "none"}>
+              {categories.length > 0 && <div style={s.sectionLabel}>{category?.name ?? "Uncategorized"}</div>}
+              {group.map(ex => (
+                <button
+                  key={ex.id}
+                  style={s.pickerItem}
+                  onClick={() => { onAddStep(ex.id); setPickerOpen(false); }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{ex.name}</span>
+                    <span style={{ display: "block", fontSize: 13, color: C.muted, marginTop: 2 }}>{formatTargetSummary(ex)}</span>
+                  </span>
+                  <span style={{ color: C.accent }}><Icon.plus size={22} /></span>
+                </button>
+              ))}
+            </div>
           ))}
         </Sheet>
       )}

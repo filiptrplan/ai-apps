@@ -67,6 +67,18 @@ export function stripCodeFence(text) {
   return match ? match[1] : trimmed;
 }
 
+// Exercises sectioned by category, in the categories' order, with the
+// uncategorized ones (or ones pointing at a deleted category) last. Empty
+// sections are left out.
+export function groupByCategory(exercises, categories) {
+  const known = new Set(categories.map(c => c.id));
+  const groups = categories
+    .map(category => ({ category, exercises: exercises.filter(e => e.categoryId === category.id) }))
+    .filter(g => g.exercises.length > 0);
+  const rest = exercises.filter(e => !known.has(e.categoryId));
+  return rest.length > 0 ? [...groups, { category: null, exercises: rest }] : groups;
+}
+
 export function mergeById(existing, incoming) {
   const result = [...existing];
   incoming.forEach(item => {

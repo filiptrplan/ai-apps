@@ -41,7 +41,7 @@ const TYPE_FIELDS = {
 const TYPES = Object.keys(TYPE_FIELDS);
 const ALL_TYPE_FIELDS = ["sets", "reps", "weight", "weightMode", "workSec", "restSec"];
 
-export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets), a history of logged workouts, and a week plan (numbered days, each with routines and notes, ticked off in any order and reset as a cycle). Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
+export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets), optional exercise categories (one per exercise, shown as sections), a history of logged workouts, and a week plan (numbered days, each with routines and notes, ticked off in any order and reset as a cycle). Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
 
 // Thrown for anything the caller can fix; McpServer turns it into an
 // isError tool result with this message.
@@ -64,6 +64,11 @@ function withoutNulls(obj) {
 function findExercise(exercises, id) {
   return exercises.find(e => e.id === id)
     || fail(`No exercise with id "${id}". Call climbing_get_overview for valid ids.`);
+}
+
+function findCategory(categories, id) {
+  return categories.find(c => c.id === id)
+    || fail(`No category with id "${id}". Call climbing_get_overview for valid ids.`);
 }
 
 function findRoutine(routines, id) {
@@ -92,8 +97,10 @@ function insertByDate(history, entry) {
   return i < 0 ? [...history, entry] : [...history.slice(0, i), entry, ...history.slice(i)];
 }
 
-function describeExercise(ex) {
-  return { ...ex, target: formatTargetSummary(ex) };
+function describeExercise(ex, categories = []) {
+  const { categoryId, ...rest } = ex;
+  const category = categories.find(c => c.id === categoryId);
+  return { ...rest, ...(category ? { categoryId, category: category.name } : {}), target: formatTargetSummary(ex) };
 }
 
 function describeRoutine(r, exercises) {
@@ -314,14 +321,16 @@ export function register(server, { appData }) {
   }, async () => {
     const [exercises, routines, history, settings] = await readAll();
     const plan = await read("plan", null);
+    const categories = await read("categories", []);
     const now = Date.now();
     const since = days => history.filter(h => new Date(h.date).getTime() >= now - days * DAY_MS).length;
     const lastEntry = pred => history.find(pred)?.date ?? null;
     return json({
       appUrl: APP_URL,
       bodyweightKg: bodyweightOf(settings),
+      categories: categories.map(c => ({ ...c, exerciseCount: exercises.filter(e => e.categoryId === c.id).length })),
       exercises: exercises.map(ex => ({
-        ...describeExercise(ex),
+        ...describeExercise(ex, categories),
         lastDone: lastEntry(h => h.steps.some(s => s.exerciseId === ex.id)),
       })),
       routines: routines.map(r => ({
@@ -526,11 +535,14 @@ ${EXERCISE_GUIDANCE}`,
       workSec: z.number().int().min(1).optional().describe("interval/weightedInterval only"),
       restSec: z.number().int().min(0).optional(),
       notes: z.string().optional().describe("Free-form notes shown with the exercise. Replaces the existing notes."),
+      categoryId: z.string().nullable().optional().describe("Category id from climbing_get_overview (create one with climbing_save_category), or null to remove the category. Left out: unchanged."),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   }, async input => {
     let saved;
     let created = false;
+    const categories = await read("categories", []);
+    if (input.categoryId) findCategory(categories, input.categoryId);
     await update("exercises", [], exercises => {
       const existing = input.id ? findExercise(exercises, input.id) : null;
       if (!existing) {
@@ -552,12 +564,41 @@ ${EXERCISE_GUIDANCE}`,
         ...pick(input, TYPE_FIELDS[type]),
         notes: (input.notes ?? existing?.notes ?? "").trim(),
       };
+      if (input.categoryId !== undefined) ex.categoryId = input.categoryId;
       ALL_TYPE_FIELDS.filter(k => !TYPE_FIELDS[type].includes(k)).forEach(k => delete ex[k]);
       saved = ex;
       created = !existing;
       return existing ? exercises.map(e => e.id === ex.id ? ex : e) : [...exercises, ex];
     });
-    return json({ [created ? "created" : "updated"]: describeExercise(saved) });
+    return json({ [created ? "created" : "updated"]: describeExercise(saved, categories) });
+  });
+
+  server.registerTool("climbing_save_category", {
+    title: "Climbing: save exercise category",
+    description: "Create an exercise category (no id: name required) or rename/move an existing one (id). Categories group exercises into sections in the app; assign one with climbing_save_exercise (categoryId). `position` is the 0-based place in the display order (default: last for new ones, unchanged for existing ones). Check climbing_get_overview first so you reuse an existing category.",
+    inputSchema: {
+      id: z.string().optional().describe("Existing category to change. Leave out to create one."),
+      name: z.string().min(1).optional(),
+      position: z.number().int().min(0).optional(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  }, async ({ id, name, position }) => {
+    let saved;
+    let created = false;
+    const list = await update("categories", [], categories => {
+      const existing = id ? findCategory(categories, id) : null;
+      if (!existing && !name?.trim()) fail("A new category needs a name.");
+      const newName = (name ?? existing.name).trim();
+      const duplicate = categories.find(c => c.id !== existing?.id && c.name.trim().toLowerCase() === newName.toLowerCase());
+      if (duplicate) fail(`A category named "${duplicate.name}" already exists (id "${duplicate.id}").`);
+      saved = { id: existing?.id ?? uid(), name: newName };
+      created = !existing;
+      const rest = categories.filter(c => c.id !== saved.id);
+      const at = position ?? (existing ? categories.indexOf(existing) : rest.length);
+      rest.splice(Math.min(at, rest.length), 0, saved);
+      return rest;
+    });
+    return json({ [created ? "created" : "updated"]: saved, order: list.map(c => c.name) });
   });
 
   server.registerTool("climbing_save_routine", {
@@ -666,9 +707,9 @@ ${ROUTINE_GUIDANCE}`,
 
   server.registerTool("climbing_delete", {
     title: "Climbing: delete",
-    description: "Permanently delete an exercise (also removed from every routine; its logged workouts stay in history), a routine (also removed from the week plan; its logged workouts stay), or a logged workout. Confirm with the user first.",
+    description: "Permanently delete an exercise (also removed from every routine; its logged workouts stay in history), a routine (also removed from the week plan; its logged workouts stay), a logged workout, or an exercise category (its exercises stay, uncategorized). Confirm with the user first.",
     inputSchema: {
-      kind: z.enum(["exercise", "routine", "workout"]),
+      kind: z.enum(["exercise", "routine", "workout", "category"]),
       id: z.string(),
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
@@ -686,6 +727,19 @@ ${ROUTINE_GUIDANCE}`,
       });
       await update("exercises", [], exercises => exercises.filter(e => e.id !== id));
       return json({ deleted: { kind, id, name: ex.name }, removedFromRoutines: affected.map(r => r.name) });
+    }
+    if (kind === "category") {
+      let name;
+      await update("categories", [], categories => {
+        name = findCategory(categories, id).name;
+        return categories.filter(c => c.id !== id);
+      });
+      let affected = [];
+      await update("exercises", [], exercises => {
+        affected = exercises.filter(e => e.categoryId === id);
+        return affected.length === 0 ? exercises : exercises.map(e => e.categoryId === id ? { ...e, categoryId: null } : e);
+      });
+      return json({ deleted: { kind, id, name }, nowUncategorized: affected.map(e => e.name) });
     }
     if (kind === "routine") {
       let name;

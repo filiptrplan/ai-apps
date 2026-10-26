@@ -181,6 +181,14 @@ export const s = {
     color: C.muted, fontSize: 14, fontWeight: 600, cursor: "pointer",
   },
   segmentActive: { background: C.accent, color: C.accentInk },
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chip: {
+    minHeight: 36, padding: "0 14px", borderRadius: 18, border: `1px solid ${C.border}`,
+    background: C.surface2, color: C.muted, fontSize: 14, fontWeight: 600, cursor: "pointer",
+  },
+  chipActive: { background: C.accent, color: C.accentInk, borderColor: C.accent },
+  categoryRow: { display: "flex", alignItems: "center", gap: 4, marginBottom: 8 },
+  categoryCount: { fontSize: 13, color: C.muted, flexShrink: 0, minWidth: 18, textAlign: "right" },
 
   stepper: {
     display: "flex", alignItems: "center", height: 48, borderRadius: 12,

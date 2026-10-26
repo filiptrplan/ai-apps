@@ -12,6 +12,7 @@ import {
   buildPerformedFromLog,
   computeTemplateDrift,
   formatDriftSummary,
+  groupByCategory,
   groupSteps,
   normalizeSupersets,
   applyRoutineStep,
@@ -86,6 +87,7 @@ export function ClimbingTrackerApp() {
   const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
   const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
   const [plan, setPlan] = useStorage(STORAGE_KEYS.plan, null);
+  const [categories, setCategories] = useStorage(STORAGE_KEYS.categories, []);
   const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
 
   const [restored] = useState(readActiveSession);
@@ -126,6 +128,27 @@ export function ClimbingTrackerApp() {
     setExercises(exercises.filter(e => e.id !== id));
     setRoutines(routines.map(r => ({ ...r, steps: r.steps.filter(step => step.exerciseId !== id) })));
   };
+
+  // Exercise categories (managed in Settings). Deleting one leaves its
+  // exercises uncategorized.
+  const addCategory = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed || categories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) return false;
+    setCategories([...categories, { id: uid(), name: trimmed }]);
+    return true;
+  };
+  const renameCategory = (id, name) => setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+  const deleteCategory = (id) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+    setExercises(prev => prev.map(e => e.categoryId === id ? { ...e, categoryId: null } : e));
+  };
+  const requestDeleteCategory = (c) => {
+    const count = exercises.filter(e => e.categoryId === c.id).length;
+    if (count === 0) return deleteCategory(c.id);
+    requestConfirm("Delete category?", `"${c.name}" will be removed. Its ${count} exercise${count === 1 ? "" : "s"} become${count === 1 ? "s" : ""} uncategorized.`, () => deleteCategory(c.id));
+  };
+  const [newCategory, setNewCategory] = useState("");
+  const submitNewCategory = () => { if (addCategory(newCategory)) setNewCategory(""); };
 
   // Routine state
   const [editingRoutineId, setEditingRoutineId] = useState(null);
@@ -187,6 +210,7 @@ export function ClimbingTrackerApp() {
     next.splice(to, 0, next.splice(from, 1)[0]);
     return next;
   };
+  const categoryDrag = useDragReorder((_, from, to) => setCategories(prev => moveInList(prev, from, to)));
   const dayDrag = useDragReorder((_, from, to) => updatePlanDays(days => moveInList(days, from, to)));
   const createDay = () => {
     const day = newDay();
@@ -433,7 +457,7 @@ export function ClimbingTrackerApp() {
   const [llmCopied, setLlmCopied] = useState(false);
 
   const openExport = (scope) => {
-    const payload = scope === "all" ? { exercises, routines, history, settings, plan } : { exercises, routines };
+    const payload = scope === "all" ? { exercises, routines, history, settings, plan, categories } : { exercises, routines, categories };
     setTransferText(JSON.stringify(payload, null, 2));
     setTransferScope(scope);
     setCopied(false);
@@ -471,7 +495,9 @@ export function ClimbingTrackerApp() {
       if (Array.isArray(data.history)) setHistory(data.history);
       if (data.settings && typeof data.settings === "object") setSettings(data.settings);
       if (data.plan && typeof data.plan === "object") setPlan(data.plan);
+      if (Array.isArray(data.categories)) setCategories(data.categories);
     } else {
+      if (Array.isArray(data.categories)) setCategories(mergeById(categories, data.categories));
       if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
       if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
     }
@@ -620,6 +646,7 @@ export function ClimbingTrackerApp() {
         <RoutineEditPage
           routine={editingRoutine}
           exercises={exercises}
+          categories={categories}
           onBack={closeRoutineEditor}
           onStart={() => { closeRoutineEditor(); startRoutine(editingRoutine); }}
           onDelete={() => requestConfirm(
@@ -659,19 +686,24 @@ export function ClimbingTrackerApp() {
                 action={<button style={s.btnPrimary} onClick={openNewExercise}><Icon.plus size={20} /> New exercise</button>}
               />
             ) : (
-              <div style={listStyle}>
-                {exercises.map(ex => (
-                  <div key={ex.id} style={s.row}>
-                    <button style={s.rowMain} onClick={() => openStats(ex.id)}>
-                      <div style={s.rowTitle}>{ex.name}</div>
-                      <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
-                    </button>
-                    <button style={s.playBtn} onClick={() => startExercise(ex)} aria-label={`Start ${ex.name}`}>
-                      <Icon.play size={20} />
-                    </button>
+              groupByCategory(exercises, categories).map(({ category, exercises: group }) => (
+                <div key={category?.id ?? "none"}>
+                  {categories.length > 0 && <div style={s.sectionLabel}>{category?.name ?? "Uncategorized"}</div>}
+                  <div style={{ ...listStyle, marginBottom: 16 }}>
+                    {group.map(ex => (
+                      <div key={ex.id} style={s.row}>
+                        <button style={s.rowMain} onClick={() => openStats(ex.id)}>
+                          <div style={s.rowTitle}>{ex.name}</div>
+                          <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
+                        </button>
+                        <button style={s.playBtn} onClick={() => startExercise(ex)} aria-label={`Start ${ex.name}`}>
+                          <Icon.play size={20} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         </>
@@ -944,6 +976,40 @@ export function ClimbingTrackerApp() {
             </div>
 
             <div style={cardStyle}>
+              <div style={s.sectionTitle}>Exercise categories</div>
+              <div style={s.hint}>Group your exercises into sections. Drag to reorder; deleting a category keeps its exercises.</div>
+              {categories.map((c, i) => (
+                <div key={c.id} data-drag-list="categories" style={s.categoryRow}>
+                  <button {...categoryDrag.handleProps("categories", i)} style={{ ...s.dragHandle, ...categoryDrag.handleProps("categories", i).style }} aria-label={`Reorder ${c.name}`}>
+                    <Icon.grip size={20} />
+                  </button>
+                  <input
+                    style={s.input}
+                    value={c.name}
+                    aria-label="Category name"
+                    onChange={e => renameCategory(c.id, e.target.value)}
+                    onBlur={e => { if (!e.target.value.trim()) renameCategory(c.id, "Untitled"); else renameCategory(c.id, e.target.value.trim()); }}
+                    onKeyDown={e => e.key === "Enter" && e.target.blur()}
+                  />
+                  <span style={s.categoryCount}>{exercises.filter(e => e.categoryId === c.id).length}</span>
+                  <button style={s.iconBtn} onClick={() => requestDeleteCategory(c)} aria-label={`Delete ${c.name}`}>
+                    <Icon.trash size={18} />
+                  </button>
+                </div>
+              ))}
+              <div style={{ ...s.categoryRow, marginBottom: 0, marginTop: categories.length ? 12 : 0 }}>
+                <input
+                  style={s.input}
+                  placeholder="New category, e.g. Fingers"
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submitNewCategory()}
+                />
+                <button style={{ ...s.btnSecondary, flexShrink: 0 }} onClick={submitNewCategory} disabled={!newCategory.trim()}>Add</button>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
               <div style={s.sectionTitle}>Generate with AI</div>
               <div style={s.hint}>
                 Copy this prompt into an LLM along with what you want (e.g. "a finger-strength
@@ -996,6 +1062,7 @@ export function ClimbingTrackerApp() {
         <Sheet title={editingId ? "Edit exercise" : "New exercise"} onClose={() => setFormOpen(false)}>
           <ExerciseForm
             draft={draft}
+            categories={categories}
             onChange={setDraft}
             onSave={saveExercise}
             onDelete={editingId ? () => requestConfirm(

@@ -22,7 +22,7 @@ export function Segmented({ options, value, onChange }) {
 const WEIGHT_MODES = [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }];
 
 // Rendered inside a bottom sheet; onDelete is only passed when editing.
-export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
+export function ExerciseForm({ draft, categories = [], onChange, onSave, onDelete }) {
   const set = (patch) => onChange({ ...draft, ...patch });
 
   return (
@@ -47,6 +47,23 @@ export function ExerciseForm({ draft, onChange, onSave, onDelete }) {
           onChange={type => set({ type, ...defaultFieldsForType(type) })}
         />
       </div>
+
+      {categories.length > 0 && (
+        <div style={s.field}>
+          <label style={s.label}>Category</label>
+          <div style={s.chipRow}>
+            {[{ id: null, name: "None" }, ...categories].map(c => (
+              <button
+                key={c.id ?? "none"}
+                style={{ ...s.chip, ...((draft.categoryId || null) === c.id ? s.chipActive : {}) }}
+                onClick={() => set({ categoryId: c.id })}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {draft.type === "reps" && (
         <div style={s.fieldGrid}>

@@ -20145,7 +20145,8 @@ ${suffix}`;
     routines: "climbing-tracker-routines",
     history: "climbing-tracker-history",
     settings: "climbing-tracker-settings",
-    plan: "climbing-tracker-plan"
+    plan: "climbing-tracker-plan",
+    categories: "climbing-tracker-categories"
   };
   function uid() {
     return globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -20236,6 +20237,12 @@ ${suffix}`;
     const trimmed = text.trim();
     const match = trimmed.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/);
     return match ? match[1] : trimmed;
+  }
+  function groupByCategory(exercises, categories) {
+    const known = new Set(categories.map((c) => c.id));
+    const groups = categories.map((category) => ({ category, exercises: exercises.filter((e) => e.categoryId === category.id) })).filter((g) => g.exercises.length > 0);
+    const rest = exercises.filter((e) => !known.has(e.categoryId));
+    return rest.length > 0 ? [...groups, { category: null, exercises: rest }] : groups;
   }
   function mergeById(existing, incoming) {
     const result = [...existing];
@@ -20944,6 +20951,21 @@ Now generate the exercises and/or routines described by the user's request that 
       cursor: "pointer"
     },
     segmentActive: { background: C.accent, color: C.accentInk },
+    chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+    chip: {
+      minHeight: 36,
+      padding: "0 14px",
+      borderRadius: 18,
+      border: `1px solid ${C.border}`,
+      background: C.surface2,
+      color: C.muted,
+      fontSize: 14,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
+    chipActive: { background: C.accent, color: C.accentInk, borderColor: C.accent },
+    categoryRow: { display: "flex", alignItems: "center", gap: 4, marginBottom: 8 },
+    categoryCount: { fontSize: 13, color: C.muted, flexShrink: 0, minWidth: 18, textAlign: "right" },
     stepper: {
       display: "flex",
       alignItems: "center",
@@ -21618,7 +21640,7 @@ Now generate the exercises and/or routines described by the user's request that 
     )));
   }
   var WEIGHT_MODES = [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }];
-  function ExerciseForm({ draft, onChange, onSave, onDelete }) {
+  function ExerciseForm({ draft, categories = [], onChange, onSave, onDelete }) {
     const set = (patch) => onChange({ ...draft, ...patch });
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Name"), /* @__PURE__ */ React.createElement(
       "input",
@@ -21637,7 +21659,18 @@ Now generate the exercises and/or routines described by the user's request that 
         value: draft.type,
         onChange: (type) => set({ type, ...defaultFieldsForType(type) })
       }
-    )), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
+    )), categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Category"), /* @__PURE__ */ React.createElement("div", { style: s.chipRow }, [{ id: null, name: "None" }, ...categories].map((c) => {
+      var _a;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: (_a = c.id) != null ? _a : "none",
+          style: { ...s.chip, ...(draft.categoryId || null) === c.id ? s.chipActive : {} },
+          onClick: () => set({ categoryId: c.id })
+        },
+        c.name
+      );
+    }))), draft.type === "reps" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set({ restSec: v }), min: 0, inc: 15, suffix: "s" })), draft.type === "weighted" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
       Segmented,
       {
         options: WEIGHT_MODES,
@@ -22788,7 +22821,7 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/RoutineEditPage.jsx
   var { useState: useState13 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
-  function RoutineEditPage({ routine, exercises, onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
+  function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
     const desktop = useIsDesktop();
     const [pickerOpen, setPickerOpen] = useState13(false);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
@@ -22852,19 +22885,22 @@ Now generate the exercises and/or routines described by the user's request that 
         return /* @__PURE__ */ React.createElement(React.Fragment, { key: first.step.id }, renderCard(first, b + 1, "top", b, false), nextFirst && after);
       }
       return /* @__PURE__ */ React.createElement(React.Fragment, { key: `ss-${first.step.id}` }, /* @__PURE__ */ React.createElement("div", { "data-drag-list": "top", style: { ...s.supersetBlock, background: C.bg } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHeader }, grip("top", b, `superset ${b + 1}`), /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetLabel, margin: 0, flex: 1 } }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset ", b + 1, " \xB7 alternate sets")), block.map((x, k) => /* @__PURE__ */ React.createElement(React.Fragment, { key: x.step.id }, renderCard(x, `${b + 1}${String.fromCharCode(65 + k)}`, first.step.id, k, true), k < block.length - 1 && linkChip(x.i, true, "Unlink"))), /* @__PURE__ */ React.createElement("div", { style: s.supersetFooter }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHint }, "No rest between exercises. Rest after each full round:"), restFields(last.step, last.exercise, "Rest / round"))), nextFirst && after);
-    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), exercises.map((ex) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: ex.id,
-        style: s.pickerItem,
-        onClick: () => {
-          onAddStep(ex.id);
-          setPickerOpen(false);
-        }
-      },
-      /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 16, fontWeight: 600 } }, ex.name), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, formatTargetSummary(ex))),
-      /* @__PURE__ */ React.createElement("span", { style: { color: C.accent } }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 22 }))
-    ))));
+    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), groupByCategory(exercises, categories).map(({ category, exercises: group }) => {
+      var _a, _b;
+      return /* @__PURE__ */ React.createElement("div", { key: (_a = category == null ? void 0 : category.id) != null ? _a : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b = category == null ? void 0 : category.name) != null ? _b : "Uncategorized"), group.map((ex) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: ex.id,
+          style: s.pickerItem,
+          onClick: () => {
+            onAddStep(ex.id);
+            setPickerOpen(false);
+          }
+        },
+        /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 16, fontWeight: 600 } }, ex.name), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, formatTargetSummary(ex))),
+        /* @__PURE__ */ React.createElement("span", { style: { color: C.accent } }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 22 }))
+      )));
+    })));
   }
 
   // climbing-tracker/components/DayEditPage.jsx
@@ -27585,6 +27621,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
     const [settings, setSettings] = useStorage(STORAGE_KEYS.settings, {});
     const [plan, setPlan] = useStorage(STORAGE_KEYS.plan, null);
+    const [categories, setCategories] = useStorage(STORAGE_KEYS.categories, []);
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
     const [restored] = useState17(readActiveSession);
     const [activeSession, setActiveSessionState] = useState17(() => (restored == null ? void 0 : restored.session) || null);
@@ -27618,6 +27655,26 @@ Now generate the exercises and/or routines described by the user's request that 
     const deleteExercise = (id) => {
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
+    };
+    const addCategory = (name) => {
+      const trimmed = name.trim();
+      if (!trimmed || categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) return false;
+      setCategories([...categories, { id: uid(), name: trimmed }]);
+      return true;
+    };
+    const renameCategory = (id, name) => setCategories((prev) => prev.map((c) => c.id === id ? { ...c, name } : c));
+    const deleteCategory = (id) => {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setExercises((prev) => prev.map((e) => e.categoryId === id ? { ...e, categoryId: null } : e));
+    };
+    const requestDeleteCategory = (c) => {
+      const count = exercises.filter((e) => e.categoryId === c.id).length;
+      if (count === 0) return deleteCategory(c.id);
+      requestConfirm("Delete category?", `"${c.name}" will be removed. Its ${count} exercise${count === 1 ? "" : "s"} become${count === 1 ? "s" : ""} uncategorized.`, () => deleteCategory(c.id));
+    };
+    const [newCategory, setNewCategory] = useState17("");
+    const submitNewCategory = () => {
+      if (addCategory(newCategory)) setNewCategory("");
     };
     const [editingRoutineId, setEditingRoutineId] = useState17(null);
     const [statsExerciseId, setStatsExerciseId] = useState17(null);
@@ -27665,6 +27722,7 @@ Now generate the exercises and/or routines described by the user's request that 
       next.splice(to, 0, next.splice(from, 1)[0]);
       return next;
     };
+    const categoryDrag = useDragReorder((_2, from, to) => setCategories((prev) => moveInList(prev, from, to)));
     const dayDrag = useDragReorder((_2, from, to) => updatePlanDays((days2) => moveInList(days2, from, to)));
     const createDay = () => {
       const day = newDay();
@@ -27897,7 +27955,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const [importError, setImportError] = useState17("");
     const [llmCopied, setLlmCopied] = useState17(false);
     const openExport = (scope) => {
-      const payload = scope === "all" ? { exercises, routines, history, settings, plan } : { exercises, routines };
+      const payload = scope === "all" ? { exercises, routines, history, settings, plan, categories } : { exercises, routines, categories };
       setTransferText(JSON.stringify(payload, null, 2));
       setTransferScope(scope);
       setCopied(false);
@@ -27940,7 +27998,9 @@ Now generate the exercises and/or routines described by the user's request that 
         if (Array.isArray(data.history)) setHistory(data.history);
         if (data.settings && typeof data.settings === "object") setSettings(data.settings);
         if (data.plan && typeof data.plan === "object") setPlan(data.plan);
+        if (Array.isArray(data.categories)) setCategories(data.categories);
       } else {
+        if (Array.isArray(data.categories)) setCategories(mergeById(categories, data.categories));
         if (Array.isArray(data.exercises)) setExercises(mergeById(exercises, data.exercises));
         if (Array.isArray(data.routines)) setRoutines(mergeById(routines, data.routines));
       }
@@ -28075,6 +28135,7 @@ Now generate the exercises and/or routines described by the user's request that 
       {
         routine: editingRoutine,
         exercises,
+        categories,
         onBack: closeRoutineEditor,
         onStart: () => {
           closeRoutineEditor();
@@ -28115,7 +28176,10 @@ Now generate the exercises and/or routines described by the user's request that 
         text: "Add hangs, pull-ups, core work \u2014 anything you want to track.",
         action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: openNewExercise }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New exercise")
       }
-    ) : /* @__PURE__ */ React.createElement("div", { style: listStyle }, exercises.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => openStats(ex.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("button", { style: s.playBtn, onClick: () => startExercise(ex), "aria-label": `Start ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }))))))), tab === "Routines" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Routines", right: routines.length > 0 && addButton(createRoutine, "New routine") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, routines.length === 0 ? /* @__PURE__ */ React.createElement(
+    ) : groupByCategory(exercises, categories).map(({ category, exercises: group }) => {
+      var _a2, _b;
+      return /* @__PURE__ */ React.createElement("div", { key: (_a2 = category == null ? void 0 : category.id) != null ? _a2 : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b = category == null ? void 0 : category.name) != null ? _b : "Uncategorized"), /* @__PURE__ */ React.createElement("div", { style: { ...listStyle, marginBottom: 16 } }, group.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => openStats(ex.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("button", { style: s.playBtn, onClick: () => startExercise(ex), "aria-label": `Start ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }))))));
+    }))), tab === "Routines" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Routines", right: routines.length > 0 && addButton(createRoutine, "New routine") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, routines.length === 0 ? /* @__PURE__ */ React.createElement(
       EmptyState,
       {
         icon: "routines",
@@ -28216,10 +28280,33 @@ Now generate the exercises and/or routines described by the user's request that 
         inc: 0.5,
         suffix: "kg"
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, 'Copy this prompt into an LLM along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into Import below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: copyLlmGuidance }, llmCopied ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.check, { size: 18 }), " Copied") : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Imported items are added to (or update) your existing ones \u2014 nothing is deleted."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("partial") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Full backup including history. Importing replaces everything."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("all") }, "Import"))), history.length > 0 && /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Danger zone"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Permanently delete all ", history.length, " logged workouts."), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, color: C.danger }, onClick: requestClearHistory }, "Clear history"))))))), !desktop && !editingRoutine && !editingDay && !statsExercise && /* @__PURE__ */ React.createElement(TabBar, { tabs: TABS, active: tab, onChange: changeTab }), formOpen && /* @__PURE__ */ React.createElement(Sheet, { title: editingId ? "Edit exercise" : "New exercise", onClose: () => setFormOpen(false) }, /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercise categories"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Group your exercises into sections. Drag to reorder; deleting a category keeps its exercises."), categories.map((c, i) => /* @__PURE__ */ React.createElement("div", { key: c.id, "data-drag-list": "categories", style: s.categoryRow }, /* @__PURE__ */ React.createElement("button", { ...categoryDrag.handleProps("categories", i), style: { ...s.dragHandle, ...categoryDrag.handleProps("categories", i).style }, "aria-label": `Reorder ${c.name}` }, /* @__PURE__ */ React.createElement(Icon.grip, { size: 20 })), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.input,
+        value: c.name,
+        "aria-label": "Category name",
+        onChange: (e) => renameCategory(c.id, e.target.value),
+        onBlur: (e) => {
+          if (!e.target.value.trim()) renameCategory(c.id, "Untitled");
+          else renameCategory(c.id, e.target.value.trim());
+        },
+        onKeyDown: (e) => e.key === "Enter" && e.target.blur()
+      }
+    ), /* @__PURE__ */ React.createElement("span", { style: s.categoryCount }, exercises.filter((e) => e.categoryId === c.id).length), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => requestDeleteCategory(c), "aria-label": `Delete ${c.name}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 })))), /* @__PURE__ */ React.createElement("div", { style: { ...s.categoryRow, marginBottom: 0, marginTop: categories.length ? 12 : 0 } }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: s.input,
+        placeholder: "New category, e.g. Fingers",
+        value: newCategory,
+        onChange: (e) => setNewCategory(e.target.value),
+        onKeyDown: (e) => e.key === "Enter" && submitNewCategory()
+      }
+    ), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flexShrink: 0 }, onClick: submitNewCategory, disabled: !newCategory.trim() }, "Add"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, 'Copy this prompt into an LLM along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into Import below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: copyLlmGuidance }, llmCopied ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.check, { size: 18 }), " Copied") : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Imported items are added to (or update) your existing ones \u2014 nothing is deleted."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("partial") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Full backup including history. Importing replaces everything."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("all") }, "Import"))), history.length > 0 && /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Danger zone"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Permanently delete all ", history.length, " logged workouts."), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, color: C.danger }, onClick: requestClearHistory }, "Clear history"))))))), !desktop && !editingRoutine && !editingDay && !statsExercise && /* @__PURE__ */ React.createElement(TabBar, { tabs: TABS, active: tab, onChange: changeTab }), formOpen && /* @__PURE__ */ React.createElement(Sheet, { title: editingId ? "Edit exercise" : "New exercise", onClose: () => setFormOpen(false) }, /* @__PURE__ */ React.createElement(
       ExerciseForm,
       {
         draft,
+        categories,
         onChange: setDraft,
         onSave: saveExercise,
         onDelete: editingId ? () => requestConfirm(
