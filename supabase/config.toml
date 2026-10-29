@@ -399,6 +399,12 @@ verify_jwt = false
 [functions.price-estimate]
 verify_jwt = false
 
+[functions.german-ai]
+verify_jwt = false
+
+[functions.german-tts]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
