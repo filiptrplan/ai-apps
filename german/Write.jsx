@@ -8,7 +8,7 @@ import { writingPrompt, checkWriting } from "./ai.js";
 import { go } from "./route.js";
 import { Screen, ScreenHeader, Button, LinkButton, Card, Label, Tag, Spinner } from "./ui.jsx";
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // Used when the AI can't be reached.
 const OFFLINE_PROMPTS = [
@@ -36,6 +36,38 @@ function Marked({ text, fixes, focus }) {
   }
   parts.push(rest);
   return <>{parts}</>;
+}
+
+// Umlaut keys for desktop keyboards without them. Clicking types the
+// letter at the cursor of the last focused field; holding Shift (or
+// Caps Lock) gives the capitals. Hidden on touch screens.
+const UMLAUTS = ["ä", "ö", "ü", "ß"];
+
+function UmlautKeys({ onType }) {
+  const [upper, setUpper] = useState(false);
+  useEffect(() => {
+    const sync = e => setUpper(e.getModifierState("Shift") !== e.getModifierState("CapsLock"));
+    window.addEventListener("keydown", sync);
+    window.addEventListener("keyup", sync);
+    return () => {
+      window.removeEventListener("keydown", sync);
+      window.removeEventListener("keyup", sync);
+    };
+  }, []);
+  return (
+    <div className="g-umlauts" role="group" aria-label="Type umlauts">
+      {UMLAUTS.map(ch => {
+        const out = upper && ch !== "ß" ? ch.toUpperCase() : ch;
+        return (
+          <button key={ch} type="button" tabIndex={-1} title={`Type ${out}`}
+            onMouseDown={e => e.preventDefault()}
+            onClick={e => onType(e.shiftKey && ch !== "ß" ? ch.toUpperCase() : out)}>
+            {out}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function Feedback({ session, onFinish }) {
@@ -80,6 +112,9 @@ export function Write({ app }) {
   const draft = app.draft && app.draft.day === today ? app.draft : null;
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const answerRef = useRef(null);
+  const topicRef = useRef(null);
+  const lastField = useRef("text");
 
   const setDraft = patch => app.setDraft(d => ({ ...d, ...patch }));
 
@@ -119,6 +154,18 @@ export function Write({ app }) {
   const count = sentenceCount(draft.text);
   const prompt = draft.own ? `Own topic: ${draft.topic.trim() || "…"}` : draft.prompt;
 
+  // Types `ch` over the selection in the last focused field. insertText
+  // goes through the browser's own typing path, so React's onChange runs
+  // and Ctrl+Z still undoes it.
+  const typeChar = ch => {
+    const el = (lastField.current === "topic" && draft.own ? topicRef : answerRef).current;
+    if (!el) return;
+    el.focus();
+    if (document.execCommand("insertText", false, ch)) return;
+    el.setRangeText(ch, el.selectionStart, el.selectionEnd, "end");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
   const check = () => {
     if (!app.session) return setError("Sign in on the home page to check your German.");
     setBusy("check");
@@ -149,7 +196,7 @@ export function Write({ app }) {
             {draft.own ? (
               <div className="g-field">
                 <label htmlFor="topic">Your topic</label>
-                <input id="topic" className="g-input" style={{ fontSize: 18, fontWeight: 700 }} placeholder="z. B. meine Vorlesung heute" value={draft.topic} disabled={!!checked} onChange={e => setDraft({ topic: e.target.value })} />
+                <input id="topic" ref={topicRef} onFocus={() => (lastField.current = "topic")} className="g-input" style={{ fontSize: 18, fontWeight: 700 }} placeholder="z. B. meine Vorlesung heute" value={draft.topic} disabled={!!checked} onChange={e => setDraft({ topic: e.target.value })} />
               </div>
             ) : (
               <p className="g-prompt">{draft.prompt ? quote(draft.prompt) : <Spinner />}</p>
@@ -166,10 +213,13 @@ export function Write({ app }) {
           </Card>
 
           <label htmlFor="answer" className="g-label">Your sentences</label>
-          <textarea id="answer" className="g-write" lang="de" spellCheck="false" value={checked ? checked.text : draft.text} readOnly={!!checked} onChange={e => setDraft({ text: e.target.value })} />
-          <span className="g-small" style={{ fontSize: 13, padding: "0 4px" }}>
-            {checked ? `${sentenceCount(checked.text)} sentences · checked` : `${count} ${count === 1 ? "sentence" : "sentences"} · aim for 3–5`}
-          </span>
+          <textarea id="answer" ref={answerRef} onFocus={() => (lastField.current = "text")} className="g-write" lang="de" spellCheck="false" value={checked ? checked.text : draft.text} readOnly={!!checked} onChange={e => setDraft({ text: e.target.value })} />
+          <div className="g-between">
+            <span className="g-small" style={{ fontSize: 13, padding: "0 4px" }}>
+              {checked ? `${sentenceCount(checked.text)} sentences · checked` : `${count} ${count === 1 ? "sentence" : "sentences"} · aim for 3–5`}
+            </span>
+            {!checked && <UmlautKeys onType={typeChar} />}
+          </div>
           {error && <p className="g-error" role="alert">{error}</p>}
           {!checked && (
             <Button variant="amber" busy={busy === "check"} disabled={!draft.text.trim() || (draft.own && !draft.topic.trim())} onClick={check}>

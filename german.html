@@ -145,6 +145,11 @@
     .g-bigfield input{flex:1;min-width:0;font-size:26px;font-weight:800;background:transparent;border:0;padding:8px 0;outline:none}
     .g-write{flex:1;min-height:200px;resize:none;font-size:17px;line-height:1.6;background:var(--surface);border:2px solid var(--mint-line);border-radius:24px;padding:18px;outline:none}
     .g-write:focus{border-color:var(--mint)}
+    .g-umlauts{display:none;gap:6px}
+    .g-umlauts button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);color:var(--text);font-size:16px;font-weight:700;padding:0}
+    .g-umlauts button:hover{background:var(--surface2);border-color:var(--mint-line)}
+    .g-umlauts button:active{background:var(--mint-soft);color:var(--mint)}
+    @media (hover:hover) and (pointer:fine){.g-umlauts{display:flex}}
 
     .g-radio3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
     .g-radio3 button{min-height:44px;border-radius:14px;border:2px solid transparent;background:var(--surface2);color:var(--text2);font-weight:600;font-size:15px}
