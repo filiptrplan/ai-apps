@@ -5,6 +5,8 @@
 //   suggest  new words at the user's level, general + their topics
 //   prompt   a writing prompt for today's grammar focus
 //   check    corrections for a short text, with gap sentences for cards
+//   words    words tapped in a podcast transcript → card fields, using the
+//            sentence each came from
 // Everything is pitched at the user's level (A1.1–B2.2). Only signed-in
 // users may call it (it checks their access token itself).
 //
@@ -193,7 +195,45 @@ Today's focus is ${focus}; mention it in the reason ("Today's focus") when a fix
   return json(result);
 }
 
-const TASKS: Record<string, (body: any) => Promise<Response>> = { fill, example, suggest, prompt, check };
+const MAX_PICKS = 30;
+
+async function words(body: any) {
+  const picks = (Array.isArray(body.items) ? body.items : [])
+    .map((it: any) => ({ word: str(it?.word, MAX_WORD), sentence: str(it?.sentence, 600) }))
+    .filter((it: { word: string }) => it.word)
+    .slice(0, MAX_PICKS);
+  if (!picks.length) return json({ error: "Pick some words first." }, 400);
+  const result = await structuredCompletion<{ items: unknown[] }>({
+    system: `${SYSTEM_BASE(level(body.level))}
+
+The learner tapped words in the transcript of a German podcast to turn them into flashcards. For each tapped word (in order) you get the line it was in. Return one item per word, in the same order:
+- main: the card the learner most likely wants. Use the sentence: a separable verb split across the sentence becomes the whole infinitive (tapped "stehe" in "Ich stehe um sieben auf" → aufstehen; tapped "auf" there → aufstehen too); a word that is part of a fixed phrase or idiom becomes the whole phrase (tapped "Fall" in "auf jeden Fall" → "auf jeden Fall", kind word); otherwise the word's base form (nouns singular, verbs infinitive, adjectives uninflected), in the meaning it has in this sentence.
+- alt: when main is a phrase or a different word than the tapped one, the tapped word on its own as a card; otherwise null.
+For both, the example is the podcast line itself, shortened with … to at most about 15 words if it's longer (it must still contain the word), with spelling fixed if needed.`,
+    user: picks.map((p: { word: string; sentence: string }, i: number) => `${i + 1}. Tapped: ${p.word}\n   Line: ${p.sentence || "-"}`).join("\n"),
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["items"],
+      properties: {
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["main", "alt"],
+            properties: { main: WORD, alt: { anyOf: [WORD, { type: "null" }] } },
+          },
+        },
+      },
+    },
+    schemaName: "transcript_words",
+    maxTokens: 12000,
+  });
+  return json({ items: result.items.slice(0, picks.length) });
+}
+
+const TASKS: Record<string, (body: any) => Promise<Response>> = { fill, example, suggest, prompt, check, words };
 
 serveSignedIn("Sign in to use the AI features.", async (body) => {
   const task = TASKS[body?.task];

@@ -61,16 +61,21 @@ supabase functions deploy price-estimate
 ```
 
 `supabase/functions/german-ai` does every text AI task of the German app
-(filling in words, examples, suggested words, writing prompts and
-corrections), and `supabase/functions/german-tts` speaks example sentences
-into the private `german-audio` storage bucket (created by its migration).
-Both call OpenAI directly and need an OpenAI key; the text and speech models
-can be switched with the optional `OPENAI_MODEL` and `OPENAI_TTS_MODEL`
-secrets:
+(filling in words, also from podcast transcripts, examples, suggested words,
+writing prompts and corrections), `supabase/functions/german-tts` speaks
+example sentences into the private `german-audio` storage bucket (created by
+its migration), and `supabase/functions/german-podcast` makes the AI podcast
+episodes: it writes a script after a web search, speaks each line with its
+host's voice and stores the joined mp3 in the same bucket, in the
+background, so the app can be closed meanwhile. All three call OpenAI
+directly and need an OpenAI key; the text and speech models can be switched
+with the optional `OPENAI_MODEL` and `OPENAI_TTS_MODEL` secrets (the text
+model has to support the Responses API's web search tool for the podcast):
 
 ```sh
 supabase secrets set OPENAI_API_KEY=...
 supabase db push
 supabase functions deploy german-ai
 supabase functions deploy german-tts
+supabase functions deploy german-podcast
 ```

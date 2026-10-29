@@ -1,6 +1,6 @@
-// Settings: level (steers every AI word, prompt, example and how picky
-// corrections are), topics for suggested words, writing days, new cards per
-// day, export and sign out.
+// Settings: level (steers every AI word, prompt, example, podcast episode
+// and how picky corrections are), topics for suggested words, writing and
+// podcast days, new cards per day, export and sign out.
 import { LEVELS, WEEKDAYS, germanOf } from "./model.js";
 import { signOut } from "../shared/auth.js";
 import { Screen, ScreenHeader, Card, Chip, Stepper } from "./ui.jsx";
@@ -32,8 +32,8 @@ export function Settings({ app }) {
     if (t && !settings.topics.includes(t)) update({ topics: [...settings.topics, t] });
     setTopic(null);
   };
-  const toggleDay = i => update({
-    writingDays: settings.writingDays.includes(i) ? settings.writingDays.filter(d => d !== i) : [...settings.writingDays, i].sort(),
+  const toggleDay = (field, i) => update({
+    [field]: settings[field].includes(i) ? settings[field].filter(d => d !== i) : [...settings[field], i].sort(),
   });
 
   return (
@@ -65,9 +65,15 @@ export function Settings({ app }) {
 
       <Card label="Routine">
         <b style={{ fontSize: 15 }}>Writing days</b>
-        <div className="g-days">
+        <div className="g-days" role="group" aria-label="Writing days">
           {WEEKDAYS.map((d, i) => (
-            <button key={d} type="button" aria-pressed={settings.writingDays.includes(i)} onClick={() => toggleDay(i)}>{d}</button>
+            <button key={d} type="button" aria-pressed={settings.writingDays.includes(i)} onClick={() => toggleDay("writingDays", i)}>{d}</button>
+          ))}
+        </div>
+        <b style={{ fontSize: 15 }}>Podcast days</b>
+        <div className="g-days" role="group" aria-label="Podcast days">
+          {WEEKDAYS.map((d, i) => (
+            <button key={d} type="button" aria-pressed={settings.podcastDays.includes(i)} onClick={() => toggleDay("podcastDays", i)}>{d}</button>
           ))}
         </div>
         <span className="g-small">Cards are every weekday; weekends are optional.</span>

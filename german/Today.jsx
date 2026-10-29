@@ -1,13 +1,20 @@
 // Today tab: the one task to do now with a Start button, a preview of the
 // day's tasks, and "Fertig für heute" once they're all done. Weekends
-// without writing have no tasks; cards can still be done then.
+// without writing or the podcast have no tasks; cards can still be done
+// then.
 import { tasksFor, doneTasks, planSession, sessionMinutes, addDays, dayEnd, uid } from "./model.js";
 import { Screen, Button, IconButton, Icon, Card } from "./ui.jsx";
 
 const TASK = {
   cards: { name: "Flashcards", icon: "cards", href: "#/cards", variant: "mint" },
   writing: { name: "Writing", icon: "pen", href: "#/write", variant: "amber" },
+  podcast: { name: "Podcast", icon: "headphones", href: "#/podcast", variant: "mint" },
 };
+
+const TASK_WORD = { cards: "cards", writing: "writing", podcast: "the podcast" };
+
+// "a", "a and b", "a, b and c".
+const andList = items => (items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}` : items[0] || "");
 
 function germanDate(key) {
   const [y, m, d] = key.split("-").map(Number);
@@ -21,6 +28,7 @@ export function cardPlanSize(app) {
 
 function taskMeta(task, cardCount) {
   if (task === "cards") return `${sessionMinutes(cardCount)} min`;
+  if (task === "podcast") return "6 min";
   return "10 min";
 }
 
@@ -81,16 +89,16 @@ function Done({ app, tasks }) {
   const next = tasksFor(tomorrow, app.settings);
   const dueTomorrow = app.cards.filter(c => c.srs && c.srs.due < dayEnd(tomorrow)).length;
   const nextCount = Math.min(dueTomorrow + app.settings.newPerDay, 60);
-  const names = tasks.map(t => (t === "cards" ? "Cards" : "writing"));
+  const names = tasks.map(t => TASK_WORD[t]);
   const tomorrowText = next.length
-    ? `Tomorrow: ${next.map(t => (t === "cards" ? `cards, about ${sessionMinutes(nextCount)} min` : "writing")).join(" + ")}.`
+    ? `Tomorrow: ${next.map(t => (t === "cards" ? `cards, about ${sessionMinutes(nextCount)} min` : TASK_WORD[t])).join(" + ")}.`
     : "Tomorrow is free.";
   return (
     <>
       <div className="g-done-mark"><Icon name="check" size={48} stroke={2.4} /></div>
       <h1 style={{ marginTop: 8, fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em" }}>Fertig für heute.</h1>
       <p className="g-muted" style={{ fontSize: 16 }}>
-        {names.join(" and ").replace(/^./, c => c.toUpperCase())} done.<br />{tomorrowText}
+        {andList(names).replace(/^./, c => c.toUpperCase())} done.<br />{tomorrowText}
       </p>
       <div style={{ marginTop: 24, width: "100%" }}><ListenLog app={app} /></div>
     </>
@@ -118,6 +126,7 @@ export function Today({ app }) {
     const t = TASK[now];
     const sub = now === "cards"
       ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} · about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready…" : "Nothing due right now"
+      : now === "podcast" ? "One episode · about 6 min"
       : "3–5 sentences · about 10 min";
     body = (
       <>

@@ -3,7 +3,8 @@
 // the writing history come out exactly as the app sees them.
 import { z } from "zod";
 import {
-  APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, WEEKDAYS, normSettings, normListening,
+  APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, DEFAULT_PODCAST, DEFAULT_EPISODES, WEEKDAYS,
+  normSettings, normListening, normPodcast, normEpisodes, episodeMinutes,
   makeCard, editCard, findDuplicate, searchCards, germanOf, isNew, stats, tasksFor,
   doneTasks, dayKey, dayEnd, fixCounts, planSession,
 } from "../../german/model.js";
@@ -11,7 +12,7 @@ import { pointLabel } from "../../german/grammar.js";
 
 const APP_URL = "https://apps.trplan.si/german";
 
-export const instructions = `German (german_* tools): the user's German practice app (${APP_URL}), a flashcard deck scheduled with spaced repetition (English → German), short writing checked by AI, and a listening log. Call german_get_overview first for the level, today's tasks, deck counts and recent mistakes. Cards added here join the queue of new cards, so they show up in the user's next sessions. Changes show up in the app right away.`;
+export const instructions = `German (german_* tools): the user's German practice app (${APP_URL}), a flashcard deck scheduled with spaced repetition (English → German), short writing checked by AI, a listening log, and an AI podcast (episodes about the user's interests, made in the app; the tools read them and edit the interests). Call german_get_overview first for the level, today's tasks, deck counts and recent mistakes. Cards added here join the queue of new cards, so they show up in the user's next sessions. Changes show up in the app right away.`;
 
 function fail(message) {
   throw new Error(message);
@@ -79,7 +80,13 @@ export function register(server, { appData, callFunction }) {
     return json({
       appUrl: APP_URL,
       today,
-      settings: { level: settings.level, topics: settings.topics, newCardsPerDay: settings.newPerDay, writingDays: settings.writingDays.map(d => WEEKDAYS[d]) },
+      settings: {
+        level: settings.level,
+        topics: settings.topics,
+        newCardsPerDay: settings.newPerDay,
+        writingDays: settings.writingDays.map(d => WEEKDAYS[d]),
+        podcastDays: settings.podcastDays.map(d => WEEKDAYS[d]),
+      },
       todayTasks: tasksFor(today, settings).map(t => ({ task: t, done: doneTasks(log, today).includes(t) })),
       cardsInTodaysSession: plan.reviews.length + plan.fresh.length + plan.fromSuggestions,
       thisWeek: { cardDays: s.cardDays, writingDays: s.writingDays, listeningMinutes: s.listeningMin },
@@ -94,6 +101,56 @@ export function register(server, { appData, callFunction }) {
       recentWriting: writing.slice(0, 3).map(w => ({ id: w.id, day: w.day, focus: pointLabel(w.focus), fixes: w.fixes.map(f => `${f.from} → ${f.to}: ${f.why}`) })),
       listeningNow: current ? current.name : null,
     });
+  });
+
+  server.registerTool("german_get_podcast", {
+    title: "German: podcast episodes",
+    description: "The user's podcast interests and their AI podcast episodes, newest first (only the last 10 are kept): topic, title, the angle it took, length, whether it was listened to, and the key words with English. Pass episodeId for that episode's full transcript too (each line with its speaker, Lena or Jonas), e.g. to add words from it with german_add_cards.",
+    inputSchema: {
+      episodeId: z.string().optional(),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ episodeId }) => {
+    const [settings, podcast, data, listening] = await Promise.all([
+      readSettings(), read("podcast", DEFAULT_PODCAST), read("episodes", DEFAULT_EPISODES),
+      read("listening", DEFAULT_LISTENING).then(normListening),
+    ]);
+    const { episodes } = normEpisodes(data);
+    const describe = e => {
+      const out = { id: e.id, interest: e.interest, status: e.status, started: ymd(e.started) };
+      if (e.status === "failed") out.error = e.error;
+      if (e.status !== "ready") return out;
+      const listened = listening.log.filter(l => l.episode === e.id).map(l => l.day);
+      return { ...out, title: e.title, angle: e.summary, minutes: episodeMinutes(e), listened, keyWords: e.keyWords };
+    };
+    if (episodeId) {
+      const ep = episodes.find(e => e.id === episodeId) || fail(`No episode with id "${episodeId}"; only the last 10 are kept.`);
+      return json({ episode: { ...describe(ep), transcript: ep.lines || [] } });
+    }
+    return json({ interests: normPodcast(podcast, settings).interests, episodes: episodes.map(describe) });
+  });
+
+  server.registerTool("german_update_podcast_interests", {
+    title: "German: edit podcast interests",
+    description: "Add or remove the user's podcast interests (what episodes can be about; the user picks one in the app). Keep them evergreen (\"AI safety\", not \"AI safety in October 2026\"): each episode searches the web for what's current.",
+    inputSchema: {
+      add: z.array(z.string().min(1).max(80)).optional(),
+      remove: z.array(z.string()).optional(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  }, async ({ add = [], remove = [] }) => {
+    const settings = await readSettings();
+    let interests;
+    await update("podcast", DEFAULT_PODCAST, p => {
+      const current = normPodcast(p, settings).interests;
+      const drop = new Set(remove.map(t => t.trim().toLowerCase()));
+      interests = current.filter(t => !drop.has(t.toLowerCase()));
+      for (const t of add.map(x => x.trim())) {
+        if (t && !interests.some(k => k.toLowerCase() === t.toLowerCase())) interests.push(t);
+      }
+      return interests.length === current.length && interests.every((t, i) => t === current[i]) ? p : { ...p, interests };
+    });
+    return json({ interests });
   });
 
   server.registerTool("german_add_cards", {

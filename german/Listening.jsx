@@ -1,8 +1,9 @@
-// Listening: the resource you're on with a quick minutes log, the rest of
-// your list (add, remove, reorder) and this week's log. Listening doesn't
-// count toward the daily time.
+// Listening: the way to the AI podcast, the resource you're on with a quick
+// minutes log, the rest of your list (add, remove, reorder) and this week's
+// log (podcast episodes included). Listening doesn't count toward the daily
+// time.
 import { weekKeys, minutesIn, uid } from "./model.js";
-import { Screen, ScreenHeader, Card, Button, IconButton, LinkButton, Field, Input, Tag, Label } from "./ui.jsx";
+import { Screen, ScreenHeader, Card, Button, IconButton, LinkButton, Field, Input, Tag, Label, NavList } from "./ui.jsx";
 
 const { useState } = React;
 
@@ -39,7 +40,7 @@ export function Listening({ app }) {
   const save = patch => app.setListening(l => ({ ...listening, ...patch }));
   const week = weekKeys(today);
   const weekLog = log.filter(e => week.includes(e.day));
-  const name = id => resources.find(r => r.id === id)?.name || "Removed resource";
+  const name = e => (e.res === "podcast" ? `Podcast · ${e.title}` : resources.find(r => r.id === e.res)?.name || "Removed resource");
 
   const logMinutes = min => {
     save({ log: [{ id: uid(), day: today, res: current, min }, ...log] });
@@ -55,6 +56,8 @@ export function Listening({ app }) {
     <Screen label="Listening">
       <ScreenHeader back="#/progress" title="Listening" big />
       <p className="g-muted" style={{ margin: "0 4px" }}>Aim to follow about 70%. German subtitles, not English. Doesn't count toward your daily time.</p>
+
+      <NavList label="Podcast" items={[{ href: "#/podcast", label: "AI podcast", note: "Episodes about your interests" }]} />
 
       {res && (
         <Card big label="Current resource">
@@ -111,7 +114,7 @@ export function Listening({ app }) {
         <div className="g-between"><Label>This week</Label><span className="g-small">{minutesIn(log, week)} min</span></div>
         {weekLog.length ? weekLog.map(e => (
           <div key={e.id} className="g-between" style={{ fontSize: 14, padding: "0 4px" }}>
-            <span>{wd(e.day)} · {name(e.res)}</span>
+            <span>{wd(e.day)} · {name(e)}</span>
             <span className="g-row" style={{ gap: 4, color: "var(--muted)" }}>
               {e.min} min
               <IconButton icon="close" label="Remove this entry" variant="ghost" small iconSize={14} onClick={() => save({ log: log.filter(x => x.id !== e.id) })} />

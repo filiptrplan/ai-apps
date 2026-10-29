@@ -1,8 +1,9 @@
-// The app's AI calls, all through the german-ai edge function (OpenAI).
-// Each returns the function's JSON answer or throws an Error with a
-// message that can be shown as is.
+// The app's AI calls, through the german-ai edge function (and german-podcast
+// for episodes), both OpenAI. Each returns the function's JSON answer or
+// throws an Error with a message that can be shown as is.
 import { callAI } from "../shared/ai.js";
 import { pointById } from "./grammar.js";
+import { podcastInput } from "./model.js";
 
 // German or English word → card fields. One option when the word is clear,
 // 2–3 when an English word has several German translations.
@@ -57,4 +58,19 @@ export async function checkWriting({ text, prompt, focus }, settings) {
     prompt,
     focus: p ? { id: p.id, label: p.label } : null,
   });
+}
+
+// Starts an AI podcast episode about `interest`; it's made in the
+// background and shows up in the episodes (see episodes.js). Returns { id }.
+export function startEpisode(interest, cards, writing, settings) {
+  return callAI("german-podcast", { interest, level: settings.level, ...podcastInput(cards, writing) });
+}
+
+// Words tapped in a transcript, [{ word, sentence }] → [{ main, alt }]:
+// card fields (as fillWord's options) for what the word most likely means
+// there (a whole separable verb or phrase), and the single word when that
+// differs, else null.
+export async function wordsFromTranscript(items, settings) {
+  const { items: out } = await callAI("german-ai", { task: "words", items, level: settings.level });
+  return out;
 }
