@@ -21008,7 +21008,7 @@ ${suffix}`;
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   var cacheKey = (name) => new Request(`${location.origin}/__german-audio/${name}.mp3`);
-  var episodeName = (path) => `podcast/${path.split("/").pop().replace(/\.mp3$/, "")}`;
+  var episodeName = (path) => `podcast/${path.split("/").pop().replace(/\.\w+$/, "")}`;
   async function fromCache(name) {
     try {
       const cache = await caches.open(CACHE);
@@ -21021,7 +21021,7 @@ ${suffix}`;
   async function toCache(name, blob) {
     try {
       const cache = await caches.open(CACHE);
-      await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
+      await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": blob.type || "audio/mpeg" } }));
     } catch {
     }
   }

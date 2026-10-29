@@ -6,10 +6,11 @@
 // The request only starts the episode: it saves a "generating" entry and
 // answers with its id, and the rest runs in the background, so the app can
 // be closed meanwhile. In the background the script is written after a web
-// search (for real facts), each line is spoken by its host's voice, the
-// clips are joined into one mp3 in the private german-audio bucket
-// ("<user id>/podcast/<id>.mp3") and the entry becomes "ready" (or
-// "failed" with a message).
+// search (for real facts, OpenAI), spoken as a two-voice dialogue by Gemini
+// TTS through OpenRouter (in chunks of about a minute, a few at a time),
+// stored as one WAV in the private german-audio bucket
+// ("<user id>/podcast/<id>.wav", see _shared/wav.ts for why not mp3) and
+// the entry becomes "ready" (or "failed" with a message).
 //
 // Episodes live in app_data under german / german-episodes, which only this
 // function writes; the app just reads it (and hears about changes through
@@ -19,13 +20,16 @@
 // writes use the caller's own token, so RLS and the storage policies keep
 // each user to their own data.
 //
-// Needs the OPENAI_API_KEY secret (see _shared/openai.ts).
+// Needs the OPENAI_API_KEY and OPENROUTER_API_KEY secrets (see
+// _shared/openai.ts and _shared/openrouter.ts); the speech model can be
+// switched with the optional PODCAST_TTS_MODEL secret.
 // Deploy with:
 //   supabase functions deploy german-podcast
 
 import { json, serveSignedIn } from "../_shared/http.ts";
-import { AIError, searchedCompletion, speech } from "../_shared/openai.ts";
-import { joinMp3 } from "../_shared/mp3.ts";
+import { AIError, searchedCompletion } from "../_shared/openai.ts";
+import { dialogueSpeech } from "../_shared/openrouter.ts";
+import { wavFile } from "../_shared/wav.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
@@ -37,19 +41,16 @@ const HISTORY = 100;
 // A "generating" entry older than this is taken as failed (the background
 // task was killed); keep in sync with EPISODE_STALE_MS in german/model.js.
 const STALE_MS = 10 * 60 * 1000;
-const SPEAK_AT_ONCE = 6;
 const LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
 
-const HOSTS: Record<string, { voice: string; instructions: string }> = {
-  Lena: {
-    voice: "coral",
-    instructions: "You are Lena, a curious, slightly skeptical woman in her twenties co-hosting a casual German podcast with a friend. Speak natural standard German (Hochdeutsch) at a relaxed conversational pace, with real reactions: amused, surprised, doubtful.",
-  },
-  Jonas: {
-    voice: "ash",
-    instructions: "You are Jonas, an enthusiastic man in his twenties co-hosting a casual German podcast with a friend. Speak natural standard German (Hochdeutsch) at a relaxed conversational pace; you get excited when you explain things.",
-  },
-};
+const TTS_MODEL = "google/gemini-3.8-flash-tts";
+// The dialogue is spoken in chunks of whole turns up to about this long
+// (roughly a minute of audio), SPEAK_AT_ONCE at a time.
+const CHUNK_CHARS = 1200;
+const SPEAK_AT_ONCE = 4;
+// Gemini prebuilt voices.
+const VOICES: Record<string, string> = { Lena: "Aoede", Jonas: "Puck" };
+const DELIVERY = "A casual German podcast between two friends in their twenties. Lena is curious and a little skeptical: amused, surprised, sometimes doubtful. Jonas is enthusiastic and gets excited when he explains things. Natural standard German (Hochdeutsch) at a relaxed conversational pace, with real reactions and short natural pauses between turns.";
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const list = (v: unknown, n: number, max: number) =>
@@ -132,8 +133,8 @@ function storageFetch(request: Request, path: string, init: RequestInit) {
 async function upload(request: Request, path: string, bytes: Uint8Array) {
   const res = await storageFetch(request, `${BUCKET}/${path}`, {
     method: "POST",
-    headers: { "Content-Type": "audio/mpeg", "x-upsert": "true" },
-    body: bytes.buffer as ArrayBuffer, // joinMp3's bytes fill their whole buffer
+    headers: { "Content-Type": "audio/wav", "x-upsert": "true" },
+    body: bytes.buffer as ArrayBuffer, // wavFile's bytes fill their whole buffer
   });
   if (!res.ok) throw new Error(`Couldn't store the audio (${res.status}).`);
 }
@@ -226,30 +227,53 @@ Grammar to use correctly: ${input.mistakes.join("; ") || "-"}`,
   });
 }
 
-// One mp3 clip per line, a few at a time, in order. A line that hits the
-// rate limit is retried once after a pause.
-async function speakLines(lines: Script["lines"]) {
-  const clips: Uint8Array[] = new Array(lines.length);
-  let next = 0;
+// Whole turns, grouped into chunks of up to CHUNK_CHARS.
+function chunkLines(lines: Script["lines"]) {
+  const chunks: Script["lines"][] = [];
+  let size = Infinity;
+  for (const line of lines) {
+    if (size + line.text.length > CHUNK_CHARS) {
+      chunks.push([]);
+      size = 0;
+    }
+    chunks[chunks.length - 1].push(line);
+    size += line.text.length;
+  }
+  return chunks;
+}
+
+// Speaks the dialogue chunk by chunk, a few at a time, and joins the audio
+// in order. A chunk that hits the rate limit is retried once after a pause.
+async function speakDialogue(lines: Script["lines"]) {
+  const model = Deno.env.get("PODCAST_TTS_MODEL") || TTS_MODEL;
+  const chunks = chunkLines(lines);
+  const audio: Awaited<ReturnType<typeof dialogueSpeech>>[] = new Array(chunks.length);
   async function speakOne(i: number) {
-    const host = HOSTS[lines[i].speaker] ?? HOSTS.Lena;
-    const text = lines[i].text.slice(0, 4000);
+    const turns = chunks[i].map(l => ({ text: l.text.slice(0, 4000), voice: VOICES[l.speaker] ?? VOICES.Lena }));
     try {
-      return await speech(text, host.voice, host.instructions);
+      return await dialogueSpeech(turns, DELIVERY, model);
     } catch (err) {
       if (!(err instanceof AIError) || err.status !== 429) throw err;
       await new Promise(r => setTimeout(r, 3000));
-      return speech(text, host.voice, host.instructions);
+      return dialogueSpeech(turns, DELIVERY, model);
     }
   }
+  let next = 0;
   async function worker() {
-    while (next < lines.length) {
+    while (next < chunks.length) {
       const i = next++;
-      clips[i] = await speakOne(i);
+      audio[i] = await speakOne(i);
     }
   }
   await Promise.all(Array.from({ length: SPEAK_AT_ONCE }, worker));
-  return clips;
+
+  const { sampleRate, channels } = audio[0];
+  if (audio.some(a => a.sampleRate !== sampleRate || a.channels !== channels)) {
+    throw new AIError("failed", "The speech service changed audio formats mid-episode - try again.", 502);
+  }
+  // Whole 16-bit frames only, so a stray byte can't shift the next chunk.
+  const frame = channels * 2;
+  return wavFile(audio.map(a => a.pcm.subarray(0, a.pcm.length - (a.pcm.length % frame))), sampleRate, channels);
 }
 
 async function make(id: string, input: Input, request: Request, userId: string) {
@@ -260,8 +284,8 @@ async function make(id: string, input: Input, request: Request, userId: string) 
     const script = await writeScript(input, earlier);
     const lines = script.lines.filter(l => l.text.trim());
     if (!lines.length) throw new AIError("empty", "The AI wrote an empty episode - try again.", 502);
-    const { bytes, seconds } = joinMp3(await speakLines(lines));
-    const path = `${userId}/podcast/${id}.mp3`;
+    const { bytes, seconds } = await speakDialogue(lines);
+    const path = `${userId}/podcast/${id}.wav`;
     await upload(request, path, bytes);
 
     const ready = {

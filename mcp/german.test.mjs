@@ -122,7 +122,7 @@ test("writing history lists sessions with labelled fixes", async () => {
 
 const episode = {
   id: "ep1", interest: "Bouldern", status: "ready", started: Date.UTC(2026, 9, 28, 9), title: "Bouldern in Zürich",
-  summary: "Where to boulder in Zürich and how the grades work.", seconds: 362, path: "u/podcast/ep1.mp3",
+  summary: "Where to boulder in Zürich and how the grades work.", seconds: 362, path: "u/podcast/ep1.wav",
   keyWords: [{ de: "der Griff", en: "the hold" }],
   lines: [{ speaker: "Lena", text: "Hallo und willkommen!" }, { speaker: "Jonas", text: "Heute geht es ums Bouldern." }],
 };
