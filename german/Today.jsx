@@ -117,7 +117,7 @@ export function Today({ app }) {
   } else {
     const t = TASK[now];
     const sub = now === "cards"
-      ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} · about ${sessionMinutes(cardCount)} min` : "Nothing due right now"
+      ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} · about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready…" : "Nothing due right now"
       : "3–5 sentences · about 10 min";
     body = (
       <>

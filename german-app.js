@@ -20939,7 +20939,7 @@ ${suffix}`;
       body = /* @__PURE__ */ React.createElement(Hero, { icon: "sun", title: "Frei heute", sub: "Nothing planned today." }, cardCount > 0 && !done.includes("cards") && /* @__PURE__ */ React.createElement(Button, { href: "#/cards", variant: "outline" }, "Review ", cardCount, " cards anyway"));
     } else {
       const t = TASK[now];
-      const sub = now === "cards" ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} \xB7 about ${sessionMinutes(cardCount)} min` : "Nothing due right now" : "3\u20135 sentences \xB7 about 10 min";
+      const sub = now === "cards" ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} \xB7 about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready\u2026" : "Nothing due right now" : "3\u20135 sentences \xB7 about 10 min";
       body = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Hero, { icon: t.icon, title: t.name, sub }, /* @__PURE__ */ React.createElement(Button, { href: t.href, variant: t.variant }, "Start")), /* @__PURE__ */ React.createElement(TaskList, { tasks, done, now, cardCount }));
     }
     return /* @__PURE__ */ React.createElement(Screen, { tab: true, label: "Today" }, /* @__PURE__ */ React.createElement("header", { className: "g-between g-mobile-only" }, /* @__PURE__ */ React.createElement("span", { className: "g-date", style: { paddingLeft: 4 } }, germanDate(today)), /* @__PURE__ */ React.createElement(IconButton, { icon: "plus", label: "Add a word", href: "#/add", variant: "accent" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, maxWidth: 520, width: "100%", margin: "0 auto", textAlign: "center", paddingBottom: 48 } }, /* @__PURE__ */ React.createElement("span", { className: "g-date g-desktop-only" }, germanDate(today)), body));
@@ -21061,34 +21061,39 @@ ${suffix}`;
   function Review({ app }) {
     const { today } = app;
     const end = dayEnd(today);
-    const [start] = useState4(() => {
-      const plan = planSession(app.cards, app.suggest, app.settings, today);
-      const made = app.suggest.slice(0, plan.fromSuggestions).map((s) => makeCard(s, "ai"));
-      return { made, ids: interleave(plan.reviews, [...plan.fresh, ...made.map((c) => c.id)]) };
-    });
-    const { ids } = start;
+    const [start, setStart] = useState4(null);
+    const plan = planSession(app.cards, app.suggest, app.settings, today);
+    const empty = !plan.reviews.length && !plan.fresh.length && !plan.fromSuggestions;
     useEffect5(() => {
-      if (!start.made.length) return;
-      app.setCards((cs) => [...cs, ...start.made]);
-      app.setSuggest((s) => s.slice(start.made.length));
-    }, []);
+      if (start || empty && app.refilling) return;
+      const made = app.suggest.slice(0, plan.fromSuggestions).map((s) => makeCard(s, "ai"));
+      setStart({ made, ids: interleave(plan.reviews, [...plan.fresh, ...made.map((c) => c.id)]) });
+      if (!made.length) return;
+      const used = new Set(made.map((c) => c.de));
+      app.setCards((cs) => [...cs, ...made]);
+      app.setSuggest((s) => s.filter((x) => !used.has(x.de)));
+    }, [start, empty, app.refilling]);
+    const ids = start ? start.ids : [];
     const [shown, setShown] = useState4(() => /* @__PURE__ */ new Set());
     const [flipped, setFlipped] = useState4(false);
     const [now, setNow] = useState4(Date.now);
     const finishedRef = useRef2(false);
-    const byId = useMemo(() => new Map([...start.made, ...app.cards].map((c) => [c.id, c])), [app.cards]);
+    const byId = useMemo(() => new Map([...start ? start.made : [], ...app.cards].map((c) => [c.id, c])), [app.cards, start]);
     const card = pickNext(ids, byId, shown, end, now);
     const done = ids.filter((id) => {
       const c = byId.get(id);
       return !c || c.srs && c.srs.due >= end;
     }).length;
-    useEffect5(() => {
-      if (card || finishedRef.current) return;
+    const finish = () => {
       finishedRef.current = true;
       app.markDone("cards");
       const writingLeft = tasksFor(today, app.settings).includes("writing") && !doneTasks(app.log, today).includes("writing");
       go(writingLeft ? "#/write" : "#/");
-    }, [card]);
+    };
+    useEffect5(() => {
+      if (card || !ids.length || finishedRef.current) return;
+      finish();
+    }, [card, ids.length]);
     const rate = (name) => {
       if (!card) return;
       const t = Date.now();
@@ -21117,6 +21122,12 @@ ${suffix}`;
       window.addEventListener("keydown", on);
       return () => window.removeEventListener("keydown", on);
     }, []);
+    if (!start) {
+      return /* @__PURE__ */ React.createElement(Screen, { center: true, label: "Flashcards" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { alignItems: "center", textAlign: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("p", { className: "g-muted" }, "Getting new words ready\u2026")));
+    }
+    if (!ids.length) {
+      return /* @__PURE__ */ React.createElement(Screen, { label: "Flashcards" }, /* @__PURE__ */ React.createElement(ScreenHeader, { close: "#/" }), /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { flex: 1, justifyContent: "center", alignItems: "center", textAlign: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("p", { style: { fontSize: 22, fontWeight: 800 } }, "No cards to study"), /* @__PURE__ */ React.createElement("p", { className: "g-muted" }, app.session ? "Nothing is due and there are no new words yet. Add a word, or try again in a minute." : "Nothing is due. Sign in on the home page to get suggested words.")), /* @__PURE__ */ React.createElement(Button, { href: "#/add", variant: "mint" }, "Add a word"));
+    }
     if (!card) return /* @__PURE__ */ React.createElement(Screen, null);
     const wait = previews(card.srs, now);
     const spoken = card.kind === "gap" ? germanOf(card) : card.example;
@@ -21515,36 +21526,44 @@ ${suffix}`;
     useEffect7(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
-    const refilling = useRef3(false);
-    const refillFailed = useRef3(false);
+    const fitKey = `${settings.level}|${settings.topics.join(",")}`;
+    const usable = useMemo3(() => suggest.filter((s) => s.for === fitKey), [suggest, fitKey]);
+    const [refilling, setRefilling] = useState10(false);
+    const [retry, setRetry] = useState10(0);
     const cardsRef = useRef3(cards);
     cardsRef.current = cards;
     useEffect7(() => {
-      const missing = SUGGEST_BUFFER - suggest.length;
-      if (!session || missing <= 0 || refilling.current || refillFailed.current || !navigator.onLine) return;
-      refilling.current = true;
-      const known = [...cardsRef.current.map((c) => c.de), ...suggest.map((s) => s.de)].filter(Boolean);
+      const missing = SUGGEST_BUFFER - usable.length;
+      if (!session || missing <= 0 || refilling || !navigator.onLine) return;
+      setRefilling(true);
+      const known = [...cardsRef.current.map((c) => c.de), ...usable.map((s) => s.de)].filter(Boolean);
+      let retryT;
       suggestWords(missing, known, settings).then((words) => {
-        const fresh = words.filter((w) => !findDuplicate(cardsRef.current, w));
-        setSuggest((s) => [...s, ...fresh.filter((w) => !s.some((x) => x.de === w.de))].slice(0, SUGGEST_BUFFER * 2));
+        const fresh = words.filter((w) => !findDuplicate(cardsRef.current, w)).map(({ sense, ...w }) => ({ ...w, for: fitKey }));
+        setSuggest((s) => {
+          const keep = s.filter((x) => x.for === fitKey);
+          return [...keep, ...fresh.filter((w) => !keep.some((x) => x.de === w.de))].slice(0, SUGGEST_BUFFER * 2);
+        });
       }).catch(() => {
-        refillFailed.current = true;
-      }).finally(() => {
-        refilling.current = false;
-      });
-    }, [session, suggest.length, settings.level]);
+        retryT = setTimeout(() => setRetry((n) => n + 1), 60 * 1e3);
+      }).finally(() => setRefilling(false));
+      return () => clearTimeout(retryT);
+    }, [session, usable.length, fitKey, retry]);
     const app = {
       session,
       today,
       route,
       settings,
       cards,
-      suggest,
       writing,
       draft,
       log,
       listening,
       showToast,
+      // Suggested words that fit the current level and topics, and whether
+      // more are on their way.
+      suggest: usable,
+      refilling,
       setCards,
       setSuggest,
       setWriting,
