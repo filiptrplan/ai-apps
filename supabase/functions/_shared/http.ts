@@ -16,24 +16,36 @@ export function json(body: unknown, status = 200) {
   });
 }
 
-// True when the request carries a signed-in user's access token (not just
-// the public key, which is also sent as a bearer token when logged out).
-export async function isSignedIn(request: Request) {
+// The signed-in user ({ id, ... }) behind the request's access token, or
+// null for the public key (which is also sent as a bearer token when
+// logged out) and invalid tokens.
+export async function signedInUser(request: Request): Promise<{ id: string } | null> {
   const auth = request.headers.get("authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return false;
+  if (!auth.startsWith("Bearer ")) return null;
   const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
     headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "", Authorization: auth },
   });
-  return res.ok;
+  if (!res.ok) return null;
+  const user = await res.json().catch(() => null);
+  return user?.id ? user : null;
+}
+
+export async function isSignedIn(request: Request) {
+  return (await signedInUser(request)) !== null;
 }
 
 // Serves a POST-only JSON endpoint for signed-in users. The handler gets the
-// parsed request body and returns a Response (usually via json()).
-export function serveSignedIn(signedOutMessage: string, handler: (body: any) => Promise<Response>) {
+// parsed request body, the user and the request, and returns a Response
+// (usually via json()).
+export function serveSignedIn(
+  signedOutMessage: string,
+  handler: (body: any, user: { id: string }, request: Request) => Promise<Response>,
+) {
   Deno.serve(async (request) => {
     if (request.method === "OPTIONS") return new Response("ok", { headers: CORS });
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
-    if (!(await isSignedIn(request))) return json({ error: signedOutMessage }, 401);
+    const user = await signedInUser(request);
+    if (!user) return json({ error: signedOutMessage }, 401);
 
     let body;
     try {
@@ -41,6 +53,6 @@ export function serveSignedIn(signedOutMessage: string, handler: (body: any) => 
     } catch {
       return json({ error: "Invalid JSON" }, 400);
     }
-    return handler(body);
+    return handler(body, user, request);
   });
 }

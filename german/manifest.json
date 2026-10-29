@@ -1,0 +1,16 @@
+{
+  "name": "Deutsch",
+  "short_name": "Deutsch",
+  "description": "German practice that runs a fixed daily routine: spaced-repetition cards, short writing checked by AI, and a listening log.",
+  "lang": "en",
+  "start_url": "/german",
+  "scope": "/german",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#121419",
+  "theme_color": "#121419",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

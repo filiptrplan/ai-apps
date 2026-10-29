@@ -59,3 +59,18 @@ online, from the Federal Office for Agriculture's monthly Swiss retail prices
 ```sh
 supabase functions deploy price-estimate
 ```
+
+`supabase/functions/german-ai` does every text AI task of the German app
+(filling in words, examples, suggested words, writing prompts and
+corrections), and `supabase/functions/german-tts` speaks example sentences
+into the private `german-audio` storage bucket (created by its migration).
+Both call OpenAI directly and need an OpenAI key; the text and speech models
+can be switched with the optional `OPENAI_MODEL` and `OPENAI_TTS_MODEL`
+secrets:
+
+```sh
+supabase secrets set OPENAI_API_KEY=...
+supabase db push
+supabase functions deploy german-ai
+supabase functions deploy german-tts
+```

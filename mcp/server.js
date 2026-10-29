@@ -3,9 +3,10 @@
 // (adds its tools, prefixed with the app's name) and `instructions`.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as climbing from "./apps/climbing.js";
+import * as german from "./apps/german.js";
 import * as recipes from "./apps/recipes.js";
 
-const APPS = [climbing, recipes];
+const APPS = [climbing, recipes, german];
 
 // `deps` is { appData, removePhoto?, callFunction? }; see http.js.
 export function createMcpServer(deps) {

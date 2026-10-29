@@ -1,0 +1,207 @@
+// Supabase Edge Function: every text AI task of the German app, via OpenAI.
+// The body's `task` picks one:
+//   fill     a German or English word → card fields (or 2–3 options)
+//   example  a new example sentence for a card
+//   suggest  new words at the user's level, general + their topics
+//   prompt   a writing prompt for today's grammar focus
+//   check    corrections for a short text, with gap sentences for cards
+// Everything is pitched at the user's level (A1.1–B2.2). Only signed-in
+// users may call it (it checks their access token itself).
+//
+// Needs the OPENAI_API_KEY secret (see _shared/openai.ts).
+// Deploy with:
+//   supabase functions deploy german-ai
+
+import { json, serveSignedIn } from "../_shared/http.ts";
+import { AIError, structuredCompletion } from "../_shared/openai.ts";
+
+const LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
+
+// Grammar point ids and labels; keep in sync with german/grammar.js.
+const POINTS: Record<string, string> = {
+  "v2": "verb second (after time words, in main clauses)",
+  "perfekt": "Perfekt with haben / sein, participles",
+  "weil": "weil → verb at the end",
+  "dativ-praep": "mit, bei, nach, von, zu, aus, seit + Dativ",
+  "modal": "modal verb → infinitive at the end",
+  "trennbar": "separable verbs",
+  "wechsel": "in, an, auf, … : Akkusativ (wohin) or Dativ (wo)",
+  "dass": "dass, wenn, ob, … → verb at the end",
+  "praeteritum": "Präteritum of sein, haben, modal verbs",
+  "adj": "adjective endings",
+  "komparativ": "comparison: -er als, am -sten",
+  "reflexiv": "reflexive verbs and pronouns",
+  "zu-inf": "zu + infinitive",
+  "relativ": "relative clauses",
+  "konjunktiv": "Konjunktiv II: würde, hätte, wäre",
+};
+const POINT_LIST = Object.entries(POINTS).map(([id, label]) => `- ${id}: ${label}`).join("\n");
+
+const MAX_TEXT = 3000;
+const MAX_WORD = 80;
+
+const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+const level = (v: unknown) => (LEVELS.includes(v as string) ? (v as string) : "A2.2");
+const list = (v: unknown, n: number, max: number) =>
+  (Array.isArray(v) ? v : []).map(x => str(x, max)).filter(Boolean).slice(0, n);
+
+const WORD = {
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "de", "article", "plural", "perfekt", "separable", "en", "example", "sense"],
+  properties: {
+    kind: { type: "string", enum: ["noun", "verb", "word"], description: "word = anything that isn't a noun or verb (adjective, adverb, phrase, ...)" },
+    de: { type: "string", description: "Noun without article, singular; verb infinitive; other words in their base form." },
+    article: { type: ["string", "null"], enum: ["der", "die", "das", null], description: "Nouns only, else null." },
+    plural: { type: "string", description: "Nouns: plural with article, e.g. \"die Anträge\"; \"(kein Plural)\" if none. Others: empty." },
+    perfekt: { type: "string", description: "Verbs: Perfekt as \"hat eingereicht\" / \"ist umgestiegen\". Others: empty." },
+    separable: { type: "boolean", description: "Verbs with a separable prefix (ankommen, einkaufen). False for everything else." },
+    en: { type: "string", description: "Short English meaning: \"the application (form)\", \"to submit\". Nouns start with \"the\"; verbs with \"to\". A bracketed hint only when needed to tell senses apart." },
+    example: { type: "string", description: "One natural German sentence using the word, at the learner's level." },
+    sense: { type: "string", description: "A few English words saying which meaning this is, e.g. \"a form or request to an office\"." },
+  },
+};
+
+const SYSTEM_BASE = (lvl: string) =>
+  `You help an adult English speaker who lives in Zürich (ETH student) learn German. Their level is ${lvl} (CEFR). Write standard German (Germany/Switzerland spelling with ß is fine). Keep vocabulary and sentence structure at or slightly above ${lvl}.`;
+
+async function fill(body: any) {
+  const input = str(body.input, MAX_WORD);
+  if (!input) return json({ error: "Type a word first." }, 400);
+  const lvl = level(body.level);
+  const result = await structuredCompletion<{ options: unknown[] }>({
+    system: `${SYSTEM_BASE(lvl)}
+
+The learner typed a word to add to their flashcards. It may be German or English (or a short phrase).
+- German input: one option for that word (fix spelling and capitalisation; nouns in the singular).
+- English input with one clear German translation: one option.
+- English input with several common German translations that mean different things (e.g. "application" → der Antrag, die Bewerbung, die Anwendung): 2–3 options, most useful first, each with its sense.
+Never more than 3 options.`,
+    user: input,
+    schema: { type: "object", additionalProperties: false, required: ["options"], properties: { options: { type: "array", items: WORD } } },
+    schemaName: "word_fill",
+    maxTokens: 2000,
+  });
+  return json({ options: result.options.slice(0, 3) });
+}
+
+async function example(body: any) {
+  const card = body.card || {};
+  const de = str(card.de, MAX_WORD);
+  if (!de) return json({ error: "The card has no German word." }, 400);
+  const word = card.kind === "noun" && card.article ? `${str(card.article, 3)} ${de}` : de;
+  const result = await structuredCompletion<{ example: string }>({
+    system: `${SYSTEM_BASE(level(body.level))}
+
+Write one new, natural example sentence for a flashcard, using the given word (in any needed form). Everyday situations: studying, the city, trains, food, sport, friends. Different from the sentence to avoid. 6–14 words.`,
+    user: `Word: ${word} (${str(card.en, 120)})\nAvoid: ${str(body.avoid, 300) || "-"}`,
+    schema: { type: "object", additionalProperties: false, required: ["example"], properties: { example: { type: "string" } } },
+    schemaName: "example",
+    maxTokens: 500,
+  });
+  return json(result);
+}
+
+async function suggest(body: any) {
+  const n = Math.min(15, Math.max(1, Math.round(Number(body.n) || 10)));
+  const topics = list(body.topics, 12, 40);
+  const known = list(body.known, 400, MAX_WORD);
+  const result = await structuredCompletion<{ words: unknown[] }>({
+    system: `${SYSTEM_BASE(level(body.level))}
+
+Suggest new words for the learner's flashcards. Pick useful, frequent words they likely don't know yet at their level: roughly half general everyday vocabulary, half from their topics. Mostly nouns and verbs, a few adjectives/adverbs. Don't repeat anything from the known list (in any form).`,
+    user: `Number of words: ${n}\nTopics: ${topics.join(", ") || "(none, use general words)"}\nKnown: ${known.join(", ") || "-"}`,
+    schema: { type: "object", additionalProperties: false, required: ["words"], properties: { words: { type: "array", items: WORD } } },
+    schemaName: "suggestions",
+    maxTokens: 6000,
+  });
+  return json({ words: result.words.slice(0, n) });
+}
+
+async function prompt(body: any) {
+  const focus = body.focus || {};
+  const topics = list(body.topics, 12, 40);
+  const avoid = list(body.avoid, 12, 200);
+  const result = await structuredCompletion<{ prompt: string }>({
+    system: `${SYSTEM_BASE(level(body.level))}
+
+Write one short writing prompt in German: a question the learner answers in 3–5 sentences about their own life. It should naturally invite today's grammar focus (without naming it). Sometimes use one of their topics, sometimes everyday life. One sentence, under 12 words, ending with "?". Don't reuse the earlier prompts.`,
+    user: `Grammar focus: ${str(focus.label, 120)} (${str(focus.hint, 200)})\nTopics: ${topics.join(", ") || "-"}\nEarlier prompts:\n${avoid.join("\n") || "-"}`,
+    schema: { type: "object", additionalProperties: false, required: ["prompt"], properties: { prompt: { type: "string" } } },
+    schemaName: "prompt",
+    maxTokens: 500,
+  });
+  return json(result);
+}
+
+const FIX = {
+  type: "object",
+  additionalProperties: false,
+  required: ["from", "to", "why", "point", "sentence", "gap"],
+  properties: {
+    from: { type: "string", description: "The wrong words exactly as they appear in the learner's text (empty if something was only added)." },
+    to: { type: "string", description: "The corrected words exactly as they appear in `corrected`." },
+    why: { type: "string", description: "One short English reason, friendly, max ~15 words. Bold nothing." },
+    point: { type: "string", enum: [...Object.keys(POINTS), "other"] },
+    sentence: { type: "string", description: "The whole corrected sentence this fix is in." },
+    gap: {
+      description: "A flashcard testing this fix: the corrected sentence (may be shortened with …) with the corrected words replaced by ___ exactly once. null when the fix is a pure spelling/typo fix not worth a card.",
+      anyOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["text", "answer", "en"],
+          properties: {
+            text: { type: "string" },
+            answer: { type: "string", description: "What goes in the gap." },
+            en: { type: "string", description: "English translation of the full sentence." },
+          },
+        },
+        { type: "null" },
+      ],
+    },
+  },
+};
+
+async function check(body: any) {
+  const text = str(body.text, MAX_TEXT);
+  if (!text) return json({ error: "Write a few sentences first." }, 400);
+  const lvl = level(body.level);
+  const focus = body.focus ? `${str(body.focus.id, 20)} (${str(body.focus.label, 120)})` : "none";
+  const result = await structuredCompletion<{ verdict: string; corrected: string; fixes: unknown[] }>({
+    system: `${SYSTEM_BASE(lvl)}
+
+Correct the learner's short text. Change as little as possible: keep their words and ideas, fix only what's wrong. At A1/A2 levels fix grammar, word order, gender, case and spelling but don't polish style; from B1 also fix unidiomatic phrasing.
+
+Return:
+- verdict: one word or two for the overall result: "Great", "Good", "Okay" or "Keep going".
+- corrected: the full corrected text.
+- fixes: one entry per correction, in text order. Merge corrections that belong together (e.g. a verb moved to the end) into one fix. Tag each with the grammar point it practises, or "other" (gender, spelling, word choice, ...):
+${POINT_LIST}
+
+Today's focus is ${focus}; mention it in the reason ("Today's focus") when a fix is about it.`,
+    user: `Prompt: ${str(body.prompt, 300)}\n\nText:\n${text}`,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["verdict", "corrected", "fixes"],
+      properties: { verdict: { type: "string" }, corrected: { type: "string" }, fixes: { type: "array", items: FIX } },
+    },
+    schemaName: "writing_check",
+    maxTokens: 6000,
+  });
+  return json(result);
+}
+
+const TASKS: Record<string, (body: any) => Promise<Response>> = { fill, example, suggest, prompt, check };
+
+serveSignedIn("Sign in to use the AI features.", async (body) => {
+  const task = TASKS[body?.task];
+  if (!task) return json({ error: "Unknown task." }, 400);
+  try {
+    return await task(body);
+  } catch (err) {
+    if (!(err instanceof AIError)) throw err;
+    return json({ error: err.message }, err.status);
+  }
+});
