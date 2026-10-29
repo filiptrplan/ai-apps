@@ -1,4 +1,4 @@
-const CACHE_NAME = "german-app-v1";
+const CACHE_NAME = "german-app-v2";
 const STATIC_CDN_HOSTS = ["unpkg.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 const ASSETS = [
   // Production serves the page at the extensionless path, so cache both.
@@ -7,7 +7,10 @@ const ASSETS = [
   "./german-app.js",
   "./german/manifest.json",
   "./german/icon.svg",
-  "./german/icon-maskable.svg",
+  "./german/icon.png",
+  "./german/icon-192.png",
+  "./german/icon-maskable.png",
+  "./german/icon-maskable-192.png",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
   "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
