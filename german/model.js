@@ -55,6 +55,7 @@ export const DEFAULT_SETTINGS = {
   topics: ["Uni / ETH", "Klettern", "Kochen", "Bahn"],
   writingDays: [1, 3], // Di, Do
   podcastDays: [0, 2, 4], // Mo, Mi, Fr
+  podcastPace: "slower", // or "natural"; how fast the podcast hosts speak
   newPerDay: 6,
 };
 
@@ -125,6 +126,7 @@ export function normSettings(s) {
     topics: Array.isArray(v.topics) ? v.topics.filter(t => typeof t === "string" && t.trim()) : [],
     writingDays: Array.isArray(v.writingDays) ? v.writingDays.filter(d => d >= 0 && d < 7) : [],
     podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter(d => d >= 0 && d < 7) : [],
+    podcastPace: v.podcastPace === "natural" ? "natural" : "slower",
     newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0))),
   };
 }

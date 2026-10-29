@@ -29,6 +29,9 @@ test("routine: cards on weekdays, writing and podcast on chosen days, weekends f
   assert.deepEqual(doneTasks({ "2026-10-28": { cards: true, podcast: true } }, "2026-10-28"), ["cards", "podcast"]);
   // Settings saved before the podcast existed get the default days.
   assert.deepEqual(normSettings({ level: "B1.1", writingDays: [0] }).podcastDays, [0, 2, 4]);
+  assert.equal(normSettings({}).podcastPace, "slower");
+  assert.equal(normSettings({ podcastPace: "natural" }).podcastPace, "natural");
+  assert.equal(normSettings({ podcastPace: "fast" }).podcastPace, "slower");
 });
 
 test("podcast: interests start as the topics, then are their own list", () => {

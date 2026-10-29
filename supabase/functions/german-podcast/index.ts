@@ -50,7 +50,13 @@ const CHUNK_CHARS = 1200;
 const SPEAK_AT_ONCE = 4;
 // Gemini prebuilt voices.
 const VOICES: Record<string, string> = { Lena: "Aoede", Jonas: "Puck" };
-const DELIVERY = "A casual German podcast between two friends in their twenties. Lena is curious and a little skeptical: amused, surprised, sometimes doubtful. Jonas is enthusiastic and gets excited when he explains things. Natural standard German (Hochdeutsch) at a relaxed conversational pace, with real reactions and short natural pauses between turns.";
+// Gemini TTS has no speed setting; the pace is asked for in the delivery
+// instructions, by the learner's choice in Settings.
+const PACES: Record<string, string> = {
+  slower: "Speak a little slower than normal conversation and very clearly, as if talking to a friend who is learning German, with short pauses between sentences and turns. Keep it natural, not exaggerated.",
+  natural: "Speak at a relaxed, natural conversational pace, with short natural pauses between turns.",
+};
+const delivery = (pace: string) => `A casual German podcast between two friends in their twenties. Lena is curious and a little skeptical: amused, surprised, sometimes doubtful. Jonas is enthusiastic and gets excited when he explains things. Natural standard German (Hochdeutsch) with real reactions. ${PACES[pace] ?? PACES.slower}`;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const list = (v: unknown, n: number, max: number) =>
@@ -152,6 +158,7 @@ async function removeAudio(request: Request, paths: string[]) {
 interface Input {
   interest: string;
   level: string;
+  pace: string;
   words: string[];
   mistakes: string[];
 }
@@ -244,18 +251,19 @@ function chunkLines(lines: Script["lines"]) {
 
 // Speaks the dialogue chunk by chunk, a few at a time, and joins the audio
 // in order. A chunk that hits the rate limit is retried once after a pause.
-async function speakDialogue(lines: Script["lines"]) {
+async function speakDialogue(lines: Script["lines"], pace: string) {
   const model = Deno.env.get("PODCAST_TTS_MODEL") || TTS_MODEL;
+  const instructions = delivery(pace);
   const chunks = chunkLines(lines);
   const audio: Awaited<ReturnType<typeof dialogueSpeech>>[] = new Array(chunks.length);
   async function speakOne(i: number) {
     const turns = chunks[i].map(l => ({ text: l.text.slice(0, 4000), voice: VOICES[l.speaker] ?? VOICES.Lena }));
     try {
-      return await dialogueSpeech(turns, DELIVERY, model);
+      return await dialogueSpeech(turns, instructions, model);
     } catch (err) {
       if (!(err instanceof AIError) || err.status !== 429) throw err;
       await new Promise(r => setTimeout(r, 3000));
-      return dialogueSpeech(turns, DELIVERY, model);
+      return dialogueSpeech(turns, instructions, model);
     }
   }
   let next = 0;
@@ -284,7 +292,7 @@ async function make(id: string, input: Input, request: Request, userId: string) 
     const script = await writeScript(input, earlier);
     const lines = script.lines.filter(l => l.text.trim());
     if (!lines.length) throw new AIError("empty", "The AI wrote an empty episode - try again.", 502);
-    const { bytes, seconds } = await speakDialogue(lines);
+    const { bytes, seconds } = await speakDialogue(lines, input.pace);
     const path = `${userId}/podcast/${id}.wav`;
     await upload(request, path, bytes);
 
@@ -325,6 +333,7 @@ serveSignedIn("Sign in to make podcast episodes.", async (body, user, request) =
   const input: Input = {
     interest,
     level: LEVELS.includes(body.level) ? body.level : "A2.2",
+    pace: Object.hasOwn(PACES, body.pace) ? body.pace : "slower",
     words: list(body.words, 20, 80),
     mistakes: list(body.mistakes, 5, 200),
   };

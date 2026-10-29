@@ -220,8 +220,8 @@ function EpisodeView({ app, ep }) {
           <div className="g-row"><Spinner /><span className="g-muted">Loading the episode…</span></div>
         )}
         <div className="g-between">
-          <div style={{ width: 150 }}>
-            <Choice label="Speed" value={rate} onChange={setRate} options={[[0.75, "0.75×"], [1, "1×"]]} />
+          <div style={{ width: 210 }}>
+            <Choice label="Speed" value={rate} onChange={setRate} options={[[0.75, "0.75×"], [0.9, "0.9×"], [1, "1×"]]} />
           </div>
           {!listened && <LinkButton mint onClick={() => app.finishEpisode(ep)}>Mark as listened</LinkButton>}
         </div>

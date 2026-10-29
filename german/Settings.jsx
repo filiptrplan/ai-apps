@@ -1,9 +1,10 @@
 // Settings: level (steers every AI word, prompt, example, podcast episode
 // and how picky corrections are), topics for suggested words, writing and
-// podcast days, new cards per day, export and sign out.
+// podcast days, how fast the podcast hosts speak, new cards per day, export
+// and sign out.
 import { LEVELS, WEEKDAYS, germanOf } from "./model.js";
 import { signOut } from "../shared/auth.js";
-import { Screen, ScreenHeader, Card, Chip, Stepper } from "./ui.jsx";
+import { Screen, ScreenHeader, Card, Chip, Choice, Stepper } from "./ui.jsx";
 
 const { useState } = React;
 
@@ -77,6 +78,15 @@ export function Settings({ app }) {
           ))}
         </div>
         <span className="g-small">Cards are every weekday; weekends are optional.</span>
+      </Card>
+
+      <Card label="Podcast">
+        <div className="g-setting">
+          <span><b>Podcast pace</b><span className="g-small">How fast new episodes are spoken</span></span>
+          <div style={{ width: 200 }}>
+            <Choice label="Podcast pace" value={settings.podcastPace} onChange={v => update({ podcastPace: v })} options={[["slower", "Slower"], ["natural", "Natural"]]} />
+          </div>
+        </div>
       </Card>
 
       <Card tight label="Cards">
