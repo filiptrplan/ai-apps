@@ -1,4 +1,4 @@
-const CACHE_NAME = "german-app-v2";
+const CACHE_NAME = "german-app-v3";
 const STATIC_CDN_HOSTS = ["unpkg.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 const ASSETS = [
   // Production serves the page at the extensionless path, so cache both.
