@@ -7,7 +7,7 @@ import { planSession, answerCard, makeCard, dayEnd, tasksFor, doneTasks, germanO
 import { previews, RATINGS } from "./fsrs.js";
 import { speak } from "./audio.js";
 import { go } from "./route.js";
-import { Screen, IconButton, ProgressBar, Noun } from "./ui.jsx";
+import { Screen, ScreenHeader, IconButton, Button, ProgressBar, Noun, Spinner } from "./ui.jsx";
 
 const { useState, useEffect, useMemo, useRef } = React;
 
@@ -121,25 +121,28 @@ export function Review({ app }) {
   const end = dayEnd(today);
 
   // The session's cards are fixed when it starts; AI suggestions needed to
-  // fill today's new-card slots become cards now.
-  const [start] = useState(() => {
-    const plan = planSession(app.cards, app.suggest, app.settings, today);
-    const made = app.suggest.slice(0, plan.fromSuggestions).map(s => makeCard(s, "ai"));
-    return { made, ids: interleave(plan.reviews, [...plan.fresh, ...made.map(c => c.id)]) };
-  });
-  const { ids } = start;
+  // fill today's new-card slots become cards now. With nothing to study
+  // while suggested words are still on their way, it waits for them.
+  const [start, setStart] = useState(null);
+  const plan = planSession(app.cards, app.suggest, app.settings, today);
+  const empty = !plan.reviews.length && !plan.fresh.length && !plan.fromSuggestions;
   useEffect(() => {
-    if (!start.made.length) return;
-    app.setCards(cs => [...cs, ...start.made]);
-    app.setSuggest(s => s.slice(start.made.length));
-  }, []);
+    if (start || (empty && app.refilling)) return;
+    const made = app.suggest.slice(0, plan.fromSuggestions).map(s => makeCard(s, "ai"));
+    setStart({ made, ids: interleave(plan.reviews, [...plan.fresh, ...made.map(c => c.id)]) });
+    if (!made.length) return;
+    const used = new Set(made.map(c => c.de));
+    app.setCards(cs => [...cs, ...made]);
+    app.setSuggest(s => s.filter(x => !used.has(x.de)));
+  }, [start, empty, app.refilling]);
+  const ids = start ? start.ids : [];
   const [shown, setShown] = useState(() => new Set());
   const [flipped, setFlipped] = useState(false);
   const [now, setNow] = useState(Date.now);
   const finishedRef = useRef(false);
 
   // Cards made from suggestions count before the deck update lands.
-  const byId = useMemo(() => new Map([...start.made, ...app.cards].map(c => [c.id, c])), [app.cards]);
+  const byId = useMemo(() => new Map([...(start ? start.made : []), ...app.cards].map(c => [c.id, c])), [app.cards, start]);
   const card = pickNext(ids, byId, shown, end, now);
   const done = ids.filter(id => {
     const c = byId.get(id);
@@ -147,13 +150,16 @@ export function Review({ app }) {
   }).length;
 
   // Finished: log the task and move on to the next one.
-  useEffect(() => {
-    if (card || finishedRef.current) return;
+  const finish = () => {
     finishedRef.current = true;
     app.markDone("cards");
     const writingLeft = tasksFor(today, app.settings).includes("writing") && !doneTasks(app.log, today).includes("writing");
     go(writingLeft ? "#/write" : "#/");
-  }, [card]);
+  };
+  useEffect(() => {
+    if (card || !ids.length || finishedRef.current) return;
+    finish();
+  }, [card, ids.length]);
 
   const rate = name => {
     if (!card) return;
@@ -185,6 +191,30 @@ export function Review({ app }) {
     return () => window.removeEventListener("keydown", on);
   }, []);
 
+  if (!start) {
+    return (
+      <Screen center label="Flashcards">
+        <div className="g-stack" style={{ alignItems: "center", textAlign: "center", gap: 12 }}>
+          <Spinner />
+          <p className="g-muted">Getting new words ready…</p>
+        </div>
+      </Screen>
+    );
+  }
+  // Nothing due and no new words (offline with an empty word stock, or a
+  // new-card limit of 0).
+  if (!ids.length) {
+    return (
+      <Screen label="Flashcards">
+        <ScreenHeader close="#/" />
+        <div className="g-stack" style={{ flex: 1, justifyContent: "center", alignItems: "center", textAlign: "center", gap: 12 }}>
+          <p style={{ fontSize: 22, fontWeight: 800 }}>No cards to study</p>
+          <p className="g-muted">{app.session ? "Nothing is due and there are no new words yet. Add a word, or try again in a minute." : "Nothing is due. Sign in on the home page to get suggested words."}</p>
+        </div>
+        <Button href="#/add" variant="mint">Add a word</Button>
+      </Screen>
+    );
+  }
   if (!card) return <Screen />;
 
   const wait = previews(card.srs, now);

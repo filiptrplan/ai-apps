@@ -98,32 +98,42 @@ export function GermanApp() {
   }, [session]);
 
   // Keeps SUGGEST_BUFFER AI-suggested words ready while online, so new
-  // cards keep coming on offline days. One refill at a time; a failed one
-  // waits for the next app start.
-  const refilling = useRef(false);
-  const refillFailed = useRef(false);
+  // cards keep coming on offline days. Each word remembers the level and
+  // topics it was picked for; after a settings change the old ones are
+  // dropped and replaced. One refill at a time; a failed one is retried
+  // after a minute.
+  const fitKey = `${settings.level}|${settings.topics.join(",")}`;
+  const usable = useMemo(() => suggest.filter(s => s.for === fitKey), [suggest, fitKey]);
+  const [refilling, setRefilling] = useState(false);
+  const [retry, setRetry] = useState(0);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
   useEffect(() => {
-    const missing = SUGGEST_BUFFER - suggest.length;
-    if (!session || missing <= 0 || refilling.current || refillFailed.current || !navigator.onLine) return;
-    refilling.current = true;
-    const known = [...cardsRef.current.map(c => c.de), ...suggest.map(s => s.de)].filter(Boolean);
+    const missing = SUGGEST_BUFFER - usable.length;
+    if (!session || missing <= 0 || refilling || !navigator.onLine) return;
+    setRefilling(true);
+    const known = [...cardsRef.current.map(c => c.de), ...usable.map(s => s.de)].filter(Boolean);
+    let retryT;
     suggestWords(missing, known, settings)
       .then(words => {
-        const fresh = words.filter(w => !findDuplicate(cardsRef.current, w));
-        setSuggest(s => [...s, ...fresh.filter(w => !s.some(x => x.de === w.de))].slice(0, SUGGEST_BUFFER * 2));
+        const fresh = words.filter(w => !findDuplicate(cardsRef.current, w)).map(({ sense, ...w }) => ({ ...w, for: fitKey }));
+        setSuggest(s => {
+          const keep = s.filter(x => x.for === fitKey);
+          return [...keep, ...fresh.filter(w => !keep.some(x => x.de === w.de))].slice(0, SUGGEST_BUFFER * 2);
+        });
       })
       .catch(() => {
-        refillFailed.current = true;
+        retryT = setTimeout(() => setRetry(n => n + 1), 60 * 1000);
       })
-      .finally(() => {
-        refilling.current = false;
-      });
-  }, [session, suggest.length, settings.level]);
+      .finally(() => setRefilling(false));
+    return () => clearTimeout(retryT);
+  }, [session, usable.length, fitKey, retry]);
 
   const app = {
-    session, today, route, settings, cards, suggest, writing, draft, log, listening, showToast,
+    session, today, route, settings, cards, writing, draft, log, listening, showToast,
+    // Suggested words that fit the current level and topics, and whether
+    // more are on their way.
+    suggest: usable, refilling,
     setCards, setSuggest, setWriting, setDraft, setListening,
     setSettings: fn => setSettings(s => (typeof fn === "function" ? fn(normSettings(s)) : fn)),
     // Marks one of today's tasks as done.
