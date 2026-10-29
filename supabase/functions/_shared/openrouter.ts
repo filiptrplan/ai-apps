@@ -1,6 +1,6 @@
-// Structured-output LLM calls through OpenRouter, for the edge functions.
-// The model must answer with JSON matching the given schema; the parsed
-// object is returned. Failures throw AIError with a user-facing message and
+// LLM calls through OpenRouter, for the edge functions: structured output
+// (the model must answer with JSON matching the given schema; the parsed
+// object is returned) and multi-speaker text-to-speech. Failures throw AIError with a user-facing message and
 // the HTTP status to pass on, plus a code for callers that want to reword it.
 //
 // Needs the OPENROUTER_API_KEY secret:
@@ -82,4 +82,40 @@ export async function structuredCompletion<T = unknown>(req: StructuredRequest):
   } catch {
     throw new AIError("unreadable", "The AI returned something unreadable - try again.", 502);
   }
+}
+
+export interface SpeechTurn {
+  text: string;
+  voice: string;
+}
+
+// Speaks a dialogue in one call (multi-speaker input, Gemini TTS) through
+// OpenRouter's speech endpoint. `instructions` direct the delivery of the
+// whole thing; the text is read as is. Returns raw 16-bit little-endian PCM
+// and its format, from the response's Content-Type
+// ("audio/pcm;rate=24000;channels=1").
+export async function dialogueSpeech(turns: SpeechTurn[], instructions: string, model: string) {
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!apiKey) throw new AIError("no_key", "The server has no OpenRouter API key configured.", 500);
+
+  let res;
+  try {
+    res = await fetch("https://openrouter.ai/api/v1/audio/speech", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "X-Title": "AI Apps - German" },
+      body: JSON.stringify({ model, input: turns, instructions, response_format: "pcm" }),
+    });
+  } catch {
+    throw new AIError("unreachable", "Couldn't reach the speech service.", 502);
+  }
+  if (res.status === 429) throw new AIError("rate_limited", "Too many requests - try again in a minute.", 429);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new AIError("failed", data?.error?.message ?? `Speech request failed (${res.status}).`, 502);
+  }
+  const type = res.headers.get("content-type") ?? "";
+  const param = (name: string, fallback: number) => Number(type.match(new RegExp(`${name}=(\\d+)`))?.[1] ?? fallback);
+  const pcm = new Uint8Array(await res.arrayBuffer());
+  if (!pcm.length) throw new AIError("empty", "The speech service returned no audio - try again.", 502);
+  return { pcm, sampleRate: param("rate", 24000), channels: param("channels", 1) };
 }

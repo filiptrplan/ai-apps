@@ -2,8 +2,8 @@
 // once by the german-tts edge function (OpenAI TTS), which stores the mp3 in
 // the private german-audio bucket at "<user id>/<sha-256 of the text>.mp3".
 // The path follows from the text, so cards don't need to remember it.
-// Episodes are stored by the german-podcast function at the path their
-// entry holds. Played files are kept in the Cache API, so they also play
+// Episodes (WAV) are stored by the german-podcast function at the path
+// their entry holds. Played files are kept in the Cache API, so they also play
 // offline.
 import { supabase } from "../shared/supabaseClient.js";
 import { callAI } from "../shared/ai.js";
@@ -19,7 +19,7 @@ async function sha256(text) {
 // A same-origin URL used only as the cache key: "<hash>" for sentences,
 // "podcast/<id>" for episodes.
 const cacheKey = name => new Request(`${location.origin}/__german-audio/${name}.mp3`);
-const episodeName = path => `podcast/${path.split("/").pop().replace(/\.mp3$/, "")}`;
+const episodeName = path => `podcast/${path.split("/").pop().replace(/\.\w+$/, "")}`;
 
 async function fromCache(name) {
   try {
@@ -34,7 +34,7 @@ async function fromCache(name) {
 async function toCache(name, blob) {
   try {
     const cache = await caches.open(CACHE);
-    await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
+    await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": blob.type || "audio/mpeg" } }));
   } catch {}
 }
 
@@ -69,7 +69,7 @@ export async function speak(text, session) {
   await current.play();
 }
 
-// An episode's mp3 as a Blob, from the cache or else downloaded (and then
+// An episode's audio as a Blob, from the cache or else downloaded (and then
 // cached). Throws a showable Error.
 export async function episodeAudio(path, session) {
   const name = episodeName(path);
