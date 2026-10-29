@@ -49,13 +49,14 @@ export const KEYS = {
 export const LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
 export const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 export const ARTICLES = ["der", "die", "das"];
+export const PODCAST_PACES = ["slowest", "slower", "natural"];
 
 export const DEFAULT_SETTINGS = {
   level: "A2.2",
   topics: ["Uni / ETH", "Klettern", "Kochen", "Bahn"],
   writingDays: [1, 3], // Di, Do
   podcastDays: [0, 2, 4], // Mo, Mi, Fr
-  podcastPace: "slower", // or "natural"; how fast the podcast hosts speak
+  podcastPace: "slower", // how fast the podcast hosts speak: one of PODCAST_PACES
   newPerDay: 6,
 };
 
@@ -126,7 +127,7 @@ export function normSettings(s) {
     topics: Array.isArray(v.topics) ? v.topics.filter(t => typeof t === "string" && t.trim()) : [],
     writingDays: Array.isArray(v.writingDays) ? v.writingDays.filter(d => d >= 0 && d < 7) : [],
     podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter(d => d >= 0 && d < 7) : [],
-    podcastPace: v.podcastPace === "natural" ? "natural" : "slower",
+    podcastPace: PODCAST_PACES.includes(v.podcastPace) ? v.podcastPace : "slower",
     newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0))),
   };
 }

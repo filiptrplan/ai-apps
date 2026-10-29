@@ -51,12 +51,15 @@ const SPEAK_AT_ONCE = 4;
 // Gemini prebuilt voices.
 const VOICES: Record<string, string> = { Lena: "Aoede", Jonas: "Puck" };
 // Gemini TTS has no speed setting; the pace is asked for in the delivery
-// instructions, by the learner's choice in Settings.
-const PACES: Record<string, string> = {
-  slower: "Speak a little slower than normal conversation and very clearly, as if talking to a friend who is learning German, with short pauses between sentences and turns. Keep it natural, not exaggerated.",
-  natural: "Speak at a relaxed, natural conversational pace, with short natural pauses between turns.",
+// instructions, by the learner's choice in Settings, with a words-per-minute
+// target (vague asks like "a little slower" barely change it: measured
+// about 161 → 148 wpm) and their level as a reference.
+const PACES: Record<string, (lvl: string) => string> = {
+  slowest: lvl => `Speak slowly and very clearly, at about 100 words per minute: much slower than a normal conversation, like a German podcast for beginners. The listener is a German learner at level ${lvl} (CEFR) and must catch every word, so pronounce each word fully, never swallow endings, and pause for about a second after each sentence and between turns. Keep the voices warm and friendly, not robotic.`,
+  slower: lvl => `Speak noticeably slower than a normal conversation, at about 120 words per minute, like a podcast made for German learners at level ${lvl} (CEFR). Speak clearly, don't swallow endings, and pause briefly after each sentence and between turns. Keep it natural and lively, not exaggerated.`,
+  natural: lvl => `Speak at a relaxed, natural conversational pace, about 150 words per minute, still clear enough for a German learner at level ${lvl} (CEFR), with short natural pauses between turns.`,
 };
-const delivery = (pace: string) => `A casual German podcast between two friends in their twenties. Lena is curious and a little skeptical: amused, surprised, sometimes doubtful. Jonas is enthusiastic and gets excited when he explains things. Natural standard German (Hochdeutsch) with real reactions. ${PACES[pace] ?? PACES.slower}`;
+const delivery = (pace: string, lvl: string) => `A casual German podcast between two friends in their twenties. Lena is curious and a little skeptical: amused, surprised, sometimes doubtful. Jonas is enthusiastic and gets excited when he explains things. Natural standard German (Hochdeutsch) with real reactions. ${(PACES[pace] ?? PACES.slower)(lvl)}`;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const list = (v: unknown, n: number, max: number) =>
@@ -251,9 +254,9 @@ function chunkLines(lines: Script["lines"]) {
 
 // Speaks the dialogue chunk by chunk, a few at a time, and joins the audio
 // in order. A chunk that hits the rate limit is retried once after a pause.
-async function speakDialogue(lines: Script["lines"], pace: string) {
+async function speakDialogue(lines: Script["lines"], pace: string, lvl: string) {
   const model = Deno.env.get("PODCAST_TTS_MODEL") || TTS_MODEL;
-  const instructions = delivery(pace);
+  const instructions = delivery(pace, lvl);
   const chunks = chunkLines(lines);
   const audio: Awaited<ReturnType<typeof dialogueSpeech>>[] = new Array(chunks.length);
   async function speakOne(i: number) {
@@ -292,7 +295,7 @@ async function make(id: string, input: Input, request: Request, userId: string) 
     const script = await writeScript(input, earlier);
     const lines = script.lines.filter(l => l.text.trim());
     if (!lines.length) throw new AIError("empty", "The AI wrote an empty episode - try again.", 502);
-    const { bytes, seconds } = await speakDialogue(lines, input.pace);
+    const { bytes, seconds } = await speakDialogue(lines, input.pace, input.level);
     const path = `${userId}/podcast/${id}.wav`;
     await upload(request, path, bytes);
 

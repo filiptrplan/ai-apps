@@ -81,12 +81,8 @@ export function Settings({ app }) {
       </Card>
 
       <Card label="Podcast">
-        <div className="g-setting">
-          <span><b>Podcast pace</b><span className="g-small">How fast new episodes are spoken</span></span>
-          <div style={{ width: 200 }}>
-            <Choice label="Podcast pace" value={settings.podcastPace} onChange={v => update({ podcastPace: v })} options={[["slower", "Slower"], ["natural", "Natural"]]} />
-          </div>
-        </div>
+        <span><b style={{ fontSize: 15 }}>Podcast pace</b><span className="g-small" style={{ display: "block" }}>How fast new episodes are spoken</span></span>
+        <Choice label="Podcast pace" value={settings.podcastPace} onChange={v => update({ podcastPace: v })} options={[["slowest", "Slowest"], ["slower", "Slower"], ["natural", "Natural"]]} />
       </Card>
 
       <Card tight label="Cards">

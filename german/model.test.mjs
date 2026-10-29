@@ -31,6 +31,7 @@ test("routine: cards on weekdays, writing and podcast on chosen days, weekends f
   assert.deepEqual(normSettings({ level: "B1.1", writingDays: [0] }).podcastDays, [0, 2, 4]);
   assert.equal(normSettings({}).podcastPace, "slower");
   assert.equal(normSettings({ podcastPace: "natural" }).podcastPace, "natural");
+  assert.equal(normSettings({ podcastPace: "slowest" }).podcastPace, "slowest");
   assert.equal(normSettings({ podcastPace: "fast" }).podcastPace, "slower");
 });
 
