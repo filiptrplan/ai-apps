@@ -148,6 +148,12 @@ export function Review({ app }) {
     const c = byId.get(id);
     return !c || (c.srs && c.srs.due >= end);
   }).length;
+  // The bar also gives half credit for cards seen but still in their
+  // learning steps, so it moves on the first pass through new cards.
+  const progress = done + ids.filter(id => {
+    const c = byId.get(id);
+    return c && shown.has(id) && c.srs && c.srs.due < end;
+  }).length / 2;
 
   // Finished: log the task and move on to the next one.
   const finish = () => {
@@ -224,7 +230,7 @@ export function Review({ app }) {
     <Screen label="Flashcards">
       <header className="g-head">
         <IconButton icon="close" label="Pause and go back" href="#/" />
-        <ProgressBar value={done} max={ids.length} />
+        <ProgressBar value={progress} max={ids.length} />
         <span className="g-count">{done}/{ids.length}</span>
       </header>
 
