@@ -4,7 +4,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "./server.js";
 
-const K = { cards: "german-cards", writing: "german-writing", settings: "german-settings" };
+const K = {
+  cards: "german-cards", writing: "german-writing", settings: "german-settings",
+  podcast: "german-podcast", episodes: "german-episodes", listening: "german-listening",
+};
 
 // In-memory stand-in for createAppData().
 function fakeAppData(initial = {}) {
@@ -58,7 +61,8 @@ test("lists every german tool", async () => {
   const { client } = await connect(seed());
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(t => t.name).filter(n => n.startsWith("german_")).sort(), [
-    "german_add_cards", "german_delete_cards", "german_get_overview", "german_get_writing", "german_search_cards", "german_update_card",
+    "german_add_cards", "german_delete_cards", "german_get_overview", "german_get_podcast", "german_get_writing",
+    "german_search_cards", "german_update_card", "german_update_podcast_interests",
   ]);
 });
 
@@ -69,6 +73,7 @@ test("overview reports level, deck counts and mistakes", async () => {
   assert.equal(o.deck.total, 1);
   assert.equal(o.deck.dueToday, 1);
   assert.deepEqual(o.frequentMistakes, [{ grammar: "weil → verb at the end", count: 1 }]);
+  assert.deepEqual(o.settings.podcastDays, ["Mo", "Mi", "Fr"]);
 });
 
 test("add_cards fills strings with the AI at the user's level and skips duplicates", async () => {
@@ -113,4 +118,38 @@ test("writing history lists sessions with labelled fixes", async () => {
   const { call } = await connect(seed());
   const w = await call("german_get_writing");
   assert.equal(w.sessions[0].fixes[0].grammar, "weil → verb at the end");
+});
+
+const episode = {
+  id: "ep1", interest: "Bouldern", status: "ready", started: Date.UTC(2026, 9, 28, 9), title: "Bouldern in Zürich",
+  summary: "Where to boulder in Zürich and how the grades work.", seconds: 362, path: "u/podcast/ep1.mp3",
+  keyWords: [{ de: "der Griff", en: "the hold" }],
+  lines: [{ speaker: "Lena", text: "Hallo und willkommen!" }, { speaker: "Jonas", text: "Heute geht es ums Bouldern." }],
+};
+
+test("get_podcast lists interests and episodes, with the transcript on request", async () => {
+  const { call } = await connect({
+    ...seed(),
+    [K.episodes]: { episodes: [{ id: "ep2", interest: "Kochen", status: "generating", started: Date.now() }, episode], history: [] },
+    [K.listening]: { resources: [], current: null, log: [{ id: "l1", day: "2026-10-28", res: "podcast", episode: "ep1", title: "x", min: 6 }] },
+  });
+  const p = await call("german_get_podcast");
+  assert.deepEqual(p.interests, ["Uni / ETH", "Klettern", "Kochen", "Bahn"]); // the default topics until edited
+  assert.deepEqual(p.episodes[0], { id: "ep2", interest: "Kochen", status: "generating", started: p.episodes[0].started });
+  assert.equal(p.episodes[1].minutes, 6);
+  assert.deepEqual(p.episodes[1].listened, ["2026-10-28"]);
+  assert.equal("transcript" in p.episodes[1], false);
+
+  const one = await call("german_get_podcast", { episodeId: "ep1" });
+  assert.equal(one.episode.transcript[1].speaker, "Jonas");
+  assert.match((await call("german_get_podcast", { episodeId: "gone" })).error, /only the last 10/);
+});
+
+test("update_podcast_interests adds and removes, starting from the topics", async () => {
+  const { call, appData } = await connect(seed());
+  const r = await call("german_update_podcast_interests", { add: ["AI safety", "ai safety", "Kochen"], remove: ["bahn"] });
+  assert.deepEqual(r.interests, ["Uni / ETH", "Klettern", "Kochen", "AI safety"]);
+  assert.deepEqual(appData.rows.get(K.podcast).interests, r.interests);
+  const again = await call("german_update_podcast_interests", { add: ["AI safety"] });
+  assert.deepEqual(again.interests, r.interests);
 });

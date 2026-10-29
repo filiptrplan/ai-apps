@@ -7,8 +7,8 @@ import { useSession } from "../shared/auth.js";
 import { supabase } from "../shared/supabaseClient.js";
 import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import {
-  APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, SUGGEST_BUFFER,
-  dayKey, normSettings, normListening, makeCard, findDuplicate,
+  APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, DEFAULT_PODCAST, SUGGEST_BUFFER,
+  dayKey, normSettings, normListening, normPodcast, makeCard, findDuplicate, logEpisode, episodeMinutes,
 } from "./model.js";
 import { suggestWords } from "./ai.js";
 import { Icon, Toast, useScrollTop } from "./ui.jsx";
@@ -20,6 +20,7 @@ import { Deck } from "./Deck.jsx";
 import { Write } from "./Write.jsx";
 import { History } from "./History.jsx";
 import { Listening } from "./Listening.jsx";
+import { Podcast } from "./Podcast.jsx";
 import { Progress } from "./Progress.jsx";
 import { Settings } from "./Settings.jsx";
 
@@ -81,9 +82,11 @@ export function GermanApp() {
   const [draft, setDraft] = useSyncedStorage(APP_ID, KEYS.draft, null);
   const [log, setLog] = useSyncedStorage(APP_ID, KEYS.log, NO_LOG);
   const [storedListening, setListening] = useSyncedStorage(APP_ID, KEYS.listening, DEFAULT_LISTENING);
+  const [storedPodcast, setPodcast] = useSyncedStorage(APP_ID, KEYS.podcast, DEFAULT_PODCAST);
   const [storedSettings, setSettings] = useSyncedStorage(APP_ID, KEYS.settings, DEFAULT_SETTINGS);
   const settings = useMemo(() => normSettings(storedSettings), [storedSettings]);
   const listening = useMemo(() => normListening(storedListening), [storedListening]);
+  const podcast = useMemo(() => normPodcast(storedPodcast, settings), [storedPodcast, settings]);
 
   const [toast, setToast] = useState(null);
   const toastT = useRef(null);
@@ -130,14 +133,22 @@ export function GermanApp() {
   }, [session, usable.length, fitKey, retry]);
 
   const app = {
-    session, today, route, settings, cards, writing, draft, log, listening, showToast,
+    session, today, route, settings, cards, writing, draft, log, listening, podcast, showToast,
     // Suggested words that fit the current level and topics, and whether
     // more are on their way.
     suggest: usable, refilling,
     setCards, setSuggest, setWriting, setDraft, setListening,
     setSettings: fn => setSettings(s => (typeof fn === "function" ? fn(normSettings(s)) : fn)),
+    setPodcast: fn => setPodcast(p => fn(normPodcast(p, settings))),
     // Marks one of today's tasks as done.
     markDone: task => setLog(l => ({ ...l, [today]: { ...(l[today] || {}), [task]: true } })),
+    // A podcast episode was listened to: logs its minutes and ticks off
+    // today's podcast task.
+    finishEpisode(ep) {
+      setListening(l => logEpisode(normListening(l), ep, today));
+      app.markDone("podcast");
+      showToast(`Logged ${episodeMinutes(ep)} min · ${ep.title}`);
+    },
     // Adds a card unless the same German word is already in the deck.
     addCard(fields, source) {
       const dup = findDuplicate(cards, fields);
@@ -162,6 +173,7 @@ export function GermanApp() {
     case "deck": screen = <Deck app={app} />; break;
     case "history": screen = <History app={app} sessionId={route.param} />; break;
     case "listening": screen = <Listening app={app} />; break;
+    case "podcast": screen = <Podcast app={app} episodeId={route.param} />; break;
     case "settings": screen = <Settings app={app} />; break;
     case "progress": screen = <Progress app={app} />; tabs = true; break;
     default: screen = <Today app={app} />; tabs = true;

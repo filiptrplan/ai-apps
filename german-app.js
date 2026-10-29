@@ -1,5 +1,5 @@
 (() => {
-  // node_modules/tslib/tslib.es6.mjs
+  // node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
   function __rest(s, e) {
     var t = {};
     for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
@@ -39,7 +39,7 @@
     });
   }
 
-  // node_modules/@supabase/functions-js/dist/module/helper.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/helper.js
   var resolveFetch = (customFetch) => {
     if (customFetch) {
       return (...args) => customFetch(...args);
@@ -47,7 +47,7 @@
     return (...args) => fetch(...args);
   };
 
-  // node_modules/@supabase/functions-js/dist/module/types.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/types.js
   var FunctionsError = class extends Error {
     constructor(message, name = "FunctionsError", context) {
       super(message);
@@ -96,7 +96,7 @@
     FunctionRegion2["UsWest2"] = "us-west-2";
   })(FunctionRegion || (FunctionRegion = {}));
 
-  // node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
+  // node_modules/.pnpm/@supabase+functions-js@2.110.0/node_modules/@supabase/functions-js/dist/module/FunctionsClient.js
   var FunctionsClient = class {
     /**
      * Creates a new Functions client bound to an Edge Functions URL.
@@ -364,7 +364,7 @@
     }
   };
 
-  // node_modules/@supabase/postgrest-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+postgrest-js@2.110.0/node_modules/@supabase/postgrest-js/dist/index.mjs
   var DEFAULT_MAX_RETRIES = 3;
   var getRetryDelay = (attemptIndex) => Math.min(1e3 * 2 ** attemptIndex, 3e4);
   var RETRYABLE_STATUS_CODES = [520, 503];
@@ -4142,7 +4142,7 @@ ${cause.stack}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
   var WebSocketFactory = class {
     /**
      * Static-only utility – prevent instantiation.
@@ -4245,10 +4245,10 @@ Suggested solution: ${env.workaround}`;
   };
   var websocket_factory_default = WebSocketFactory;
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
   var version = "2.110.0";
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
   var DEFAULT_VERSION = `realtime-js/${version}`;
   var VSN_1_0_0 = "1.0.0";
   var VSN_2_0_0 = "2.0.0";
@@ -4277,7 +4277,7 @@ Suggested solution: ${env.workaround}`;
     closed: "closed"
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/serializer.js
   var Serializer = class {
     constructor(allowedMetadataKeys) {
       this.HEADER_LENGTH = 1;
@@ -4417,7 +4417,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/transformers.js
   var PostgresTypes;
   (function(PostgresTypes2) {
     PostgresTypes2["abstime"] = "abstime";
@@ -4580,7 +4580,7 @@ Suggested solution: ${env.workaround}`;
     return wsUrl.href;
   };
 
-  // node_modules/@supabase/phoenix/priv/static/phoenix.mjs
+  // node_modules/.pnpm/@supabase+phoenix@0.4.4/node_modules/@supabase/phoenix/priv/static/phoenix.mjs
   var closure = (value) => {
     if (typeof value === "function") {
       return (
@@ -6356,7 +6356,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/presenceAdapter.js
   var PresenceAdapter = class _PresenceAdapter {
     constructor(channel, opts) {
       const phoenixOptions = phoenixPresenceOptions(opts);
@@ -6446,7 +6446,7 @@ Suggested solution: ${env.workaround}`;
     return (currentPresences === null || currentPresences === void 0 ? void 0 : currentPresences.metas) ? transformState(currentPresences) : [];
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePresence.js
   var REALTIME_PRESENCE_LISTEN_EVENTS;
   (function(REALTIME_PRESENCE_LISTEN_EVENTS2) {
     REALTIME_PRESENCE_LISTEN_EVENTS2["SYNC"] = "sync";
@@ -6480,7 +6480,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/lib/normalizeChannelError.js
   function normalizeChannelError(reason) {
     if (reason instanceof Error) {
       return reason;
@@ -6499,7 +6499,7 @@ Suggested solution: ${env.workaround}`;
     return new Error("channel error: connection lost");
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/channelAdapter.js
   var ChannelAdapter = class {
     constructor(socket, topic, params) {
       const phoenixParams = phoenixChannelParams(params);
@@ -6598,7 +6598,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimePostgresFilterBuilder.js
   var PostgrestReservedCharsRegexp2 = /[,()"\\]/;
   var needsQuoting = (value) => PostgrestReservedCharsRegexp2.test(value) || value !== value.trim();
   var quote = (value) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -6712,7 +6712,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeChannel.js
   var REALTIME_POSTGRES_CHANGES_LISTEN_EVENT;
   (function(REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2) {
     REALTIME_POSTGRES_CHANGES_LISTEN_EVENT2["ALL"] = "*";
@@ -7414,7 +7414,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/phoenix/socketAdapter.js
   var SocketAdapter = class {
     constructor(endPoint, options) {
       this.socket = new Socket(endPoint, options);
@@ -7523,7 +7523,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
+  // node_modules/.pnpm/@supabase+realtime-js@2.110.0/node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
   var CONNECTION_TIMEOUTS = {
     HEARTBEAT_INTERVAL: 25e3,
     RECONNECT_DELAY: 10,
@@ -8162,7 +8162,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/iceberg-js/dist/index.mjs
+  // node_modules/.pnpm/iceberg-js@0.8.1/node_modules/iceberg-js/dist/index.mjs
   var IcebergError = class extends Error {
     constructor(message, opts) {
       var _a;
@@ -8700,7 +8700,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/storage-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+storage-js@2.110.0/node_modules/@supabase/storage-js/dist/index.mjs
   function _typeof2(o) {
     "@babel/helpers - typeof";
     return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -11492,10 +11492,10 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/version.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
   var version3 = "2.110.0";
 
-  // node_modules/@supabase/auth-js/dist/module/lib/constants.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
   var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
   var AUTO_REFRESH_TICK_THRESHOLD = 3;
   var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
@@ -11513,7 +11513,7 @@ Suggested solution: ${env.workaround}`;
   var BASE64URL_REGEX = /^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;
   var JWKS_TTL = 10 * 60 * 1e3;
 
-  // node_modules/@supabase/auth-js/dist/module/lib/errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/errors.js
   var AuthError = class extends Error {
     constructor(message, status, code) {
       super(message);
@@ -11636,7 +11636,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/base64url.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/base64url.js
   var TO_BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split("");
   var IGNORE_BASE64URL = " 	\n\r=".split("");
   var FROM_BASE64URL = (() => {
@@ -11798,7 +11798,7 @@ Suggested solution: ${env.workaround}`;
     return result.join("");
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/helpers.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/helpers.js
   function expiresAt(expiresIn) {
     const timeNow = Math.round(Date.now() / 1e3);
     return timeNow + expiresIn;
@@ -12085,7 +12085,7 @@ Suggested solution: ${env.workaround}`;
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/fetch.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
   var _getErrorMessage2 = (err) => {
     if (typeof err === "object" && err !== null) {
       const e = err;
@@ -12252,10 +12252,10 @@ Suggested solution: ${env.workaround}`;
     return !!data.access_token && !!data.refresh_token && !!data.expires_in;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/types.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/types.js
   var SIGN_OUT_SCOPES = ["global", "local", "others"];
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueAdminApi.js
   var GoTrueAdminApi = class {
     /**
      * Creates an admin API client that can be used to manage users and OAuth clients.
@@ -13332,7 +13332,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/local-storage.js
   function memoryLocalStorageAdapter(store = {}) {
     return {
       getItem: (key) => {
@@ -13347,7 +13347,7 @@ Suggested solution: ${env.workaround}`;
     };
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/locks.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/locks.js
   var internals = {
     /**
      * @experimental
@@ -13361,7 +13361,7 @@ Suggested solution: ${env.workaround}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/polyfills.js
   function polyfillGlobalThis() {
     if (typeof globalThis === "object")
       return;
@@ -13381,7 +13381,7 @@ Suggested solution: ${env.workaround}`;
     }
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/web3/ethereum.js
   function getAddress(address) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
       throw new Error(`@supabase/auth-js: Address "${address}" is invalid.`);
@@ -13449,7 +13449,7 @@ Request ID: ${requestId}`;
 ${suffix}`;
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.errors.js
   var WebAuthnError = class extends Error {
     constructor({ message, code, cause, name }) {
       var _a;
@@ -13624,7 +13624,7 @@ ${suffix}`;
     });
   }
 
-  // node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/lib/webauthn.js
   var WebAuthnAbortService = class {
     /**
      * Create an abort signal for a new WebAuthn operation.
@@ -14147,7 +14147,7 @@ ${suffix}`;
     }
   };
 
-  // node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/GoTrueClient.js
   polyfillGlobalThis();
   var DEFAULT_OPTIONS = {
     url: GOTRUE_URL,
@@ -19246,11 +19246,11 @@ ${suffix}`;
   GoTrueClient.nextInstanceID = {};
   var GoTrueClient_default = GoTrueClient;
 
-  // node_modules/@supabase/auth-js/dist/module/AuthClient.js
+  // node_modules/.pnpm/@supabase+auth-js@2.110.0/node_modules/@supabase/auth-js/dist/module/AuthClient.js
   var AuthClient = GoTrueClient_default;
   var AuthClient_default = AuthClient;
 
-  // node_modules/@supabase/supabase-js/dist/index.mjs
+  // node_modules/.pnpm/@supabase+supabase-js@2.110.0/node_modules/@supabase/supabase-js/dist/index.mjs
   var version4 = "2.110.0";
   var JS_ENV = "";
   var JS_RUNTIME_VERSION;
@@ -20449,6 +20449,8 @@ ${suffix}`;
     draft: "german-draft",
     log: "german-log",
     listening: "german-listening",
+    podcast: "german-podcast",
+    episodes: "german-episodes",
     settings: "german-settings"
   };
   var LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
@@ -20459,6 +20461,8 @@ ${suffix}`;
     topics: ["Uni / ETH", "Klettern", "Kochen", "Bahn"],
     writingDays: [1, 3],
     // Di, Do
+    podcastDays: [0, 2, 4],
+    // Mo, Mi, Fr
     newPerDay: 6
   };
   var DEFAULT_LISTENING = {
@@ -20505,6 +20509,7 @@ ${suffix}`;
       level: LEVELS.includes(v.level) ? v.level : DEFAULT_SETTINGS.level,
       topics: Array.isArray(v.topics) ? v.topics.filter((t) => typeof t === "string" && t.trim()) : [],
       writingDays: Array.isArray(v.writingDays) ? v.writingDays.filter((d) => d >= 0 && d < 7) : [],
+      podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter((d) => d >= 0 && d < 7) : [],
       newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0)))
     };
   }
@@ -20514,11 +20519,12 @@ ${suffix}`;
     const tasks = [];
     if (wd2 < 5) tasks.push("cards");
     if (settings.writingDays.includes(wd2)) tasks.push("writing");
+    if (settings.podcastDays.includes(wd2)) tasks.push("podcast");
     return tasks;
   }
   function doneTasks(log, key) {
     const day = log[key] || {};
-    return ["cards", "writing"].filter((t) => day[t]);
+    return ["cards", "writing", "podcast"].filter((t) => day[t]);
   }
   var text = (v) => typeof v === "string" ? v.trim() : "";
   function makeCard(fields, source, now = Date.now()) {
@@ -20662,6 +20668,43 @@ ${suffix}`;
     const set = new Set(keys);
     return log.filter((e) => set.has(e.day)).reduce((n, e) => n + e.min, 0);
   }
+  var EPISODE_STALE_MS = 10 * 60 * 1e3;
+  var DEFAULT_PODCAST = { interests: null };
+  var DEFAULT_EPISODES = { episodes: [], history: [] };
+  function normPodcast(p, settings) {
+    const interests = Array.isArray(p == null ? void 0 : p.interests) ? p.interests : settings.topics;
+    return { interests: interests.filter((t) => typeof t === "string" && t.trim()) };
+  }
+  function normEpisodes(v, now = Date.now()) {
+    const episodes = (Array.isArray(v == null ? void 0 : v.episodes) ? v.episodes : []).map((e) => e.status === "generating" && now - e.started >= EPISODE_STALE_MS ? { ...e, status: "failed", error: "Making the episode took too long - try again." } : e);
+    return { episodes, history: Array.isArray(v == null ? void 0 : v.history) ? v.history : [] };
+  }
+  var episodeMinutes = (ep) => Math.max(1, Math.round((ep.seconds || 0) / 60));
+  function nextInterest(interests, history2) {
+    if (!interests.length) return null;
+    const last = (t) => {
+      const i = history2.findIndex((h) => h.interest === t);
+      return i === -1 ? Infinity : i;
+    };
+    return [...interests].sort((a, b) => last(b) - last(a))[0];
+  }
+  function podcastInput(cards, writing) {
+    const words = cards.filter((c) => c.kind !== "gap" && c.kind !== "rule");
+    const fresh = words.filter(isNew).sort(newOrder).slice(0, 5);
+    const shaky = words.filter((c) => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, 7);
+    const mistakes = fixCounts(writing).slice(0, 3).map((f) => pointById(f.point)).filter(Boolean).map((p) => `${p.label} (e.g. ${p.model})`);
+    return { words: [...fresh, ...shaky].map(germanOf), mistakes };
+  }
+  function logEpisode(listening, ep, key) {
+    const entry = { id: uid(), day: key, res: "podcast", episode: ep.id, title: ep.title, min: episodeMinutes(ep) };
+    return { ...listening, log: [entry, ...listening.log] };
+  }
+  function tokenize(line) {
+    return line.split(/\s+/).filter(Boolean).map((t) => {
+      const m = t.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u);
+      return { pre: m[1], word: m[2], post: m[3] };
+    });
+  }
   function stats(cards, writing, listening, log, key, now = Date.now()) {
     const week = weekKeys(key);
     const tomorrowEnd = dayEnd(addDays(key, 1));
@@ -20746,6 +20789,13 @@ ${suffix}`;
       focus: p ? { id: p.id, label: p.label } : null
     });
   }
+  function startEpisode(interest, cards, writing, settings) {
+    return callAI("german-podcast", { interest, level: settings.level, ...podcastInput(cards, writing) });
+  }
+  async function wordsFromTranscript(items, settings) {
+    const { items: out } = await callAI("german-ai", { task: "words", items, level: settings.level });
+    return out;
+  }
 
   // german/ui.jsx
   var { useEffect: useEffect3 } = React;
@@ -20767,7 +20817,8 @@ ${suffix}`;
     trash: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M4 7h16M10 11v6M14 11v6" }), /* @__PURE__ */ React.createElement("path", { d: "M6 7l1 13h10l1-13M9 7V4h6v3" })),
     up: /* @__PURE__ */ React.createElement("path", { d: "M6 15l6-6 6 6" }),
     down: /* @__PURE__ */ React.createElement("path", { d: "M6 9l6 6 6-6" }),
-    external: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M14 4h6v6M20 4l-9 9" }), /* @__PURE__ */ React.createElement("path", { d: "M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" }))
+    external: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M14 4h6v6M20 4l-9 9" }), /* @__PURE__ */ React.createElement("path", { d: "M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" })),
+    headphones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M4 15v-3a8 8 0 0 1 16 0v3" }), /* @__PURE__ */ React.createElement("rect", { x: "3", y: "14", width: "5", height: "7", rx: "2" }), /* @__PURE__ */ React.createElement("rect", { x: "16", y: "14", width: "5", height: "7", rx: "2" }))
   };
   function Icon({ name, size = 20, stroke = 2.2 }) {
     if (name === "play") {
@@ -20883,8 +20934,11 @@ ${suffix}`;
   // german/Today.jsx
   var TASK = {
     cards: { name: "Flashcards", icon: "cards", href: "#/cards", variant: "mint" },
-    writing: { name: "Writing", icon: "pen", href: "#/write", variant: "amber" }
+    writing: { name: "Writing", icon: "pen", href: "#/write", variant: "amber" },
+    podcast: { name: "Podcast", icon: "headphones", href: "#/podcast", variant: "mint" }
   };
+  var TASK_WORD = { cards: "cards", writing: "writing", podcast: "the podcast" };
+  var andList = (items) => items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}` : items[0] || "";
   function germanDate(key) {
     const [y, m, d] = key.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
@@ -20895,6 +20949,7 @@ ${suffix}`;
   }
   function taskMeta(task, cardCount) {
     if (task === "cards") return `${sessionMinutes(cardCount)} min`;
+    if (task === "podcast") return "6 min";
     return "10 min";
   }
   function Hero({ icon, title, sub, children }) {
@@ -20921,9 +20976,9 @@ ${suffix}`;
     const next = tasksFor(tomorrow, app.settings);
     const dueTomorrow = app.cards.filter((c) => c.srs && c.srs.due < dayEnd(tomorrow)).length;
     const nextCount = Math.min(dueTomorrow + app.settings.newPerDay, 60);
-    const names = tasks.map((t) => t === "cards" ? "Cards" : "writing");
-    const tomorrowText = next.length ? `Tomorrow: ${next.map((t) => t === "cards" ? `cards, about ${sessionMinutes(nextCount)} min` : "writing").join(" + ")}.` : "Tomorrow is free.";
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "g-done-mark" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 48, stroke: 2.4 })), /* @__PURE__ */ React.createElement("h1", { style: { marginTop: 8, fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em" } }, "Fertig f\xFCr heute."), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { fontSize: 16 } }, names.join(" and ").replace(/^./, (c) => c.toUpperCase()), " done.", /* @__PURE__ */ React.createElement("br", null), tomorrowText), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 24, width: "100%" } }, /* @__PURE__ */ React.createElement(ListenLog, { app })));
+    const names = tasks.map((t) => TASK_WORD[t]);
+    const tomorrowText = next.length ? `Tomorrow: ${next.map((t) => t === "cards" ? `cards, about ${sessionMinutes(nextCount)} min` : TASK_WORD[t]).join(" + ")}.` : "Tomorrow is free.";
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "g-done-mark" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 48, stroke: 2.4 })), /* @__PURE__ */ React.createElement("h1", { style: { marginTop: 8, fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em" } }, "Fertig f\xFCr heute."), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { fontSize: 16 } }, andList(names).replace(/^./, (c) => c.toUpperCase()), " done.", /* @__PURE__ */ React.createElement("br", null), tomorrowText), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 24, width: "100%" } }, /* @__PURE__ */ React.createElement(ListenLog, { app })));
   }
   function Today({ app }) {
     const { today, settings, log } = app;
@@ -20939,7 +20994,7 @@ ${suffix}`;
       body = /* @__PURE__ */ React.createElement(Hero, { icon: "sun", title: "Frei heute", sub: "Nothing planned today." }, cardCount > 0 && !done.includes("cards") && /* @__PURE__ */ React.createElement(Button, { href: "#/cards", variant: "outline" }, "Review ", cardCount, " cards anyway"));
     } else {
       const t = TASK[now];
-      const sub = now === "cards" ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} \xB7 about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready\u2026" : "Nothing due right now" : "3\u20135 sentences \xB7 about 10 min";
+      const sub = now === "cards" ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} \xB7 about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready\u2026" : "Nothing due right now" : now === "podcast" ? "One episode \xB7 about 6 min" : "3\u20135 sentences \xB7 about 10 min";
       body = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Hero, { icon: t.icon, title: t.name, sub }, /* @__PURE__ */ React.createElement(Button, { href: t.href, variant: t.variant }, "Start")), /* @__PURE__ */ React.createElement(TaskList, { tasks, done, now, cardCount }));
     }
     return /* @__PURE__ */ React.createElement(Screen, { tab: true, label: "Today" }, /* @__PURE__ */ React.createElement("header", { className: "g-between g-mobile-only" }, /* @__PURE__ */ React.createElement("span", { className: "g-date", style: { paddingLeft: 4 } }, germanDate(today)), /* @__PURE__ */ React.createElement(IconButton, { icon: "plus", label: "Add a word", href: "#/add", variant: "accent" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, maxWidth: 520, width: "100%", margin: "0 auto", textAlign: "center", paddingBottom: 48 } }, /* @__PURE__ */ React.createElement("span", { className: "g-date g-desktop-only" }, germanDate(today)), body));
@@ -20952,20 +21007,21 @@ ${suffix}`;
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text2.trim()));
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
   }
-  var cacheKey = (hash) => new Request(`${location.origin}/__german-audio/${hash}.mp3`);
-  async function fromCache(hash) {
+  var cacheKey = (name) => new Request(`${location.origin}/__german-audio/${name}.mp3`);
+  var episodeName = (path) => `podcast/${path.split("/").pop().replace(/\.mp3$/, "")}`;
+  async function fromCache(name) {
     try {
       const cache = await caches.open(CACHE);
-      const hit = await cache.match(cacheKey(hash));
+      const hit = await cache.match(cacheKey(name));
       return hit ? await hit.blob() : null;
     } catch {
       return null;
     }
   }
-  async function toCache(hash, blob) {
+  async function toCache(name, blob) {
     try {
       const cache = await caches.open(CACHE);
-      await cache.put(cacheKey(hash), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
+      await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
     } catch {
     }
   }
@@ -20993,6 +21049,26 @@ ${suffix}`;
     }
     current = new Audio(URL.createObjectURL(blob));
     await current.play();
+  }
+  async function episodeAudio(path, session) {
+    const name = episodeName(path);
+    const cached = await fromCache(name);
+    if (cached) return cached;
+    if (!session) throw new Error("Sign in on the home page to play episodes.");
+    const { data } = await supabase.storage.from(BUCKET).download(path);
+    if (!data) throw new Error("Couldn't load the episode.");
+    await toCache(name, data);
+    return data;
+  }
+  async function forgetEpisodes(keepPaths) {
+    try {
+      const keep = new Set(keepPaths.map((p) => cacheKey(episodeName(p)).url));
+      const cache = await caches.open(CACHE);
+      for (const req of await cache.keys()) {
+        if (req.url.includes("/__german-audio/podcast/") && !keep.has(req.url)) await cache.delete(req);
+      }
+    } catch {
+    }
   }
 
   // german/Review.jsx
@@ -21463,9 +21539,9 @@ ${suffix}`;
     const save = (patch) => app.setListening((l) => ({ ...listening, ...patch }));
     const week = weekKeys(today);
     const weekLog = log.filter((e) => week.includes(e.day));
-    const name = (id) => {
+    const name = (e) => {
       var _a;
-      return ((_a = resources.find((r) => r.id === id)) == null ? void 0 : _a.name) || "Removed resource";
+      return e.res === "podcast" ? `Podcast \xB7 ${e.title}` : ((_a = resources.find((r) => r.id === e.res)) == null ? void 0 : _a.name) || "Removed resource";
     };
     const logMinutes = (min) => {
       save({ log: [{ id: uid(), day: today, res: current2, min }, ...log] });
@@ -21476,17 +21552,203 @@ ${suffix}`;
       [next[i], next[i + d]] = [next[i + d], next[i]];
       save({ resources: next });
     };
-    return /* @__PURE__ */ React.createElement(Screen, { label: "Listening" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Listening", big: true }), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { margin: "0 4px" } }, "Aim to follow about 70%. German subtitles, not English. Doesn't count toward your daily time."), res && /* @__PURE__ */ React.createElement(Card, { big: true, label: "Current resource" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "var(--mint)" } }, "Listening now"), res.level && /* @__PURE__ */ React.createElement(Tag, null, res.level)), /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 24, fontWeight: 800 } }, res.name), res.desc && /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, res.desc)), /* @__PURE__ */ React.createElement("div", { className: "g-grid2", style: { gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "mint", onClick: () => logMinutes(15) }, "+15 min"), /* @__PURE__ */ React.createElement(Button, { size: "md", onClick: () => logMinutes(30) }, "+30 min")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, res.url ? /* @__PURE__ */ React.createElement(LinkButton, { href: res.url }, "Open \u2197") : /* @__PURE__ */ React.createElement("span", null), idx < resources.length - 1 && /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "outline", onClick: () => save({ current: resources[idx + 1].id }) }, "Feels easy \u2014 move up"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Your list", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Your list"), resources.length > 0 && /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, resources.map((r, i) => /* @__PURE__ */ React.createElement("li", { key: r.id }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { padding: "10px 8px 10px 18px", borderBottom: i < resources.length - 1 ? "1px solid var(--line)" : 0 } }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "t", style: { background: "none", border: 0, padding: 0, textAlign: "left", flex: 1 }, onClick: () => save({ current: r.id }), "aria-label": `Listen to ${r.name} now` }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15, color: r.id === current2 ? "var(--mint)" : void 0 } }, r.name), /* @__PURE__ */ React.createElement("span", null, [r.level, r.desc].filter(Boolean).join(" \xB7 "))), /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 0 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "up", label: `Move ${r.name} up`, variant: "ghost", small: true, disabled: i === 0, onClick: () => move(i, -1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "down", label: `Move ${r.name} down`, variant: "ghost", small: true, disabled: i === resources.length - 1, onClick: () => move(i, 1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "trash", label: `Remove ${r.name}`, variant: "ghost", small: true, iconSize: 16, onClick: () => save({ resources: resources.filter((x) => x.id !== r.id) }) })))))), adding ? /* @__PURE__ */ React.createElement(AddResource, { onCancel: () => setAdding(false), onAdd: (r) => {
+    return /* @__PURE__ */ React.createElement(Screen, { label: "Listening" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Listening", big: true }), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { margin: "0 4px" } }, "Aim to follow about 70%. German subtitles, not English. Doesn't count toward your daily time."), /* @__PURE__ */ React.createElement(NavList, { label: "Podcast", items: [{ href: "#/podcast", label: "AI podcast", note: "Episodes about your interests" }] }), res && /* @__PURE__ */ React.createElement(Card, { big: true, label: "Current resource" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "var(--mint)" } }, "Listening now"), res.level && /* @__PURE__ */ React.createElement(Tag, null, res.level)), /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 24, fontWeight: 800 } }, res.name), res.desc && /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, res.desc)), /* @__PURE__ */ React.createElement("div", { className: "g-grid2", style: { gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "mint", onClick: () => logMinutes(15) }, "+15 min"), /* @__PURE__ */ React.createElement(Button, { size: "md", onClick: () => logMinutes(30) }, "+30 min")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, res.url ? /* @__PURE__ */ React.createElement(LinkButton, { href: res.url }, "Open \u2197") : /* @__PURE__ */ React.createElement("span", null), idx < resources.length - 1 && /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "outline", onClick: () => save({ current: resources[idx + 1].id }) }, "Feels easy \u2014 move up"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Your list", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Your list"), resources.length > 0 && /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, resources.map((r, i) => /* @__PURE__ */ React.createElement("li", { key: r.id }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { padding: "10px 8px 10px 18px", borderBottom: i < resources.length - 1 ? "1px solid var(--line)" : 0 } }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "t", style: { background: "none", border: 0, padding: 0, textAlign: "left", flex: 1 }, onClick: () => save({ current: r.id }), "aria-label": `Listen to ${r.name} now` }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15, color: r.id === current2 ? "var(--mint)" : void 0 } }, r.name), /* @__PURE__ */ React.createElement("span", null, [r.level, r.desc].filter(Boolean).join(" \xB7 "))), /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 0 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "up", label: `Move ${r.name} up`, variant: "ghost", small: true, disabled: i === 0, onClick: () => move(i, -1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "down", label: `Move ${r.name} down`, variant: "ghost", small: true, disabled: i === resources.length - 1, onClick: () => move(i, 1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "trash", label: `Remove ${r.name}`, variant: "ghost", small: true, iconSize: 16, onClick: () => save({ resources: resources.filter((x) => x.id !== r.id) }) })))))), adding ? /* @__PURE__ */ React.createElement(AddResource, { onCancel: () => setAdding(false), onAdd: (r) => {
       save({ resources: [...resources, r], current: current2 || r.id });
       setAdding(false);
-    } }) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setAdding(true) }, "+ Add a resource"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "This week", className: "g-stack", style: { gap: 6 } }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "This week"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, minutesIn(log, week), " min")), weekLog.length ? weekLog.map((e) => /* @__PURE__ */ React.createElement("div", { key: e.id, className: "g-between", style: { fontSize: 14, padding: "0 4px" } }, /* @__PURE__ */ React.createElement("span", null, wd(e.day), " \xB7 ", name(e.res)), /* @__PURE__ */ React.createElement("span", { className: "g-row", style: { gap: 4, color: "var(--muted)" } }, e.min, " min", /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Remove this entry", variant: "ghost", small: true, iconSize: 14, onClick: () => save({ log: log.filter((x) => x.id !== e.id) }) })))) : /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Nothing logged yet this week.")));
+    } }) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setAdding(true) }, "+ Add a resource"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "This week", className: "g-stack", style: { gap: 6 } }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "This week"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, minutesIn(log, week), " min")), weekLog.length ? weekLog.map((e) => /* @__PURE__ */ React.createElement("div", { key: e.id, className: "g-between", style: { fontSize: 14, padding: "0 4px" } }, /* @__PURE__ */ React.createElement("span", null, wd(e.day), " \xB7 ", name(e)), /* @__PURE__ */ React.createElement("span", { className: "g-row", style: { gap: 4, color: "var(--muted)" } }, e.min, " min", /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Remove this entry", variant: "ghost", small: true, iconSize: 14, onClick: () => save({ log: log.filter((x) => x.id !== e.id) }) })))) : /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Nothing logged yet this week.")));
+  }
+
+  // german/episodes.js
+  var { useState: useState9, useEffect: useEffect7, useCallback: useCallback2 } = React;
+  function readLocal2() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.episodes)) || DEFAULT_EPISODES;
+    } catch {
+      return DEFAULT_EPISODES;
+    }
+  }
+  function useEpisodes(session) {
+    const [value, setValue] = useState9(readLocal2);
+    const userId = session == null ? void 0 : session.user.id;
+    const apply = useCallback2((v) => {
+      setValue(v);
+      try {
+        localStorage.setItem(KEYS.episodes, JSON.stringify(v));
+      } catch {
+      }
+    }, []);
+    const refresh = useCallback2(async () => {
+      if (!userId) return;
+      const { data } = await supabase.from("app_data").select("value").eq("app_id", APP_ID).eq("key", KEYS.episodes).maybeSingle();
+      if (data) apply(data.value);
+    }, [userId, apply]);
+    useEffect7(() => {
+      if (!userId) return;
+      refresh();
+      const channel = supabase.channel(`app_data:${APP_ID}:episodes:${userId}`).on("postgres_changes", { event: "*", schema: "public", table: "app_data", filter: `user_id=eq.${userId}` }, (payload) => {
+        const row = payload.new;
+        if (row && row.app_id === APP_ID && row.key === KEYS.episodes) apply(row.value);
+      }).subscribe();
+      const onVisible = () => document.visibilityState === "visible" && refresh();
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        supabase.removeChannel(channel);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
+    }, [userId, refresh, apply]);
+    return [value, refresh];
+  }
+
+  // german/Podcast.jsx
+  var { useState: useState10, useEffect: useEffect8, useRef: useRef4, Fragment } = React;
+  var shortDate2 = (ms) => new Date(ms).toLocaleDateString("de-DE", { day: "numeric", month: "short" });
+  var cardLabel = (c) => c.kind === "noun" ? `${c.article} ${c.de}` : c.de;
+  function NewEpisode({ app, history: history2, pending, failed, onStarted }) {
+    const { interests } = app.podcast;
+    const [picked, setPicked] = useState10(null);
+    const [adding, setAdding] = useState10(null);
+    const [busy, setBusy] = useState10(false);
+    const [error, setError] = useState10(null);
+    const topic = interests.includes(picked) ? picked : null;
+    const surprise = nextInterest(interests, history2);
+    async function start(interest) {
+      setBusy(true);
+      setError(null);
+      try {
+        await startEpisode(interest, app.cards, app.writing, app.settings);
+        await onStarted();
+        setPicked(null);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+    const add = () => {
+      const t = (adding || "").trim();
+      if (t && !interests.includes(t)) app.setPodcast((p) => ({ ...p, interests: [...p.interests, t] }));
+      if (t) setPicked(t);
+      setAdding(null);
+    };
+    const remove2 = (t) => {
+      app.setPodcast((p) => ({ ...p, interests: p.interests.filter((x) => x !== t) }));
+      setPicked(null);
+    };
+    if (pending) {
+      return /* @__PURE__ */ React.createElement(Card, { big: true, label: "New episode" }, /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("b", null, "Making an episode about ", pending.interest, "\u2026")), /* @__PURE__ */ React.createElement("p", { className: "g-muted" }, "This takes a minute or two. You can close the app; the episode will be here when you're back."));
+    }
+    return /* @__PURE__ */ React.createElement(Card, { big: true, label: "New episode" }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 17 } }, "New episode"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Lena & Jonas \xB7 about 6 min")), failed && /* @__PURE__ */ React.createElement("p", { className: "g-error" }, "The episode about ", failed.interest, " didn't work out: ", failed.error), /* @__PURE__ */ React.createElement("div", { className: "g-chips" }, interests.map((t) => /* @__PURE__ */ React.createElement(Chip, { key: t, pressed: t === topic, onClick: () => setPicked(t === topic ? null : t) }, t)), adding === null ? /* @__PURE__ */ React.createElement(Chip, { dashed: true, onClick: () => setAdding("") }, "+ Interest") : /* @__PURE__ */ React.createElement("form", { onSubmit: (e) => {
+      e.preventDefault();
+      add();
+    }, style: { display: "flex" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "interest", className: "sr" }, "New interest"), /* @__PURE__ */ React.createElement("input", { id: "interest", className: "g-input", style: { minHeight: 36, padding: "0 12px", borderRadius: 999, width: 180 }, autoFocus: true, value: adding, placeholder: "e.g. AI safety", onChange: (e) => setAdding(e.target.value), onBlur: add }))), /* @__PURE__ */ React.createElement(Button, { variant: "mint", size: "md", busy, disabled: !app.session || !topic && !surprise, onClick: () => start(topic || surprise) }, topic ? `Make an episode about ${topic}` : surprise ? "Surprise me" : "Add an interest first"), topic && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => remove2(topic) }, "Remove \u201C", topic, "\u201D from your interests")), !app.session && /* @__PURE__ */ React.createElement("p", { className: "g-small" }, "Sign in on the home page to make episodes."), error && /* @__PURE__ */ React.createElement("p", { className: "g-error" }, error));
+  }
+  function AddWords({ app, items, onDone, onCancel }) {
+    const [rows, setRows] = useState10(null);
+    const [error, setError] = useState10(null);
+    useEffect8(() => {
+      let alive = true;
+      wordsFromTranscript(items, app.settings).then((out) => alive && setRows(out.map((o) => ({ ...o, useAlt: false, skip: false })))).catch((e) => alive && setError(e.message));
+      return () => {
+        alive = false;
+      };
+    }, []);
+    const chosen = (r) => r.useAlt && r.alt ? r.alt : r.main;
+    const set = (i, patch) => setRows((rs) => rs.map((r, j) => j === i ? { ...r, ...patch } : r));
+    const seen = /* @__PURE__ */ new Set();
+    const adds = (rows || []).map((r) => {
+      const c = chosen(r);
+      const dup = !!findDuplicate(app.cards, c);
+      const key = c.de.toLowerCase();
+      const add2 = !r.skip && !dup && !seen.has(key);
+      if (add2) seen.add(key);
+      return { dup, add: add2 };
+    });
+    const count = adds.filter((a) => a.add).length;
+    const add = () => {
+      rows.forEach((r, i) => {
+        if (!adds[i].add) return;
+        const { sense, ...fields } = chosen(r);
+        app.addCard(fields, "podcast");
+      });
+      app.showToast(`Added ${count} ${count === 1 ? "card" : "cards"}`);
+      onDone();
+    };
+    return /* @__PURE__ */ React.createElement(Card, { label: "Add to your deck" }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 17 } }, "Add to your deck"), !rows && !error && /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, "Making cards\u2026")), error && /* @__PURE__ */ React.createElement("p", { className: "g-error" }, error), rows && /* @__PURE__ */ React.createElement("ul", { className: "g-picks" }, rows.map((r, i) => {
+      const c = chosen(r);
+      return /* @__PURE__ */ React.createElement("li", { key: i, className: adds[i].add ? void 0 : "off" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 4, flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("b", null, c.kind === "noun" ? /* @__PURE__ */ React.createElement(Noun, { article: c.article }, c.de) : c.de), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, c.en, adds[i].dup ? " \xB7 already in your deck" : ""), r.alt && /* @__PURE__ */ React.createElement("div", { className: "g-chips" }, /* @__PURE__ */ React.createElement(Chip, { pressed: !r.useAlt, onClick: () => set(i, { useAlt: false }) }, cardLabel(r.main)), /* @__PURE__ */ React.createElement(Chip, { pressed: r.useAlt, onClick: () => set(i, { useAlt: true }) }, cardLabel(r.alt)))), !adds[i].dup && /* @__PURE__ */ React.createElement(IconButton, { icon: r.skip ? "plus" : "close", label: r.skip ? `Add ${cardLabel(c)}` : `Skip ${cardLabel(c)}`, variant: "ghost", small: true, onClick: () => set(i, { skip: !r.skip }) }));
+    })), /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !count, onClick: add }, "Add ", count, " ", count === 1 ? "card" : "cards"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: onCancel }, "Cancel")));
+  }
+  function EpisodeView({ app, ep }) {
+    var _a;
+    const [url, setUrl] = useState10(null);
+    const [loadError, setLoadError] = useState10(null);
+    const [rate, setRate] = useState10(1);
+    const [showText, setShowText] = useState10(false);
+    const [picks, setPicks] = useState10({});
+    const [reviewing, setReviewing] = useState10(false);
+    const audio = useRef4(null);
+    const signedIn = !!app.session;
+    useEffect8(() => {
+      let alive = true;
+      let objectUrl;
+      setLoadError(null);
+      episodeAudio(ep.path, app.session).then((blob) => {
+        if (!alive) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      }).catch((e) => alive && setLoadError(e.message));
+      return () => {
+        alive = false;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }, [ep.path, signedIn]);
+    useEffect8(() => {
+      if (audio.current) audio.current.playbackRate = rate;
+    }, [rate, url]);
+    const listened = app.listening.log.some((e) => e.episode === ep.id && e.day === app.today);
+    const toggle = (key, pick) => setPicks((p) => {
+      const next = { ...p };
+      if (next[key]) delete next[key];
+      else next[key] = pick;
+      return next;
+    });
+    const lineWith = (word) => {
+      var _a2;
+      const stem = word.replace(/^(der|die|das)\s+/i, "").toLowerCase();
+      return ((_a2 = ep.lines.find((l) => l.text.toLowerCase().includes(stem))) == null ? void 0 : _a2.text) || "";
+    };
+    const picked = Object.values(picks);
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Card, { big: true, label: "Episode" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { className: "g-small" }, ep.interest, " \xB7 ", shortDate2(ep.started), " \xB7 ", episodeMinutes(ep), " min", listened ? " \xB7 listened today" : ""), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" } }, ep.title)), url ? /* @__PURE__ */ React.createElement("audio", { ref: audio, src: url, controls: true, preload: "metadata", style: { width: "100%" }, onEnded: () => app.finishEpisode(ep) }) : loadError ? /* @__PURE__ */ React.createElement("p", { className: "g-error" }, loadError) : /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, "Loading the episode\u2026")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("div", { style: { width: 150 } }, /* @__PURE__ */ React.createElement(Choice, { label: "Speed", value: rate, onChange: setRate, options: [[0.75, "0.75\xD7"], [1, "1\xD7"]] })), !listened && /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => app.finishEpisode(ep) }, "Mark as listened"))), ((_a = ep.keyWords) == null ? void 0 : _a.length) > 0 && /* @__PURE__ */ React.createElement("section", { "aria-label": "Key words", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Key words \xB7 tap to pick"), /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, ep.keyWords.map((k, i) => /* @__PURE__ */ React.createElement("li", { key: i }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "g-kw", "aria-pressed": !!picks[`k${i}`], onClick: () => toggle(`k${i}`, { word: k.de, sentence: lineWith(k.de) }) }, /* @__PURE__ */ React.createElement("span", { className: "t" }, /* @__PURE__ */ React.createElement("b", null, k.de), /* @__PURE__ */ React.createElement("span", null, k.en)), /* @__PURE__ */ React.createElement("span", { className: "r" }, picks[`k${i}`] ? "Picked" : "")))))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Transcript", className: "g-stack" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "Transcript"), /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setShowText((v) => !v) }, showText ? "Hide" : "Show")), showText && /* @__PURE__ */ React.createElement(Card, { className: "g-transcript" }, /* @__PURE__ */ React.createElement("p", { className: "g-small" }, "Tap words to pick them for your deck."), ep.lines.map((l, li) => /* @__PURE__ */ React.createElement("p", { key: li }, /* @__PURE__ */ React.createElement("b", { className: l.speaker === "Lena" ? "lena" : "jonas" }, l.speaker), " ", tokenize(l.text).map((t, ti) => /* @__PURE__ */ React.createElement(Fragment, { key: ti }, t.pre, t.word && /* @__PURE__ */ React.createElement("button", { type: "button", className: "g-word", "aria-pressed": !!picks[`${li}:${ti}`], onClick: () => toggle(`${li}:${ti}`, { word: t.word, sentence: l.text }) }, t.word), t.post, " ")))))), reviewing ? /* @__PURE__ */ React.createElement(AddWords, { app, items: picked, onCancel: () => setReviewing(false), onDone: () => {
+      setPicks({});
+      setReviewing(false);
+    } }) : picked.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "g-selbar", role: "region", "aria-label": "Picked words" }, /* @__PURE__ */ React.createElement("span", null, picked.length, " ", picked.length === 1 ? "word" : "words", " picked"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => setPicks({}) }, "Clear"), /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !signedIn, onClick: () => setReviewing(true) }, "Add to deck")));
+  }
+  function Podcast({ app, episodeId }) {
+    var _a;
+    const [data, refresh] = useEpisodes(app.session);
+    const { episodes, history: history2 } = normEpisodes(data);
+    const pending = episodes.find((e) => e.status === "generating");
+    const failed = ((_a = episodes[0]) == null ? void 0 : _a.status) === "failed" ? episodes[0] : null;
+    const ready = episodes.filter((e) => e.status === "ready");
+    const shown = episodeId ? ready.find((e) => e.id === episodeId) : ready[0];
+    const readyIds = ready.map((e) => e.id).join();
+    useEffect8(() => {
+      if (!pending) return;
+      const t = setInterval(refresh, 15 * 1e3);
+      return () => clearInterval(t);
+    }, [pending == null ? void 0 : pending.id, refresh]);
+    useEffect8(() => {
+      if (ready.length) forgetEpisodes(ready.map((e) => e.path));
+    }, [readyIds]);
+    const others = ready.filter((e) => e !== shown);
+    return /* @__PURE__ */ React.createElement(Screen, { label: "Podcast" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/", title: "Podcast", big: true }), /* @__PURE__ */ React.createElement(NewEpisode, { app, history: history2, pending, failed, onStarted: refresh }), shown ? /* @__PURE__ */ React.createElement(EpisodeView, { key: shown.id, app, ep: shown }) : episodeId ? /* @__PURE__ */ React.createElement(Empty, null, "That episode is gone; only the last 10 are kept.") : !pending && /* @__PURE__ */ React.createElement(Empty, null, "No episodes yet. Pick an interest and make your first one."), others.length > 0 && /* @__PURE__ */ React.createElement("section", { "aria-label": "Earlier episodes", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Earlier episodes"), /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, others.map((e) => /* @__PURE__ */ React.createElement("li", { key: e.id }, /* @__PURE__ */ React.createElement("a", { href: `#/podcast/${e.id}` }, /* @__PURE__ */ React.createElement("span", { className: "t" }, /* @__PURE__ */ React.createElement("b", null, e.title), /* @__PURE__ */ React.createElement("span", null, e.interest, " \xB7 ", shortDate2(e.started))), /* @__PURE__ */ React.createElement("span", { className: "r" }, episodeMinutes(e), " min")))))));
   }
 
   // german/Progress.jsx
   var fmtMinutes = (m) => m < 60 ? `${m} min` : `${(m / 60).toFixed(1).replace(/\.0$/, "")} h`;
   var LINKS = [
     { href: "#/deck", label: "Deck", note: "Browse and edit cards" },
-    { href: "#/listening", label: "Listening", note: "Resources and log" },
+    { href: "#/listening", label: "Listening", note: "Podcast, resources and log" },
     { href: "#/history", label: "Writing history", note: "Past texts and fixes" },
     { href: "#/settings", label: "Settings", note: "Level, topics, routine" }
   ];
@@ -21497,7 +21759,7 @@ ${suffix}`;
   }
 
   // german/Settings.jsx
-  var { useState: useState9 } = React;
+  var { useState: useState11 } = React;
   function exportCards(cards) {
     const clean = (v) => (v || "").replace(/[\t\n]+/g, " ").trim();
     const rows = cards.filter((c) => c.kind !== "rule").map((c) => [germanOf(c), c.kind === "noun" ? [c.en, c.plural].filter(Boolean).join(" \xB7 ") : c.en, c.example].map(clean).join("	"));
@@ -21510,29 +21772,29 @@ ${suffix}`;
   }
   function Settings({ app }) {
     const { settings, setSettings } = app;
-    const [topic, setTopic] = useState9(null);
+    const [topic, setTopic] = useState11(null);
     const update = (patch) => setSettings((s) => ({ ...s, ...patch }));
     const addTopic = () => {
       const t = (topic || "").trim();
       if (t && !settings.topics.includes(t)) update({ topics: [...settings.topics, t] });
       setTopic(null);
     };
-    const toggleDay = (i) => update({
-      writingDays: settings.writingDays.includes(i) ? settings.writingDays.filter((d) => d !== i) : [...settings.writingDays, i].sort()
+    const toggleDay = (field, i) => update({
+      [field]: settings[field].includes(i) ? settings[field].filter((d) => d !== i) : [...settings[field], i].sort()
     });
     return /* @__PURE__ */ React.createElement(Screen, { label: "Settings" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Settings", big: true }), /* @__PURE__ */ React.createElement(Card, { label: "Level and topics" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "level" }, /* @__PURE__ */ React.createElement("b", null, "Your level")), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Words, prompts, examples, corrections")), /* @__PURE__ */ React.createElement("select", { id: "level", className: "g-input", value: settings.level, onChange: (e) => update({ level: e.target.value }) }, LEVELS.map((l) => /* @__PURE__ */ React.createElement("option", { key: l }, l)))), /* @__PURE__ */ React.createElement("span", { className: "g-muted", style: { fontSize: 13 } }, "Topics for new words (mixed with general words)"), /* @__PURE__ */ React.createElement("div", { className: "g-chips" }, settings.topics.map((t) => /* @__PURE__ */ React.createElement(Chip, { key: t, removeLabel: `Remove ${t}`, onRemove: () => update({ topics: settings.topics.filter((x) => x !== t) }) }, t)), topic === null ? /* @__PURE__ */ React.createElement(Chip, { dashed: true, onClick: () => setTopic("") }, "+ Topic") : /* @__PURE__ */ React.createElement("form", { onSubmit: (e) => {
       e.preventDefault();
       addTopic();
-    }, style: { display: "flex" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic", className: "sr" }, "New topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", className: "g-input", style: { minHeight: 36, padding: "0 12px", borderRadius: 999, width: 160 }, autoFocus: true, value: topic, onChange: (e) => setTopic(e.target.value), onBlur: addTopic })))), /* @__PURE__ */ React.createElement(Card, { label: "Routine" }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Writing days"), /* @__PURE__ */ React.createElement("div", { className: "g-days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.writingDays.includes(i), onClick: () => toggleDay(i) }, d))), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Cards are every weekday; weekends are optional.")), /* @__PURE__ */ React.createElement(Card, { tight: true, label: "Cards" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "New cards per day"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Your words first, AI fills the rest")), /* @__PURE__ */ React.createElement(Stepper, { value: settings.newPerDay, onChange: (n) => update({ newPerDay: n }) }))), /* @__PURE__ */ React.createElement("nav", { className: "g-navlist", "aria-label": "Data", style: { display: "flex" } }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => exportCards(app.cards), disabled: !app.cards.length }, "Export cards"), app.session ? /* @__PURE__ */ React.createElement("button", { type: "button", className: "danger", onClick: () => signOut() }, "Sign out") : /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page")));
+    }, style: { display: "flex" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic", className: "sr" }, "New topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", className: "g-input", style: { minHeight: 36, padding: "0 12px", borderRadius: 999, width: 160 }, autoFocus: true, value: topic, onChange: (e) => setTopic(e.target.value), onBlur: addTopic })))), /* @__PURE__ */ React.createElement(Card, { label: "Routine" }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Writing days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Writing days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.writingDays.includes(i), onClick: () => toggleDay("writingDays", i) }, d))), /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Podcast days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Podcast days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.podcastDays.includes(i), onClick: () => toggleDay("podcastDays", i) }, d))), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Cards are every weekday; weekends are optional.")), /* @__PURE__ */ React.createElement(Card, { tight: true, label: "Cards" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "New cards per day"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Your words first, AI fills the rest")), /* @__PURE__ */ React.createElement(Stepper, { value: settings.newPerDay, onChange: (n) => update({ newPerDay: n }) }))), /* @__PURE__ */ React.createElement("nav", { className: "g-navlist", "aria-label": "Data", style: { display: "flex" } }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => exportCards(app.cards), disabled: !app.cards.length }, "Export cards"), app.session ? /* @__PURE__ */ React.createElement("button", { type: "button", className: "danger", onClick: () => signOut() }, "Sign out") : /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page")));
   }
 
   // german/App.jsx
-  var { useState: useState10, useEffect: useEffect7, useRef: useRef4, useMemo: useMemo3 } = React;
+  var { useState: useState12, useEffect: useEffect9, useRef: useRef5, useMemo: useMemo3 } = React;
   var NONE = [];
   var NO_LOG = {};
   function useToday() {
-    const [key, setKey] = useState10(() => dayKey());
-    useEffect7(() => {
+    const [key, setKey] = useState12(() => dayKey());
+    useEffect9(() => {
       const t = setInterval(() => setKey(dayKey()), 60 * 1e3);
       return () => clearInterval(t);
     }, []);
@@ -21556,26 +21818,28 @@ ${suffix}`;
     const [draft, setDraft] = useSyncedStorage(APP_ID, KEYS.draft, null);
     const [log, setLog] = useSyncedStorage(APP_ID, KEYS.log, NO_LOG);
     const [storedListening, setListening] = useSyncedStorage(APP_ID, KEYS.listening, DEFAULT_LISTENING);
+    const [storedPodcast, setPodcast] = useSyncedStorage(APP_ID, KEYS.podcast, DEFAULT_PODCAST);
     const [storedSettings, setSettings] = useSyncedStorage(APP_ID, KEYS.settings, DEFAULT_SETTINGS);
     const settings = useMemo3(() => normSettings(storedSettings), [storedSettings]);
     const listening = useMemo3(() => normListening(storedListening), [storedListening]);
-    const [toast, setToast] = useState10(null);
-    const toastT = useRef4(null);
+    const podcast = useMemo3(() => normPodcast(storedPodcast, settings), [storedPodcast, settings]);
+    const [toast, setToast] = useState12(null);
+    const toastT = useRef5(null);
     function showToast(msg) {
       clearTimeout(toastT.current);
       setToast(msg);
       toastT.current = setTimeout(() => setToast(null), 2400);
     }
-    useEffect7(() => {
+    useEffect9(() => {
       if (session) runDailyBackupIfNeeded(supabase, session);
     }, [session]);
     const fitKey = `${settings.level}|${settings.topics.join(",")}`;
     const usable = useMemo3(() => suggest.filter((s) => s.for === fitKey), [suggest, fitKey]);
-    const [refilling, setRefilling] = useState10(false);
-    const [retry, setRetry] = useState10(0);
-    const cardsRef = useRef4(cards);
+    const [refilling, setRefilling] = useState12(false);
+    const [retry, setRetry] = useState12(0);
+    const cardsRef = useRef5(cards);
     cardsRef.current = cards;
-    useEffect7(() => {
+    useEffect9(() => {
       const missing = SUGGEST_BUFFER - usable.length;
       if (!session || missing <= 0 || refilling || !navigator.onLine) return;
       setRefilling(true);
@@ -21602,6 +21866,7 @@ ${suffix}`;
       draft,
       log,
       listening,
+      podcast,
       showToast,
       // Suggested words that fit the current level and topics, and whether
       // more are on their way.
@@ -21613,8 +21878,16 @@ ${suffix}`;
       setDraft,
       setListening,
       setSettings: (fn) => setSettings((s) => typeof fn === "function" ? fn(normSettings(s)) : fn),
+      setPodcast: (fn) => setPodcast((p) => fn(normPodcast(p, settings))),
       // Marks one of today's tasks as done.
       markDone: (task) => setLog((l) => ({ ...l, [today]: { ...l[today] || {}, [task]: true } })),
+      // A podcast episode was listened to: logs its minutes and ticks off
+      // today's podcast task.
+      finishEpisode(ep) {
+        setListening((l) => logEpisode(normListening(l), ep, today));
+        app.markDone("podcast");
+        showToast(`Logged ${episodeMinutes(ep)} min \xB7 ${ep.title}`);
+      },
       // Adds a card unless the same German word is already in the deck.
       addCard(fields, source) {
         const dup = findDuplicate(cards, fields);
@@ -21650,6 +21923,9 @@ ${suffix}`;
         break;
       case "listening":
         screen = /* @__PURE__ */ React.createElement(Listening, { app });
+        break;
+      case "podcast":
+        screen = /* @__PURE__ */ React.createElement(Podcast, { app, episodeId: route.param });
         break;
       case "settings":
         screen = /* @__PURE__ */ React.createElement(Settings, { app });

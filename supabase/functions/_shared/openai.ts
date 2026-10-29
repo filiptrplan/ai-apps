@@ -1,5 +1,6 @@
 // OpenAI calls for the edge functions that talk to OpenAI directly (the
-// German app): structured-output chat completions and text-to-speech.
+// German app): structured-output chat completions (optionally after a web
+// search) and text-to-speech.
 // Failures throw AIError (see openrouter.ts) with a user-facing message.
 //
 // Needs the OPENAI_API_KEY secret; the models can be changed without a
@@ -70,6 +71,38 @@ export async function structuredCompletion<T = unknown>(req: StructuredRequest):
 
   try {
     return JSON.parse(choice.message?.content);
+  } catch {
+    throw new AIError("unreadable", "The AI returned something unreadable - try again.", 502);
+  }
+}
+
+// Like structuredCompletion, but the model may search the web first (the
+// Responses API's web search tool), for answers that need current facts.
+export async function searchedCompletion<T = unknown>(req: StructuredRequest): Promise<T> {
+  const res = await post("responses", {
+    model: Deno.env.get("OPENAI_MODEL") || DEFAULT_MODEL,
+    max_output_tokens: req.maxTokens ?? 8000,
+    tools: [{ type: "web_search" }],
+    instructions: req.system,
+    input: req.user,
+    text: { format: { type: "json_schema", name: req.schemaName, strict: true, schema: req.schema } },
+  });
+  checkStatus(res);
+
+  const data = await res.json().catch(() => null);
+  if (data?.status === "incomplete") {
+    if (data.incomplete_details?.reason === "max_output_tokens") throw new AIError("too_long", "The answer got too long - try again.", 422);
+    throw new AIError("empty", "The AI stopped early - try again.", 502);
+  }
+  const content = (data?.output ?? [])
+    .filter((item: any) => item.type === "message")
+    .flatMap((item: any) => item.content ?? []);
+  if (content.some((c: any) => c.type === "refusal")) throw new AIError("refused", "The AI declined this request.", 422);
+  const text = content.find((c: any) => c.type === "output_text")?.text;
+  if (!text) throw new AIError("empty", data?.error?.message ?? "The AI returned no answer - try again.", 502);
+
+  try {
+    return JSON.parse(text);
   } catch {
     throw new AIError("unreadable", "The AI returned something unreadable - try again.", 502);
   }

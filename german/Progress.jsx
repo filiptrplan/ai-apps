@@ -8,7 +8,7 @@ const fmtMinutes = m => (m < 60 ? `${m} min` : `${(m / 60).toFixed(1).replace(/\
 
 const LINKS = [
   { href: "#/deck", label: "Deck", note: "Browse and edit cards" },
-  { href: "#/listening", label: "Listening", note: "Resources and log" },
+  { href: "#/listening", label: "Listening", note: "Podcast, resources and log" },
   { href: "#/history", label: "Writing history", note: "Past texts and fixes" },
   { href: "#/settings", label: "Settings", note: "Level, topics, routine" },
 ];

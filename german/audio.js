@@ -1,8 +1,10 @@
-// Spoken example sentences. Each sentence is spoken once by the german-tts
-// edge function (OpenAI TTS), which stores the mp3 in the private
-// german-audio bucket at "<user id>/<sha-256 of the text>.mp3". The path
-// follows from the text, so cards don't need to remember it. Played files
-// are kept in the Cache API, so they also play offline.
+// Spoken example sentences and podcast episodes. Each sentence is spoken
+// once by the german-tts edge function (OpenAI TTS), which stores the mp3 in
+// the private german-audio bucket at "<user id>/<sha-256 of the text>.mp3".
+// The path follows from the text, so cards don't need to remember it.
+// Episodes are stored by the german-podcast function at the path their
+// entry holds. Played files are kept in the Cache API, so they also play
+// offline.
 import { supabase } from "../shared/supabaseClient.js";
 import { callAI } from "../shared/ai.js";
 
@@ -14,23 +16,25 @@ async function sha256(text) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// A same-origin URL used only as the cache key.
-const cacheKey = hash => new Request(`${location.origin}/__german-audio/${hash}.mp3`);
+// A same-origin URL used only as the cache key: "<hash>" for sentences,
+// "podcast/<id>" for episodes.
+const cacheKey = name => new Request(`${location.origin}/__german-audio/${name}.mp3`);
+const episodeName = path => `podcast/${path.split("/").pop().replace(/\.mp3$/, "")}`;
 
-async function fromCache(hash) {
+async function fromCache(name) {
   try {
     const cache = await caches.open(CACHE);
-    const hit = await cache.match(cacheKey(hash));
+    const hit = await cache.match(cacheKey(name));
     return hit ? await hit.blob() : null;
   } catch {
     return null;
   }
 }
 
-async function toCache(hash, blob) {
+async function toCache(name, blob) {
   try {
     const cache = await caches.open(CACHE);
-    await cache.put(cacheKey(hash), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
+    await cache.put(cacheKey(name), new Response(blob, { headers: { "Content-Type": "audio/mpeg" } }));
   } catch {}
 }
 
@@ -63,4 +67,29 @@ export async function speak(text, session) {
   }
   current = new Audio(URL.createObjectURL(blob));
   await current.play();
+}
+
+// An episode's mp3 as a Blob, from the cache or else downloaded (and then
+// cached). Throws a showable Error.
+export async function episodeAudio(path, session) {
+  const name = episodeName(path);
+  const cached = await fromCache(name);
+  if (cached) return cached;
+  if (!session) throw new Error("Sign in on the home page to play episodes.");
+  const { data } = await supabase.storage.from(BUCKET).download(path);
+  if (!data) throw new Error("Couldn't load the episode.");
+  await toCache(name, data);
+  return data;
+}
+
+// Drops cached episodes that are no longer kept (the server keeps the last
+// few), so old ones don't pile up on the device.
+export async function forgetEpisodes(keepPaths) {
+  try {
+    const keep = new Set(keepPaths.map(p => cacheKey(episodeName(p)).url));
+    const cache = await caches.open(CACHE);
+    for (const req of await cache.keys()) {
+      if (req.url.includes("/__german-audio/podcast/") && !keep.has(req.url)) await cache.delete(req);
+    }
+  } catch {}
 }

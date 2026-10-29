@@ -4,6 +4,7 @@ import { review, previews } from "./fsrs.js";
 import {
   dayKey, addDays, weekdayOf, tasksFor, normSettings, makeCard, planSession, answerCard,
   nextFocus, cardsFromCheck, fixCounts, searchCards, findDuplicate, sentenceCount, SESSION_CAP,
+  doneTasks, normPodcast, normEpisodes, nextInterest, podcastInput, logEpisode, tokenize, EPISODE_STALE_MS,
 } from "./model.js";
 
 const MIN = 60 * 1000;
@@ -18,11 +19,75 @@ test("study days roll over at 4am", () => {
   assert.equal(weekdayOf("2026-10-29"), 3); // Do
 });
 
-test("routine: cards on weekdays, writing on chosen days, weekends free", () => {
+test("routine: cards on weekdays, writing and podcast on chosen days, weekends free", () => {
   assert.deepEqual(tasksFor("2026-10-29", settings), ["cards", "writing"]); // Do
-  assert.deepEqual(tasksFor("2026-10-28", settings), ["cards"]); // Mi
+  assert.deepEqual(tasksFor("2026-10-28", settings), ["cards", "podcast"]); // Mi
+  assert.deepEqual(tasksFor("2026-10-27", settings), ["cards", "writing"]); // Di
   assert.deepEqual(tasksFor("2026-10-31", settings), []); // Sa
   assert.deepEqual(tasksFor("2026-10-31", { ...settings, writingDays: [5] }), ["writing"]);
+  assert.deepEqual(tasksFor("2026-11-01", { ...settings, podcastDays: [6] }), ["podcast"]); // So
+  assert.deepEqual(doneTasks({ "2026-10-28": { cards: true, podcast: true } }, "2026-10-28"), ["cards", "podcast"]);
+  // Settings saved before the podcast existed get the default days.
+  assert.deepEqual(normSettings({ level: "B1.1", writingDays: [0] }).podcastDays, [0, 2, 4]);
+});
+
+test("podcast: interests start as the topics, then are their own list", () => {
+  assert.deepEqual(normPodcast({ interests: null }, settings).interests, settings.topics);
+  assert.deepEqual(normPodcast(undefined, settings).interests, settings.topics);
+  assert.deepEqual(normPodcast({ interests: ["AI safety", " ", 3] }, settings).interests, ["AI safety"]);
+  assert.deepEqual(normPodcast({ interests: [] }, settings).interests, []);
+});
+
+test("podcast: stuck episodes count as failed, surprise picks the longest unused interest", () => {
+  const v = { episodes: [
+    { id: "a", status: "generating", started: NOW - EPISODE_STALE_MS - 1 },
+    { id: "b", status: "generating", started: NOW - 1000 },
+  ] };
+  const { episodes, history } = normEpisodes(v, NOW);
+  assert.equal(episodes[0].status, "failed");
+  assert.match(episodes[0].error, /too long/);
+  assert.equal(episodes[1].status, "generating");
+  assert.deepEqual(history, []);
+  assert.deepEqual(normEpisodes(null), { episodes: [], history: [] });
+
+  const hist = [{ interest: "Kochen" }, { interest: "Bahn" }, { interest: "Kochen" }];
+  assert.equal(nextInterest(["Kochen", "Bahn", "Bouldern"], hist), "Bouldern"); // never had one
+  assert.equal(nextInterest(["Kochen", "Bahn"], hist), "Bahn");
+  assert.equal(nextInterest([], hist), null);
+});
+
+test("podcast: episode input uses new and shaky words and top mistakes", () => {
+  const word = (de, srs, added = 1) => ({ ...makeCard({ kind: "word", de, en: de }, "own", added), srs });
+  const cards = [
+    word("neu", null, 2),
+    word("sicher", { stability: 30 }),
+    word("wackelig", { stability: 0.5 }),
+    { ...makeCard({ kind: "gap", text: "Ich ___", answer: "bin" }, "writing"), srs: null },
+  ];
+  const writing = [{ fixes: [{ point: "konjunktiv" }, { point: "konjunktiv" }, { point: "v2" }, { point: "other" }] }];
+  const { words, mistakes } = podcastInput(cards, writing);
+  assert.deepEqual(words, ["neu", "wackelig", "sicher"]);
+  assert.equal(mistakes.length, 2);
+  assert.match(mistakes[0], /würde/);
+});
+
+test("podcast: finishing logs the episode's minutes", () => {
+  const listening = { resources: [], current: null, log: [] };
+  const next = logEpisode(listening, { id: "ep1", title: "Klettern in Zürich", seconds: 371 }, "2026-10-28");
+  assert.equal(next.log.length, 1);
+  assert.deepEqual({ ...next.log[0], id: "x" }, { id: "x", day: "2026-10-28", res: "podcast", episode: "ep1", title: "Klettern in Zürich", min: 6 });
+  assert.equal(logEpisode(listening, { id: "e", title: "t", seconds: 10 }, "2026-10-28").log[0].min, 1);
+});
+
+test("podcast: transcript lines split into words and punctuation", () => {
+  assert.deepEqual(tokenize("„Echt?“, sagt Lena. Anime-Episode, geht's?"), [
+    { pre: "„", word: "Echt", post: "?“," },
+    { pre: "", word: "sagt", post: "" },
+    { pre: "", word: "Lena", post: "." },
+    { pre: "", word: "Anime-Episode", post: "," },
+    { pre: "", word: "geht's", post: "?" },
+  ]);
+  assert.deepEqual(tokenize("… na ja"), [{ pre: "…", word: "", post: "" }, { pre: "", word: "na", post: "" }, { pre: "", word: "ja", post: "" }]);
 });
 
 test("fsrs: new card steps, graduation and growing intervals", () => {

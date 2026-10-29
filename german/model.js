@@ -10,6 +10,10 @@
 //   draft      Draft | null    today's writing task in progress
 //   log        { [day]: Day }  which tasks were done on each day
 //   listening  Listening       resources, the current one, minutes log
+//   podcast    { interests }   what AI podcast episodes are about (null until
+//                              edited: the Settings topics)
+//   episodes   Episodes        the AI podcast episodes; written only by the
+//                              german-podcast edge function (see there)
 //   settings   Settings
 //
 // Card: {
@@ -21,7 +25,7 @@
 //   example?,                one German sentence
 //   text?, answer?,          gap cards: "Gestern ___ klettern gegangen.", "bin ich"
 //   point?, examples?,       gap and rule cards: grammar point id; rule cards: your sentences
-//   source: "own" | "ai" | "writing" | "claude",
+//   source: "own" | "ai" | "writing" | "podcast" | "claude",
 //   added,                   ms timestamp
 //   intro,                   day it was first studied, or null while new
 //   srs,                     FSRS state (see fsrs.js), null while new
@@ -37,6 +41,8 @@ export const KEYS = {
   draft: "german-draft",
   log: "german-log",
   listening: "german-listening",
+  podcast: "german-podcast",
+  episodes: "german-episodes",
   settings: "german-settings",
 };
 
@@ -48,6 +54,7 @@ export const DEFAULT_SETTINGS = {
   level: "A2.2",
   topics: ["Uni / ETH", "Klettern", "Kochen", "Bahn"],
   writingDays: [1, 3], // Di, Do
+  podcastDays: [0, 2, 4], // Mo, Mi, Fr
   newPerDay: 6,
 };
 
@@ -117,6 +124,7 @@ export function normSettings(s) {
     level: LEVELS.includes(v.level) ? v.level : DEFAULT_SETTINGS.level,
     topics: Array.isArray(v.topics) ? v.topics.filter(t => typeof t === "string" && t.trim()) : [],
     writingDays: Array.isArray(v.writingDays) ? v.writingDays.filter(d => d >= 0 && d < 7) : [],
+    podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter(d => d >= 0 && d < 7) : [],
     newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0))),
   };
 }
@@ -125,19 +133,21 @@ const levelIndex = l => Math.max(0, LEVELS.indexOf(l));
 
 // ---------- daily tasks ----------
 
-// The day's fixed tasks, in order: cards on weekdays, writing on the chosen
-// days. Weekends without writing have none (cards are optional then).
+// The day's fixed tasks, in order: cards on weekdays, writing and the
+// podcast on their chosen days. Weekends without either have none (cards
+// are optional then).
 export function tasksFor(key, settings) {
   const wd = weekdayOf(key);
   const tasks = [];
   if (wd < 5) tasks.push("cards");
   if (settings.writingDays.includes(wd)) tasks.push("writing");
+  if (settings.podcastDays.includes(wd)) tasks.push("podcast");
   return tasks;
 }
 
 export function doneTasks(log, key) {
   const day = log[key] || {};
-  return ["cards", "writing"].filter(t => day[t]);
+  return ["cards", "writing", "podcast"].filter(t => day[t]);
 }
 
 // ---------- cards ----------
@@ -333,6 +343,70 @@ export function normListening(l) {
 export function minutesIn(log, keys) {
   const set = new Set(keys);
   return log.filter(e => set.has(e.day)).reduce((n, e) => n + e.min, 0);
+}
+
+// ---------- podcast ----------
+
+// A "generating" episode older than this is taken as failed (its background
+// task was killed); keep in sync with STALE_MS in the german-podcast edge
+// function.
+export const EPISODE_STALE_MS = 10 * 60 * 1000;
+export const DEFAULT_PODCAST = { interests: null };
+export const DEFAULT_EPISODES = { episodes: [], history: [] };
+
+// Podcast interests start out as the Settings topics and are their own
+// list from the first edit on.
+export function normPodcast(p, settings) {
+  const interests = Array.isArray(p?.interests) ? p.interests : settings.topics;
+  return { interests: interests.filter(t => typeof t === "string" && t.trim()) };
+}
+
+export function normEpisodes(v, now = Date.now()) {
+  const episodes = (Array.isArray(v?.episodes) ? v.episodes : []).map(e =>
+    e.status === "generating" && now - e.started >= EPISODE_STALE_MS
+      ? { ...e, status: "failed", error: "Making the episode took too long - try again." }
+      : e);
+  return { episodes, history: Array.isArray(v?.history) ? v.history : [] };
+}
+
+export const episodeMinutes = ep => Math.max(1, Math.round((ep.seconds || 0) / 60));
+
+// "Surprise me": the interest with no episode for the longest (never first).
+// `history` is newest first.
+export function nextInterest(interests, history) {
+  if (!interests.length) return null;
+  const last = t => {
+    const i = history.findIndex(h => h.interest === t);
+    return i === -1 ? Infinity : i;
+  };
+  return [...interests].sort((a, b) => last(b) - last(a))[0];
+}
+
+// What the next episode is built from: some of your words (the next new
+// cards and the studied ones you hold least well) and the grammar you're
+// corrected on most.
+export function podcastInput(cards, writing) {
+  const words = cards.filter(c => c.kind !== "gap" && c.kind !== "rule");
+  const fresh = words.filter(isNew).sort(newOrder).slice(0, 5);
+  const shaky = words.filter(c => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, 7);
+  const mistakes = fixCounts(writing).slice(0, 3).map(f => pointById(f.point)).filter(Boolean)
+    .map(p => `${p.label} (e.g. ${p.model})`);
+  return { words: [...fresh, ...shaky].map(germanOf), mistakes };
+}
+
+// A finished episode: its length goes in the listening log.
+export function logEpisode(listening, ep, key) {
+  const entry = { id: uid(), day: key, res: "podcast", episode: ep.id, title: ep.title, min: episodeMinutes(ep) };
+  return { ...listening, log: [entry, ...listening.log] };
+}
+
+// Splits a transcript line into words (tappable) and what's between them.
+// [{ word, pre, post }] where pre/post hold spaces and punctuation.
+export function tokenize(line) {
+  return line.split(/\s+/).filter(Boolean).map(t => {
+    const m = t.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u);
+    return { pre: m[1], word: m[2], post: m[3] };
+  });
 }
 
 // ---------- stats ----------
