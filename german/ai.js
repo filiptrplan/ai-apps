@@ -63,7 +63,7 @@ export async function checkWriting({ text, prompt, focus }, settings) {
 // Starts an AI podcast episode about `interest`; it's made in the
 // background and shows up in the episodes (see episodes.js). Returns { id }.
 export function startEpisode(interest, cards, writing, settings) {
-  return callAI("german-podcast", { interest, level: settings.level, ...podcastInput(cards, writing) });
+  return callAI("german-podcast", { interest, level: settings.level, pace: settings.podcastPace, ...podcastInput(cards, writing) });
 }
 
 // Words tapped in a transcript, [{ word, sentence }] → [{ main, alt }]:

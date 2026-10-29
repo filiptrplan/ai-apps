@@ -86,6 +86,7 @@ export function register(server, { appData, callFunction }) {
         newCardsPerDay: settings.newPerDay,
         writingDays: settings.writingDays.map(d => WEEKDAYS[d]),
         podcastDays: settings.podcastDays.map(d => WEEKDAYS[d]),
+        podcastPace: settings.podcastPace,
       },
       todayTasks: tasksFor(today, settings).map(t => ({ task: t, done: doneTasks(log, today).includes(t) })),
       cardsInTodaysSession: plan.reviews.length + plan.fresh.length + plan.fromSuggestions,

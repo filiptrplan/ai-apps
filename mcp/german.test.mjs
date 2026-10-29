@@ -74,6 +74,7 @@ test("overview reports level, deck counts and mistakes", async () => {
   assert.equal(o.deck.dueToday, 1);
   assert.deepEqual(o.frequentMistakes, [{ grammar: "weil → verb at the end", count: 1 }]);
   assert.deepEqual(o.settings.podcastDays, ["Mo", "Mi", "Fr"]);
+  assert.equal(o.settings.podcastPace, "slower");
 });
 
 test("add_cards fills strings with the AI at the user's level and skips duplicates", async () => {
