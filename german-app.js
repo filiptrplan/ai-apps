@@ -21367,7 +21367,7 @@ ${suffix}`;
   }
 
   // german/Write.jsx
-  var { useState: useState7, useEffect: useEffect6 } = React;
+  var { useState: useState7, useEffect: useEffect6, useRef: useRef3 } = React;
   var OFFLINE_PROMPTS = [
     "Was hast du am Wochenende gemacht?",
     "Wie war dein Tag heute?",
@@ -21391,6 +21391,34 @@ ${suffix}`;
     parts.push(rest);
     return /* @__PURE__ */ React.createElement(React.Fragment, null, parts);
   }
+  var UMLAUTS = ["\xE4", "\xF6", "\xFC", "\xDF"];
+  function UmlautKeys({ onType }) {
+    const [upper, setUpper] = useState7(false);
+    useEffect6(() => {
+      const sync = (e) => setUpper(e.getModifierState("Shift") !== e.getModifierState("CapsLock"));
+      window.addEventListener("keydown", sync);
+      window.addEventListener("keyup", sync);
+      return () => {
+        window.removeEventListener("keydown", sync);
+        window.removeEventListener("keyup", sync);
+      };
+    }, []);
+    return /* @__PURE__ */ React.createElement("div", { className: "g-umlauts", role: "group", "aria-label": "Type umlauts" }, UMLAUTS.map((ch) => {
+      const out = upper && ch !== "\xDF" ? ch.toUpperCase() : ch;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: ch,
+          type: "button",
+          tabIndex: -1,
+          title: `Type ${out}`,
+          onMouseDown: (e) => e.preventDefault(),
+          onClick: (e) => onType(e.shiftKey && ch !== "\xDF" ? ch.toUpperCase() : out)
+        },
+        out
+      );
+    }));
+  }
   function Feedback({ session, onFinish }) {
     var _a;
     const n = session.fixes.length;
@@ -21402,6 +21430,9 @@ ${suffix}`;
     const draft = app.draft && app.draft.day === today ? app.draft : null;
     const [busy, setBusy] = useState7(null);
     const [error, setError] = useState7(null);
+    const answerRef = useRef3(null);
+    const topicRef = useRef3(null);
+    const lastField = useRef3("text");
     const setDraft = (patch) => app.setDraft((d) => ({ ...d, ...patch }));
     const fetchPrompt = () => {
       const recent = writing.map((s) => s.prompt);
@@ -21431,6 +21462,14 @@ ${suffix}`;
     const meta = tasks.includes("writing") && tasks.length > 1 ? `Task ${tasks.indexOf("writing") + 1} of ${tasks.length}` : null;
     const count = sentenceCount(draft.text);
     const prompt = draft.own ? `Own topic: ${draft.topic.trim() || "\u2026"}` : draft.prompt;
+    const typeChar = (ch) => {
+      const el = (lastField.current === "topic" && draft.own ? topicRef : answerRef).current;
+      if (!el) return;
+      el.focus();
+      if (document.execCommand("insertText", false, ch)) return;
+      el.setRangeText(ch, el.selectionStart, el.selectionEnd, "end");
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    };
     const check = () => {
       if (!app.session) return setError("Sign in on the home page to check your German.");
       setBusy("check");
@@ -21455,7 +21494,7 @@ ${suffix}`;
         app.markDone("writing");
       }).catch((e) => setError(e.message)).finally(() => setBusy(null));
     };
-    return /* @__PURE__ */ React.createElement(Screen, { wide: true, label: "Writing" }, /* @__PURE__ */ React.createElement(ScreenHeader, { close: "#/", title: "Writing", meta }), /* @__PURE__ */ React.createElement("div", { className: "g-write-cols" }, /* @__PURE__ */ React.createElement("section", { className: checked ? "g-hide-mobile" : void 0 }, /* @__PURE__ */ React.createElement(Card, null, draft.own ? /* @__PURE__ */ React.createElement("div", { className: "g-field" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic" }, "Your topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", className: "g-input", style: { fontSize: 18, fontWeight: 700 }, placeholder: "z. B. meine Vorlesung heute", value: draft.topic, disabled: !!checked, onChange: (e) => setDraft({ topic: e.target.value }) })) : /* @__PURE__ */ React.createElement("p", { className: "g-prompt" }, draft.prompt ? quote2(draft.prompt) : /* @__PURE__ */ React.createElement(Spinner, null)), point && /* @__PURE__ */ React.createElement("div", { className: "g-hint" }, point.hint, /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("i", null, point.model)), !checked && /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 16 } }, !draft.own && /* @__PURE__ */ React.createElement(LinkButton, { onClick: fetchPrompt }, busy === "prompt" ? "Getting a prompt\u2026" : "New prompt"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => setDraft({ own: !draft.own }) }, draft.own ? "Use a prompt instead" : "Write about my own topic"))), /* @__PURE__ */ React.createElement("label", { htmlFor: "answer", className: "g-label" }, "Your sentences"), /* @__PURE__ */ React.createElement("textarea", { id: "answer", className: "g-write", lang: "de", spellCheck: "false", value: checked ? checked.text : draft.text, readOnly: !!checked, onChange: (e) => setDraft({ text: e.target.value }) }), /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { fontSize: 13, padding: "0 4px" } }, checked ? `${sentenceCount(checked.text)} sentences \xB7 checked` : `${count} ${count === 1 ? "sentence" : "sentences"} \xB7 aim for 3\u20135`), error && /* @__PURE__ */ React.createElement("p", { className: "g-error", role: "alert" }, error), !checked && /* @__PURE__ */ React.createElement(Button, { variant: "amber", busy: busy === "check", disabled: !draft.text.trim() || draft.own && !draft.topic.trim(), onClick: check }, busy === "check" ? "Checking\u2026" : "Check my German")), checked && /* @__PURE__ */ React.createElement("section", { "aria-label": "Feedback" }, /* @__PURE__ */ React.createElement(Feedback, { session: checked, onFinish: () => go("#/") }))));
+    return /* @__PURE__ */ React.createElement(Screen, { wide: true, label: "Writing" }, /* @__PURE__ */ React.createElement(ScreenHeader, { close: "#/", title: "Writing", meta }), /* @__PURE__ */ React.createElement("div", { className: "g-write-cols" }, /* @__PURE__ */ React.createElement("section", { className: checked ? "g-hide-mobile" : void 0 }, /* @__PURE__ */ React.createElement(Card, null, draft.own ? /* @__PURE__ */ React.createElement("div", { className: "g-field" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic" }, "Your topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", ref: topicRef, onFocus: () => lastField.current = "topic", className: "g-input", style: { fontSize: 18, fontWeight: 700 }, placeholder: "z. B. meine Vorlesung heute", value: draft.topic, disabled: !!checked, onChange: (e) => setDraft({ topic: e.target.value }) })) : /* @__PURE__ */ React.createElement("p", { className: "g-prompt" }, draft.prompt ? quote2(draft.prompt) : /* @__PURE__ */ React.createElement(Spinner, null)), point && /* @__PURE__ */ React.createElement("div", { className: "g-hint" }, point.hint, /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("i", null, point.model)), !checked && /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 16 } }, !draft.own && /* @__PURE__ */ React.createElement(LinkButton, { onClick: fetchPrompt }, busy === "prompt" ? "Getting a prompt\u2026" : "New prompt"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => setDraft({ own: !draft.own }) }, draft.own ? "Use a prompt instead" : "Write about my own topic"))), /* @__PURE__ */ React.createElement("label", { htmlFor: "answer", className: "g-label" }, "Your sentences"), /* @__PURE__ */ React.createElement("textarea", { id: "answer", ref: answerRef, onFocus: () => lastField.current = "text", className: "g-write", lang: "de", spellCheck: "false", value: checked ? checked.text : draft.text, readOnly: !!checked, onChange: (e) => setDraft({ text: e.target.value }) }), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { fontSize: 13, padding: "0 4px" } }, checked ? `${sentenceCount(checked.text)} sentences \xB7 checked` : `${count} ${count === 1 ? "sentence" : "sentences"} \xB7 aim for 3\u20135`), !checked && /* @__PURE__ */ React.createElement(UmlautKeys, { onType: typeChar })), error && /* @__PURE__ */ React.createElement("p", { className: "g-error", role: "alert" }, error), !checked && /* @__PURE__ */ React.createElement(Button, { variant: "amber", busy: busy === "check", disabled: !draft.text.trim() || draft.own && !draft.topic.trim(), onClick: check }, busy === "check" ? "Checking\u2026" : "Check my German")), checked && /* @__PURE__ */ React.createElement("section", { "aria-label": "Feedback" }, /* @__PURE__ */ React.createElement(Feedback, { session: checked, onFinish: () => go("#/") }))));
   }
 
   // german/History.jsx
@@ -21561,7 +21600,7 @@ ${suffix}`;
   }
 
   // german/Podcast.jsx
-  var { useState: useState10, useEffect: useEffect8, useRef: useRef3, Fragment } = React;
+  var { useState: useState10, useEffect: useEffect8, useRef: useRef4, Fragment } = React;
   var shortDate2 = (ms) => new Date(ms).toLocaleDateString("de-DE", { day: "numeric", month: "short" });
   var cardLabel = (c) => c.kind === "noun" ? `${c.article} ${c.de}` : c.de;
   function NewEpisode({ app, history: history2, pending, failed, onStarted }) {
@@ -21647,7 +21686,7 @@ ${suffix}`;
     const [showText, setShowText] = useState10(false);
     const [picks, setPicks] = useState10({});
     const [reviewing, setReviewing] = useState10(false);
-    const audio = useRef3(null);
+    const audio = useRef4(null);
     const signedIn = !!app.session;
     useEffect8(() => {
       let alive = true;
@@ -21750,7 +21789,7 @@ ${suffix}`;
   }
 
   // german/App.jsx
-  var { useState: useState12, useEffect: useEffect9, useRef: useRef4, useMemo: useMemo3 } = React;
+  var { useState: useState12, useEffect: useEffect9, useRef: useRef5, useMemo: useMemo3 } = React;
   var NONE = [];
   var NO_LOG = {};
   function useToday() {
@@ -21785,7 +21824,7 @@ ${suffix}`;
     const listening = useMemo3(() => normListening(storedListening), [storedListening]);
     const podcast = useMemo3(() => normPodcast(storedPodcast, settings), [storedPodcast, settings]);
     const [toast, setToast] = useState12(null);
-    const toastT = useRef4(null);
+    const toastT = useRef5(null);
     function showToast(msg) {
       clearTimeout(toastT.current);
       setToast(msg);
@@ -21798,7 +21837,7 @@ ${suffix}`;
     const usable = useMemo3(() => suggest.filter((s) => s.for === fitKey), [suggest, fitKey]);
     const [refilling, setRefilling] = useState12(false);
     const [retry, setRetry] = useState12(0);
-    const cardsRef = useRef4(cards);
+    const cardsRef = useRef5(cards);
     cardsRef.current = cards;
     useEffect9(() => {
       const missing = SUGGEST_BUFFER - usable.length;
