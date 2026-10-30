@@ -11,6 +11,7 @@ An Express app that serves the site and its APIs from one process, on its own Po
 | `appData.js` | The only module that touches `app_data` and its backups; every query is scoped to a user id. |
 | `storage.js` | Files at `<STORAGE_DIR>/<bucket>/<userId>/<path>`, with the bucket limits. |
 | `static.js` | The site, from an allowlist of what the pages use. |
+| `events.js` | Live updates: one `LISTEN` connection on the database's `changes` notifications, passed on to the pages over Server-Sent Events at `GET /api/events?topics=data,mo`. |
 | `routes/data.js` | `GET`/`PUT /api/data/:app/:key` |
 | `routes/backups.js` | `GET /api/backups`, `POST /api/backups/:date/restore`, and the daily snapshot job. |
 | `routes/storage.js` | `GET`/`PUT`/`DELETE /api/storage/:bucket/<userId>/<path>` |

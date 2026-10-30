@@ -20,6 +20,7 @@ Stages 01 and 03 (data API, storage and the function modules). The token format 
 - [ ] `removePhoto` → `storage.remove`; `callFunction` → the function modules directly.
 - [ ] `resolveMapsLink` moved to `server/routes/maps.js` (`GET /api/resolve-maps-link`), with its existing tests.
 - [ ] `worker.js`, `wrangler.jsonc` and `oauth-consent.html` deleted (Cloudflare keeps serving production from `master` until cutover, so the deletions only happen on the `migration` branch).
+- [ ] `@supabase/supabase-js` removed from `package.json` and the lockfile (moved here from stage 02: `mcp/http.js` was its last user).
 - [ ] Tests: bearer checks against a local JWKS (good token, expired, wrong `aud`, wrong `iss`, unknown `sub`), and `mcp/appData` against the new data layer.
 
 ## Files touched
