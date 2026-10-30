@@ -27,7 +27,7 @@ New: `scripts/migrate-from-supabase.mjs`. Outside the repo, with the user's conf
 ### The script (run once, from the workstation)
 
 - **Reads** from Supabase with the session-pooler connection string, and the service-role key for storage downloads. Both come from env, never from the repo:
-  - `auth.users`: `id`, `email`, `created_at` (no passwords needed)
+  - `auth.users`: `id`, `email`, `created_at` (no passwords needed). The owner's email becomes `filip@trplan.si`, their Pocket ID email (`accounts@trplan.si` on Supabase; decided in stage 01).
   - `public.app_data`, `app_data_backups` and every `mo_*` table
   - `auth.oauth_*` is skipped
   - `storage.objects` for the two buckets, downloaded through the Storage API
