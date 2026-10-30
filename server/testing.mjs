@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 import { createApp } from "./app.js";
 import { createDb } from "./db.js";
+import { listenForChanges } from "./events.js";
 
 export const repo = path.resolve(fileURLToPath(import.meta.url), "../..");
 
@@ -30,8 +31,10 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const { app, appData, auth } = createApp({ sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig });
+  const { app, appData, auth, events } = createApp({ sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig });
   server.on("request", app);
+  const listener = listenForChanges(url.toString(), { onChange: events.publish, onResync: events.resync });
+  await listener.ready;
 
   async function addUser(email, id) {
     const [user] = id
@@ -55,7 +58,54 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
     return fetch(base + pathname, { redirect: "manual", ...init, headers });
   }
 
+  // Opens GET /api/events and collects what arrives: `next()` resolves with
+  // the next event ({ event, data }), `close()` ends the stream.
+  async function stream(pathname, { headers } = {}) {
+    const controller = new AbortController();
+    const res = await fetch(base + pathname, { headers, signal: controller.signal });
+    const queue = [];
+    const waiting = [];
+    (async () => {
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        for await (const chunk of res.body) {
+          buffer += decoder.decode(chunk, { stream: true });
+          let i;
+          while ((i = buffer.indexOf("\n\n")) >= 0) {
+            const block = buffer.slice(0, i);
+            buffer = buffer.slice(i + 2);
+            const lines = block.split("\n");
+            const data = lines.filter((l) => l.startsWith("data: ")).map((l) => l.slice(6)).join("\n");
+            if (!data) continue;
+            const event = lines.find((l) => l.startsWith("event: "))?.slice(7) ?? "message";
+            const item = { event, data: JSON.parse(data) };
+            waiting.length ? waiting.shift()(item) : queue.push(item);
+          }
+        }
+      } catch {}
+    })();
+    // Resolves with the next event, or null if none comes within `ms`.
+    function next(ms = 2000) {
+      if (queue.length) return Promise.resolve(queue.shift());
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          waiting.splice(waiting.indexOf(done), 1);
+          resolve(null);
+        }, ms);
+        const done = (item) => {
+          clearTimeout(timer);
+          resolve(item);
+        };
+        waiting.push(done);
+      });
+    }
+    return { res, next, close: () => controller.abort() };
+  }
+
   async function close() {
+    events.closeAll();
+    await listener.stop();
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
     await sql.end();
@@ -64,5 +114,5 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
     await rm(storageDir, { recursive: true, force: true });
   }
 
-  return { sql, base, appData, auth, storageDir, addUser, signedIn, request, close };
+  return { sql, base, appData, auth, events, listener, storageDir, addUser, signedIn, request, stream, close };
 }

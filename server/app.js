@@ -4,6 +4,7 @@
 import express from "express";
 import { createAppDataStore } from "./appData.js";
 import { createAuth } from "./auth.js";
+import { createEventHub } from "./events.js";
 import { createStorage } from "./storage.js";
 import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
@@ -15,6 +16,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   const appData = createAppDataStore(sql);
   const auth = createAuth({ sql, getOidcConfig, publicUrl });
   const storage = createStorage(storageDir);
+  const events = createEventHub();
   const { requireUser } = auth;
 
   const app = express();
@@ -38,6 +40,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   app.use(backupRoutes({ appData, requireUser }));
   app.use(storageRoutes({ storage, requireUser }));
   app.use(moRoutes({ sql }));
+  app.use(events.router);
   app.use("/api", (req, res) => res.status(404).json({ error: "Not found." }));
   if (siteRoot) app.use(staticRoutes(siteRoot));
 
@@ -51,5 +54,5 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
     res.status(500).json({ error: "Something went wrong on the server." });
   });
 
-  return { app, appData, auth };
+  return { app, appData, auth, events };
 }

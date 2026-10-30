@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { createOidcClient } from "./auth.js";
 import { createDb } from "./db.js";
+import { listenForChanges } from "./events.js";
 import { startSnapshotJob } from "./routes/backups.js";
 
 function env(name, fallback) {
@@ -14,8 +15,9 @@ function env(name, fallback) {
   return value;
 }
 
-const sql = createDb(env("DATABASE_URL"));
-const { app, appData, auth } = createApp({
+const databaseUrl = env("DATABASE_URL");
+const sql = createDb(databaseUrl);
+const { app, appData, auth, events } = createApp({
   sql,
   storageDir: env("STORAGE_DIR", "/data/storage"),
   siteRoot: path.resolve(fileURLToPath(import.meta.url), "../.."),
@@ -29,13 +31,16 @@ const { app, appData, auth } = createApp({
 });
 
 startSnapshotJob(appData);
+const listener = listenForChanges(databaseUrl, { onChange: events.publish, onResync: events.resync });
 setInterval(() => auth.pruneSessions().catch(() => {}), 24 * 60 * 60 * 1000).unref();
 
 const port = Number(env("PORT", "8090"));
 const server = app.listen(port, () => console.log(`ai-apps listening on :${port}`));
 
 function shutdown() {
-  server.close(() => sql.end({ timeout: 5 }).then(() => process.exit(0)));
+  // Open event streams would keep server.close() waiting; pages reconnect.
+  events.closeAll();
+  server.close(() => Promise.all([listener.stop(), sql.end({ timeout: 5 })]).then(() => process.exit(0)));
   setTimeout(() => process.exit(0), 10_000).unref();
 }
 process.on("SIGTERM", shutdown);
