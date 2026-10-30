@@ -1,4 +1,4 @@
-const CACHE_NAME = "climbing-tracker-v2";
+const CACHE_NAME = "climbing-tracker-v3";
 const ASSETS = [
   // The site serves this page at the extensionless path in production
   // (Cloudflare's asset serving redirects the .html path away from it), so
@@ -29,15 +29,19 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("climbing-tracker-") && k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
 
-  if (event.request.url.startsWith(self.location.origin)) {
+  if (url.origin === self.location.origin) {
+    // The API (data, files, live updates) and sign-in always go to the
+    // network, uncached: an event stream would never finish caching.
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
     // Network-first for the app's own files: always try to get the latest
     // deploy, and only fall back to the cache when there's no network at
     // all. Stale-while-revalidate here would show last visit's version

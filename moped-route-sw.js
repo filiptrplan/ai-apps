@@ -1,4 +1,4 @@
-const CACHE_NAME = "moped-route-v2";
+const CACHE_NAME = "moped-route-v3";
 const STATIC_CDN_HOSTS = ["unpkg.com", "cdnjs.cloudflare.com"];
 const ASSETS = [
   // Production serves the page at the extensionless path, so cache both.
@@ -38,8 +38,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
-    // The link resolver and anything else dynamic always goes to the network.
-    if (url.pathname.startsWith("/api/")) return;
+    // The link resolver, the rest of the API and sign-in always go to the
+    // network, uncached: an event stream would never finish caching.
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
     // Network-first for the app's own files so a new deploy shows up at once.
     // Shared links arrive as /moped-route?text=..., which falls back to the
     // cached page when offline.

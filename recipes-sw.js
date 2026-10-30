@@ -1,4 +1,4 @@
-const CACHE_NAME = "recipes-v1";
+const CACHE_NAME = "recipes-v2";
 const STATIC_CDN_HOSTS = ["unpkg.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 const ASSETS = [
   // Production serves the page at the extensionless path, so cache both.
@@ -37,6 +37,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
+    // The API (data, files, live updates) and sign-in always go to the
+    // network, uncached: an event stream would never finish caching.
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
     // Network-first for the app's own files so a new deploy shows up at once.
     event.respondWith(
       fetch(event.request)
@@ -52,8 +55,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Supabase (data, photos, AI calls) is never cached here: lists and
-  // recipes already live in localStorage, and photo URLs are signed.
+  // Of other hosts, only the pinned CDN files are cached.
   if (!STATIC_CDN_HOSTS.includes(url.hostname)) return;
 
   // Stale-while-revalidate for the pinned CDN scripts and the font files.

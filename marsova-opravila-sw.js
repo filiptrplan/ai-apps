@@ -1,4 +1,4 @@
-const CACHE_NAME = "marsova-opravila-v1";
+const CACHE_NAME = "marsova-opravila-v2";
 const STATIC_CDN_HOSTS = ["unpkg.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 const ASSETS = [
   // The site serves this page at the extensionless path in production
@@ -33,7 +33,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("marsova-opravila-") && k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -43,6 +43,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
+    // The API and sign-in always go to the network, uncached: points only
+    // ever change on a real network round trip, and a service worker
+    // standing in for that would let the app claim something saved while
+    // offline. (An event stream would never finish caching, too.)
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
     // Network-first for the app's own files: always try to get the latest
     // deploy, and only fall back to the cache when there's no network at
     // all. Stale-while-revalidate here would show last visit's version
@@ -61,13 +66,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (!STATIC_CDN_HOSTS.includes(url.hostname)) {
-    // Everything else - notably the Supabase API and realtime sockets - is
-    // never cached and never served from cache. Points only ever change on
-    // a real network round trip; a service worker standing in for that
-    // would let the app claim something saved while offline.
-    return;
-  }
+  // Of other hosts, only the pinned CDN files are cached.
+  if (!STATIC_CDN_HOSTS.includes(url.hostname)) return;
 
   // Stale-while-revalidate for the pinned CDN scripts/fonts, which are
   // effectively immutable - no need to wait on the network for those.
