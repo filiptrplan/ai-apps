@@ -12,11 +12,11 @@ Nothing.
 
 - [x] `REVIEW.md` in the repo root, with the ten sections listed under Design notes.
 - [x] Branch `migration` created from `master`. Stages 01–05 land there.
-- [ ] Pocket ID clients, created by the user in the admin UI:
+- [x] Pocket ID clients, created by the user in the admin UI:
   - `ai-apps`: confidential, redirect URIs `https://apps.trplan.si/auth/callback` and `https://apps-next.trplan.si/auth/callback` (plus `http://localhost:8090/auth/callback` for dev).
   - `ai-apps-mcp`: redirect URI is claude.ai's connector callback; public or confidential, whichever claude.ai's connector settings accept.
   - A group of allowed users, attached to both clients.
-  - The second user invited, using the same email as their Supabase account, and their passkey set up.
+  - ~~The second user invited, using the same email as their Supabase account, and their passkey set up.~~ Deferred by the user on 2026-10-30 (see Notes).
 - [x] Pocket ID access-token format checked: are tokens issued to `ai-apps-mcp` JWTs (verifiable against the JWKS) or opaque? Record the answer and the claims (`iss`, `aud`, `sub`, `exp`) in the Notes below.
 - [x] vps2 free disk and memory recorded in the Notes.
 - [x] Both Supabase users' ids and emails recorded in the Notes (ids are needed to link users; emails must match the Pocket ID accounts).
@@ -128,7 +128,9 @@ Only `app_data` and `app_data_backups` reference users; the `mo_*` tables don't 
 
 Issuer `https://id.trplan.si`, JWKS at `/.well-known/jwks.json`, ID tokens signed `RS256`, `registration_endpoint` null.
 
-Clients `ai-apps` (confidential) and `ai-apps-mcp` (public, PKCE) created by the user with custom client ids, each limited to the allowed group.
+Clients `ai-apps` (confidential) and `ai-apps-mcp` (public, PKCE) created by the user with custom client ids, each limited to the allowed group. The temporary `http://localhost:8765/callback` was removed from `ai-apps-mcp` after the token check.
+
+**Second user deferred** (user's decision, 2026-10-30): they have never signed in and have no data, so they aren't invited to Pocket ID for now. Stage 06 migrates their `auth.users` row only if they have been invited by then; REVIEW.md's "both users sign in" check then covers only the owner, unless they were invited.
 
 ### Access-token format (2026-10-30)
 
