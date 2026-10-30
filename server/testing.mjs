@@ -15,6 +15,26 @@ import { listenForChanges } from "./events.js";
 
 export const repo = path.resolve(fileURLToPath(import.meta.url), "../..");
 
+// Replaces fetch for every host but 127.0.0.1 (the test's own requests to
+// the app): `handler(url, init, body)` answers instead, with a Response;
+// `body` is the request body, parsed when it's JSON. Each call is recorded
+// in `calls` as { url, init, body }. `restore()` puts the real fetch back.
+export function mockFetch(handler) {
+  const real = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(input instanceof Request ? input.url : input);
+    if (url.hostname === "127.0.0.1") return real(input, init);
+    let body = init.body;
+    try {
+      body = JSON.parse(body);
+    } catch {}
+    calls.push({ url, init, body });
+    return handler(url, init, body);
+  };
+  return { calls, restore: () => (globalThis.fetch = real) };
+}
+
 // `publicUrl` defaults to the address the app listens on.
 export async function setup({ getOidcConfig = async () => { throw new Error("no OIDC in this test"); }, publicUrl } = {}) {
   const { TEST_DATABASE_URL, TEST_TEMPLATE_DB } = process.env;
@@ -31,7 +51,7 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const { app, appData, auth, events } = createApp({ sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig });
+  const { app, appData, auth, events, fn } = createApp({ sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig });
   server.on("request", app);
   const listener = listenForChanges(url.toString(), { onChange: events.publish, onResync: events.resync });
   await listener.ready;
@@ -114,5 +134,5 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
     await rm(storageDir, { recursive: true, force: true });
   }
 
-  return { sql, base, appData, auth, events, listener, storageDir, addUser, signedIn, request, stream, close };
+  return { sql, base, appData, auth, events, fn, listener, storageDir, addUser, signedIn, request, stream, close };
 }
