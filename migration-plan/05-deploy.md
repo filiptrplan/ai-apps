@@ -22,7 +22,7 @@ Stages 01–04 merged on the `migration` branch.
 - [ ] GitHub ruleset on `deploy`: no deletion, no non-fast-forward pushes (the rollback workflow's actor is the exception).
 - [ ] Komodo stack `ai-apps` on server `VPS`, linked repo `filiptrplan/ai-apps`, branch `deploy`, `deploy/compose.yaml`.
 - [ ] Komodo procedure `ai-apps autodeploy`, scheduled every minute, running `DeployStackIfChanged ai-apps`. **Verified** to notice a code-only change (see Design notes).
-- [ ] Stack secrets set via a scratchpad script the user runs: `POSTGRES_PASSWORD`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, model overrides, `PUBLIC_URL`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `MCP_OIDC_CLIENT_ID`.
+- [ ] Stack secrets set via a scratchpad script the user runs: `POSTGRES_PASSWORD`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, model overrides, `PUBLIC_URL`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `MCP_CLIENT_ID` only if it isn't `ai-apps-mcp` (the default).
 - [ ] Staging: tunnel route `apps-next.trplan.si` → `http://localhost:8090` on the VPS tunnel (and its Pocket ID callback URL, from stage 00).
 - [ ] `CLAUDE.md` build/test section updated for the new CI checks (full rewrite is stage 07).
 - [ ] Homelab note updated with the new stack (vps2 table, tunnel hostnames, backups).
@@ -75,6 +75,8 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 - `restart-stack` keeps data intact.
 - Port probes show 8090 and 5432 closed from the internet.
 - Sign-in with Pocket ID works on staging.
+- Deferred from stage 04: claude.ai connects to `https://apps-next.trplan.si/mcp` with the `ai-apps-mcp` client (add the staging host's callback to that client in Pocket ID first, with the user's OK); the OAuth flow completes; `german_get_overview`, `recipes_save_list` and `climbing_log_workout` work and the changes show up in the open apps.
+- Deferred from stage 03, if not done locally by then: the OpenRouter functions (podcast, recipe import, price estimate, shopping list and merge) called once each on staging with the real keys.
 
 ## REVIEW.md sections
 
