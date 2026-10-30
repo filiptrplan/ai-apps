@@ -1,6 +1,6 @@
 # Server
 
-An Express app that serves the site and its APIs from one process, on its own Postgres and file storage. It replaces Supabase and the Cloudflare Worker (see `migration-plan/`).
+An Express app that serves the site, its APIs and the MCP server from one process, on its own Postgres and file storage. It replaces Supabase and the Cloudflare Worker (see `migration-plan/`).
 
 | File | What it does |
 |---|---|
@@ -16,6 +16,8 @@ An Express app that serves the site and its APIs from one process, on its own Po
 | `routes/backups.js` | `GET /api/backups`, `POST /api/backups/:date/restore`, and the daily snapshot job. |
 | `routes/storage.js` | `GET`/`PUT`/`DELETE /api/storage/:bucket/<userId>/<path>` |
 | `routes/mo.js` | Marsova opravila: `GET /api/mo/:table`, `POST /api/mo/rpc/:fn` |
+| `mcp.js` | `/mcp`: the MCP server (`mcp/server.js`) over stateless Streamable HTTP, for Pocket ID access tokens of the `ai-apps-mcp` client, plus the OAuth protected resource metadata. |
+| `routes/maps.js` | `GET /api/resolve-maps-link?url=…`: follows a Google Maps short link (for Moped Route). |
 | `routes/fn.js` | The AI functions: `POST /api/fn/:name`, and `call()` for running them in-process. |
 | `functions/<name>.js` | One AI function each (`german-ai`, `german-podcast`, `german-tts`, `price-estimate`, `recipe-import`, `shopping-list`, `shopping-merge`): `handle(body, ctx)` returns the JSON answer or throws `HttpError`. Shared code (OpenAI, OpenRouter, CEFR levels, WAV) is in `functions/_shared/`. |
 
@@ -30,6 +32,7 @@ Database migrations aren't run by the server; dbmate runs them first (`db/migrat
 | `OIDC_ISSUER` | `https://id.trplan.si` | Pocket ID. |
 | `OIDC_CLIENT_ID` | (required) | The `ai-apps` client's id. |
 | `OIDC_CLIENT_SECRET` | (required) | Its secret. Never commit it. |
+| `MCP_CLIENT_ID` | `ai-apps-mcp` | The Pocket ID client claude.ai connects with; `/mcp` only takes its tokens. |
 | `STORAGE_DIR` | `/data/storage` | Where uploaded files live. |
 | `PORT` | `8090` | |
 | `GIT_SHA` | `dev` | Reported by `/api/health`. |
@@ -65,6 +68,14 @@ docker compose -f deploy/compose.dev.yaml exec db \
 The podcast answers at once with the episode's id and makes the episode in the background, in this process, writing progress into `app_data` (so `/api/events` tells the app). One episode at a time per user. A restart kills the jobs in flight; on startup their entries are marked failed.
 
 `recipe-import` fetches the links users give it, and only follows them (and their redirects) to hosts whose addresses are all public, so a link can't reach the database, the tailnet or anything else next to the server.
+
+## MCP
+
+`/mcp` takes `Authorization: Bearer <access token>` from Pocket ID. The token must be a signed `at+jwt` from `OIDC_ISSUER` with `aud` and `client_id` = `MCP_CLIENT_ID`, and its `sub` must belong to a user who has signed in to the apps at least once (that's when `users.oidc_sub` is linked; the token has no email). Anything else gets a 401 with `WWW-Authenticate` pointing at `/.well-known/oauth-protected-resource/mcp`, which names Pocket ID as the authorization server.
+
+Pocket ID's signing keys are kept for a day, so `/mcp` keeps working while the NAS is down; if they can't be fetched at all, `/mcp` answers 503 rather than a token error, so the client doesn't throw its token away.
+
+claude.ai connects with the pre-registered public client `ai-apps-mcp` (Pocket ID has no dynamic client registration), entered in the connector's advanced settings.
 
 ## Migrations
 
