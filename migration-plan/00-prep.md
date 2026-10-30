@@ -10,16 +10,16 @@ Nothing.
 
 ## Deliverables
 
-- [ ] `REVIEW.md` in the repo root, with the ten sections listed under Design notes.
-- [ ] Branch `migration` created from `master`. Stages 01–05 land there.
+- [x] `REVIEW.md` in the repo root, with the ten sections listed under Design notes.
+- [x] Branch `migration` created from `master`. Stages 01–05 land there.
 - [ ] Pocket ID clients, created by the user in the admin UI:
   - `ai-apps`: confidential, redirect URIs `https://apps.trplan.si/auth/callback` and `https://apps-next.trplan.si/auth/callback` (plus `http://localhost:8090/auth/callback` for dev).
   - `ai-apps-mcp`: redirect URI is claude.ai's connector callback; public or confidential, whichever claude.ai's connector settings accept.
   - A group of allowed users, attached to both clients.
   - The second user invited, using the same email as their Supabase account, and their passkey set up.
 - [ ] Pocket ID access-token format checked: are tokens issued to `ai-apps-mcp` JWTs (verifiable against the JWKS) or opaque? Record the answer and the claims (`iss`, `aud`, `sub`, `exp`) in the Notes below.
-- [ ] vps2 free disk and memory recorded in the Notes.
-- [ ] Both Supabase users' ids and emails recorded in the Notes (ids are needed to link users; emails must match the Pocket ID accounts).
+- [x] vps2 free disk and memory recorded in the Notes.
+- [x] Both Supabase users' ids and emails recorded in the Notes (ids are needed to link users; emails must match the Pocket ID accounts).
 
 ## Files touched
 
@@ -109,4 +109,21 @@ Creates the file itself; nothing to satisfy yet.
 
 ## Notes
 
-(Fill in as work lands.)
+### vps2 (2026-10-30)
+
+`df -h /`: 38 GB, 15 GB used, **22 GB free** (40%). Memory: 3.7 GiB total, 2.4 GiB available, swap 2 GiB (384 MiB used). 2 vCPU. `docker system df`: images 7.8 GB (7.7 GB reclaimable), build cache 3.1 GB (2.0 GB reclaimable), volumes 0.7 GB. Enough room; `docker image prune` and `docker builder prune` would free about 9 GB more if needed.
+
+### Supabase users (2026-10-30, from `auth.users`)
+
+The repo is public, so full emails aren't written here; stage 06's script reads them from `auth.users`. The Pocket ID accounts must use the same emails.
+
+| Supabase id | Email | Created | Last sign-in | Data |
+|---|---|---|---|---|
+| `b9ef8bfd-9ca7-4193-b2c8-4f7b09e42dd1` | owner, `accounts@` on trplan.si | 2026-07-04 | 2026-10-26 | 26 `app_data` rows (climbing-tracker, german, interval-timer, recipes, semester-builder, shopping-list), all 7 storage objects |
+| `488e26ac-7eec-4907-9044-a930fed5cc27` | second user, an outlook.com address | 2026-09-28 | never | none |
+
+Only `app_data` and `app_data_backups` reference users; the `mo_*` tables don't (Marsova uses its admin PIN and sessions).
+
+### Pocket ID (2026-10-30)
+
+Issuer `https://id.trplan.si`, JWKS at `/.well-known/jwks.json`, ID tokens signed `RS256`, `registration_endpoint` null.
