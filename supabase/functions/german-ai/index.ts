@@ -15,6 +15,7 @@
 //   supabase functions deploy german-ai
 
 import { json, serveSignedIn } from "../_shared/http.ts";
+import { levelGuide, type Skill } from "../_shared/cefr.ts";
 import { AIError, structuredCompletion } from "../_shared/openai.ts";
 
 const LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
@@ -64,15 +65,19 @@ const WORD = {
   },
 };
 
-const SYSTEM_BASE = (lvl: string) =>
-  `You help an adult English speaker who lives in Zürich (ETH student) learn German. Their level is ${lvl} (CEFR). Write standard German (Germany/Switzerland spelling with ß is fine). Keep vocabulary and sentence structure at or slightly above ${lvl}.`;
+// `skills` picks the CEFR scales that describe the level for the task (see
+// _shared/cefr.ts).
+const SYSTEM_BASE = (lvl: string, skills: Skill[]) =>
+  `You help an adult English speaker who lives in Zürich (ETH student) learn German. Their level is ${lvl} (CEFR). Write standard German (Germany/Switzerland spelling with ß is fine). Keep vocabulary and sentence structure at or slightly above ${lvl}.
+
+${levelGuide(lvl, skills)}`;
 
 async function fill(body: any) {
   const input = str(body.input, MAX_WORD);
   if (!input) return json({ error: "Type a word first." }, 400);
   const lvl = level(body.level);
   const result = await structuredCompletion<{ options: unknown[] }>({
-    system: `${SYSTEM_BASE(lvl)}
+    system: `${SYSTEM_BASE(lvl, ["language"])}
 
 The learner typed a word to add to their flashcards. It may be German or English (or a short phrase).
 - German input: one option for that word (fix spelling and capitalisation; nouns in the singular).
@@ -93,7 +98,7 @@ async function example(body: any) {
   if (!de) return json({ error: "The card has no German word." }, 400);
   const word = card.kind === "noun" && card.article ? `${str(card.article, 3)} ${de}` : de;
   const result = await structuredCompletion<{ example: string }>({
-    system: `${SYSTEM_BASE(level(body.level))}
+    system: `${SYSTEM_BASE(level(body.level), ["reading", "language"])}
 
 Write one new, natural example sentence for a flashcard, using the given word (in any needed form). Everyday situations: studying, the city, trains, food, sport, friends. Different from the sentence to avoid. 6–14 words.`,
     user: `Word: ${word} (${str(card.en, 120)})\nAvoid: ${str(body.avoid, 300) || "-"}`,
@@ -109,9 +114,9 @@ async function suggest(body: any) {
   const topics = list(body.topics, 12, 40);
   const known = list(body.known, 400, MAX_WORD);
   const result = await structuredCompletion<{ words: unknown[] }>({
-    system: `${SYSTEM_BASE(level(body.level))}
+    system: `${SYSTEM_BASE(level(body.level), ["language"])}
 
-Suggest new words for the learner's flashcards. Pick useful, frequent words they likely don't know yet at their level: roughly half general everyday vocabulary, half from their topics. Mostly nouns and verbs, a few adjectives/adverbs. Don't repeat anything from the known list (in any form).`,
+Suggest new words for the learner's flashcards. Pick useful, frequent words they likely don't know yet but need next, in line with the vocabulary range at their level and the one above it: roughly half general everyday vocabulary, half from their topics. Mostly nouns and verbs, a few adjectives/adverbs. Don't repeat anything from the known list (in any form).`,
     user: `Number of words: ${n}\nTopics: ${topics.join(", ") || "(none, use general words)"}\nKnown: ${known.join(", ") || "-"}`,
     schema: { type: "object", additionalProperties: false, required: ["words"], properties: { words: { type: "array", items: WORD } } },
     schemaName: "suggestions",
@@ -125,9 +130,9 @@ async function prompt(body: any) {
   const topics = list(body.topics, 12, 40);
   const avoid = list(body.avoid, 12, 200);
   const result = await structuredCompletion<{ prompt: string }>({
-    system: `${SYSTEM_BASE(level(body.level))}
+    system: `${SYSTEM_BASE(level(body.level), ["writing", "language"])}
 
-Write one short writing prompt in German: a question the learner answers in 3–5 sentences about their own life. It should naturally invite today's grammar focus (without naming it). Sometimes use one of their topics, sometimes everyday life. One sentence, under 12 words, ending with "?". Don't reuse the earlier prompts.`,
+Write one short writing prompt in German: a question the learner answers in 3–5 sentences about their own life. It should naturally invite today's grammar focus (without naming it) and the kind of text the learner can write at their level (see the writing descriptors above). Sometimes use one of their topics, sometimes everyday life. One sentence, under 12 words, ending with "?". Don't reuse the earlier prompts.`,
     user: `Grammar focus: ${str(focus.label, 120)} (${str(focus.hint, 200)})\nTopics: ${topics.join(", ") || "-"}\nEarlier prompts:\n${avoid.join("\n") || "-"}`,
     schema: { type: "object", additionalProperties: false, required: ["prompt"], properties: { prompt: { type: "string" } } },
     schemaName: "prompt",
@@ -171,12 +176,12 @@ async function check(body: any) {
   const lvl = level(body.level);
   const focus = body.focus ? `${str(body.focus.id, 20)} (${str(body.focus.label, 120)})` : "none";
   const result = await structuredCompletion<{ verdict: string; corrected: string; fixes: unknown[] }>({
-    system: `${SYSTEM_BASE(lvl)}
+    system: `${SYSTEM_BASE(lvl, ["writing", "language"])}
 
 Correct the learner's short text. Change as little as possible: keep their words and ideas, fix only what's wrong. At A1/A2 levels fix grammar, word order, gender, case and spelling but don't polish style; from B1 also fix unidiomatic phrasing.
 
 Return:
-- verdict: one word or two for the overall result: "Great", "Good", "Okay" or "Keep going".
+- verdict: one word or two for the overall result, judged against what the descriptors above expect at this level (not against a native speaker): "Great", "Good", "Okay" or "Keep going".
 - corrected: the full corrected text.
 - fixes: one entry per correction, in text order. Merge corrections that belong together (e.g. a verb moved to the end) into one fix. Tag each with the grammar point it practises, or "other" (gender, spelling, word choice, ...):
 ${POINT_LIST}
@@ -204,7 +209,7 @@ async function words(body: any) {
     .slice(0, MAX_PICKS);
   if (!picks.length) return json({ error: "Pick some words first." }, 400);
   const result = await structuredCompletion<{ items: unknown[] }>({
-    system: `${SYSTEM_BASE(level(body.level))}
+    system: `${SYSTEM_BASE(level(body.level), ["reading", "language"])}
 
 The learner tapped words in the transcript of a German podcast to turn them into flashcards. For each tapped word (in order) you get the line it was in. Return one item per word, in the same order:
 - main: the card the learner most likely wants. Use the sentence: a separable verb split across the sentence becomes the whole infinitive (tapped "stehe" in "Ich stehe um sieben auf" → aufstehen; tapped "auf" there → aufstehen too); a word that is part of a fixed phrase or idiom becomes the whole phrase (tapped "Fall" in "auf jeden Fall" → "auf jeden Fall", kind word); otherwise the word's base form (nouns singular, verbs infinitive, adjectives uninflected), in the meaning it has in this sentence.

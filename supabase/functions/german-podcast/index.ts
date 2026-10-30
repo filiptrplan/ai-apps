@@ -26,6 +26,7 @@
 // Deploy with:
 //   supabase functions deploy german-podcast
 
+import { levelGuide } from "../_shared/cefr.ts";
 import { json, serveSignedIn } from "../_shared/http.ts";
 import { AIError, searchedCompletion } from "../_shared/openai.ts";
 import { dialogueSpeech } from "../_shared/openrouter.ts";
@@ -207,17 +208,6 @@ const SCRIPT_SCHEMA = {
   },
 };
 
-// What German fits each CEFR level, for the script. Sub-levels (.1/.2) say
-// how far into the level the listener is.
-const LEVEL_GUIDE: Record<string, string> = {
-  A1: `Grammar: present tense, Perfekt of everyday verbs, war/hatte, main clauses joined with und, aber, oder. Questions with W-words. Avoid subordinate clauses, the passive, relative clauses, the genitive and Konjunktiv. Words: the most common everyday words only. Sentences: short, about 8 words at most.`,
-  A2: `Grammar: main clauses plus simple subordinate clauses with weil, dass, wenn, ob; Perfekt for the past, Präteritum only of sein, haben and modal verbs; modal verbs; separable verbs; würde/hätte/wäre for wishes and what-ifs; comparisons (größer als, am größten). Avoid the passive, relative clauses (at most one or two very simple ones), the genitive and genitive prepositions (trotz, während, statt), zu-infinitive constructions (um/ohne/statt … zu), Konjunktiv I, and abstract nouns on -ung/-heit/-keit unless explained. Words: everyday vocabulary. Sentences: mostly 12 words or fewer.`,
-  B1: `Grammar: everything from A2, plus relative clauses, zu-infinitives and um … zu, obwohl, damit, nachdem, Präteritum when telling a story, and the simple passive. Avoid long nested sentences, heavy nominal style (strings of abstract nouns) and Konjunktiv I. Words: everyday and common abstract vocabulary; explain idioms. Sentences: mostly 15 words or fewer.`,
-  B2: `Grammar: natural spoken German with its full range, including the passive, Konjunktiv II in the past and occasionally Konjunktiv I for reported speech. Words: a wide vocabulary with idioms and nuance; explain only rare or technical words.`,
-};
-const levelGuide = (lvl: string) =>
-  `${LEVEL_GUIDE[lvl.slice(0, 2)] ?? LEVEL_GUIDE.A2} ${lvl.endsWith(".1") ? `(${lvl} is early in the level: stay at its simpler end.)` : `(${lvl} is late in the level: use its full range.)`}`;
-
 // The episode should take three to four minutes at every pace, so slower
 // paces get fewer words (targets as in PACES).
 const WORDS: Record<string, number> = { slowest: 350, slower: 420, natural: 520 };
@@ -245,8 +235,8 @@ They don't just agree politely: a bit of disagreement and opinion makes it a rea
 
 Search the web for the topic first, so facts, names and numbers are real and current. Don't invent facts; when unsure, stay general. Never put sources, citations, links or URLs anywhere in your answer (not in the dialogue, title or summary): everything is read out loud.
 
-Language: natural spoken standard German (Hochdeutsch) that a learner at level ${lvl} can follow (about 90%). For ${lvl}:
-${levelGuide(lvl)}
+Language: natural spoken standard German (Hochdeutsch) that a learner at level ${lvl} can follow (about 90%).
+${levelGuide(lvl, ["listening", "language"])}
 - Words above ${lvl} are fine on purpose, but at most 6 in the whole episode: the first time one comes up, a host explains it in simple German. Exactly those words go in keyWords. Everything else stays at the level.
 - Use some of the listener's flashcard words where they fit naturally (don't force them all in).
 - Use the listener's problem grammar correctly, several times each, without pointing it out.
