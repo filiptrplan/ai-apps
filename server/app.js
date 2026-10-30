@@ -1,6 +1,7 @@
 // Builds the Express app from its parts, so tests can run it against their
 // own database, storage folder and OpenID provider. index.js starts it.
 
+
 import express from "express";
 import { createAppDataStore } from "./appData.js";
 import { createAuth } from "./auth.js";
@@ -10,6 +11,7 @@ import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
 import { dataRoutes } from "./routes/data.js";
 import { fnRoutes } from "./routes/fn.js";
+import { mapsRoutes } from "./routes/maps.js";
 import { moRoutes } from "./routes/mo.js";
 import { storageRoutes } from "./routes/storage.js";
 
@@ -44,6 +46,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   app.use(moRoutes({ sql }));
   app.use(fn.router);
   app.use(events.router);
+  app.use(mapsRoutes());
   app.use("/api", (req, res) => res.status(404).json({ error: "Not found." }));
   if (siteRoot) app.use(staticRoutes(siteRoot));
 
