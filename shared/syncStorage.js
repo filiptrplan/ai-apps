@@ -1,4 +1,6 @@
-import { supabase } from "./supabaseClient.js";
+import { apiFetch } from "./api.js";
+import { getSession, onSessionChange } from "./auth.js";
+import { subscribe } from "./events.js";
 
 const { useState, useEffect, useRef, useCallback } = React;
 
@@ -45,15 +47,19 @@ function sameValue(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function dataPath(appId, key) {
+  return `/api/data/${encodeURIComponent(appId)}/${encodeURIComponent(key)}`;
+}
+
 // Drop-in replacement for a plain useState+localStorage hook. Same
-// [value, save] shape, plus a third `conflict` element, but when a
-// Supabase session exists it also keeps a `public.app_data` row
-// (identified by appId + key) in sync in the background: pulled on
-// mount/login, pushed on every save, and picked up live from other
-// logged-in tabs/devices via Realtime. Adding a new app just means picking
-// a new appId/key — no new table needed.
+// [value, save] shape, plus a third `conflict` element, but when signed
+// in it also keeps a `public.app_data` row (identified by appId + key) in
+// sync in the background through /api/data: pulled on mount/login, pushed
+// on every save, and picked up live from other logged-in tabs/devices via
+// /api/events. Adding a new app just means picking a new appId/key — no
+// new table needed.
 //
-// When a remote value arrives (on pull or via Realtime) that disagrees
+// When a remote value arrives (on pull or live) that disagrees
 // with the local value and we can't tell which one is stale, neither side
 // is applied automatically — `conflict` is set to { local, remote,
 // keepLocal, keepRemote } so the caller can ask the user which to keep.
@@ -64,7 +70,7 @@ export function useSyncedStorage(appId, key, fallback) {
   dataRef.current = data;
 
   // Pushes go out one at a time: concurrent upserts can land out of order
-  // (leaving an older value on the server), and their Realtime echoes can
+  // (leaving an older value on the server), and their live echoes can
   // arrive after a newer save and look like a fresh remote change. While a
   // push is in flight, later saves just replace `pending`, so only the
   // latest value is sent next. `written` remembers the updated_at of our
@@ -82,19 +88,14 @@ export function useSyncedStorage(appId, key, fallback) {
     try {
       let next = val;
       while (next !== undefined) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await getSession();
         if (!session) {
           queue.pending = undefined;
           break;
         }
-        const { data: row } = await supabase
-          .from("app_data")
-          .upsert(
-            { user_id: session.user.id, app_id: appId, key, value: next },
-            { onConflict: "user_id,app_id,key" }
-          )
-          .select("updated_at")
-          .single();
+        // Offline or failed: the value stays in localStorage, and the next
+        // pull (on reload or reconnect) sorts it out, as before.
+        const row = await apiFetch(dataPath(appId, key), { method: "PUT", json: { value: next } }).catch(() => null);
         if (row) {
           writeSyncedState(key, row.updated_at, next);
           queue.written = [...queue.written.slice(-19), row.updated_at];
@@ -119,7 +120,7 @@ export function useSyncedStorage(appId, key, fallback) {
     pushRemote(next);
   }, [key, pushRemote]);
 
-  // Applies an incoming remote row, unless it conflicts with a local value
+  // Applies an incoming remote row ({ value, updated_at }), unless it conflicts with a local value
   // we can't confirm is stale — in which case it surfaces `conflict`
   // instead of picking a side.
   const reconcile = useCallback((row) => {
@@ -129,7 +130,7 @@ export function useSyncedStorage(appId, key, fallback) {
 
     const localMarker = localStorage.getItem(markerKey(key));
     if (localMarker === row.updated_at) return; // already in sync
-    // A late Realtime echo of one of our own earlier writes.
+    // A late echo of one of our own earlier writes.
     if (pushQueueRef.current.written.includes(row.updated_at)) return;
 
     if (sameValue(row.value, dataRef.current)) {
@@ -171,20 +172,19 @@ export function useSyncedStorage(appId, key, fallback) {
   }, [key, fallback, pushRemote]);
 
   useEffect(() => {
-    let channel;
     let cancelled = false;
+    let unsubscribe = null;
 
     async function pullOnce() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || cancelled) return;
-
-      const { data: row } = await supabase
-        .from("app_data")
-        .select("value, updated_at")
-        .eq("app_id", appId)
-        .eq("key", key)
-        .maybeSingle();
-
+      let row;
+      try {
+        row = await apiFetch(dataPath(appId, key));
+      } catch (err) {
+        // 404: there's no row yet. Anything else (offline, server down):
+        // leave the local value alone until the next pull.
+        if (err.status !== 404) return;
+        row = null;
+      }
       if (cancelled) return;
 
       if (!row) {
@@ -195,36 +195,34 @@ export function useSyncedStorage(appId, key, fallback) {
       reconcile(row);
     }
 
-    async function subscribe() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || cancelled) return;
-      if (channel) supabase.removeChannel(channel);
-
-      channel = supabase
-        .channel(`app_data:${appId}:${key}:${session.user.id}`)
-        .on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          table: "app_data",
-          filter: `user_id=eq.${session.user.id}`,
-        }, (payload) => {
-          const row = payload.new;
-          if (!row || row.app_id !== appId || row.key !== key) return;
-          reconcile(row);
-        })
-        .subscribe();
+    // Events carry no value, so a change we don't already have is read
+    // with another pull.
+    function onChange(change) {
+      if (change.resync) {
+        pullOnce();
+        return;
+      }
+      if (change.app_id !== appId || change.key !== key) return;
+      if (localStorage.getItem(markerKey(key)) === change.updated_at) return;
+      if (pushQueueRef.current.written.includes(change.updated_at)) return;
+      pullOnce();
     }
 
-    pullOnce().then(subscribe);
+    function start(session) {
+      if (unsubscribe) unsubscribe();
+      unsubscribe = null;
+      if (!session || cancelled) return;
+      unsubscribe = subscribe("data", onChange);
+      pullOnce();
+    }
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") pullOnce().then(subscribe);
-    });
+    getSession().then(start);
+    const stopSession = onSessionChange(start);
 
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
-      sub.subscription.unsubscribe();
+      if (unsubscribe) unsubscribe();
+      stopSession();
     };
   }, [appId, key, pushRemote, reconcile]);
 
