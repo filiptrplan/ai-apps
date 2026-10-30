@@ -1,0 +1,66 @@
+# Local development: Postgres, the migrations, and the server on
+# http://localhost:8090, all from the working tree.
+#
+#   docker compose -f deploy/compose.dev.yaml up
+#
+# Or only the database, with the server on the host (restarts on changes):
+#
+#   docker compose -f deploy/compose.dev.yaml up -d db migrate
+#   npm run dev:server
+#
+# Pocket ID settings go in .env at the repo root (see server/README.md).
+name: ai-apps-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ai_apps
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: ai_apps
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ai_apps"]
+      interval: 2s
+      retries: 30
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2.37
+    command: ["--wait", "--no-dump-schema", "up"]
+    environment:
+      DATABASE_URL: postgres://ai_apps:dev@db:5432/ai_apps?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+      DBMATE_SCHEMA_FILE: /db/schema.sql
+    volumes:
+      - ../db:/db
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "--watch-path=server", "server/index.js"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://ai_apps:dev@db:5432/ai_apps
+      STORAGE_DIR: /data/storage
+      PUBLIC_URL: http://localhost:8090
+      PORT: "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ..:/app:ro
+      - storage:/data/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pg:
+  storage:

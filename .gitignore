@@ -11,3 +11,6 @@ node_modules/
 
 # Cloudflare
 .wrangler/
+
+# Server dev storage (STORAGE_DIR in .env.example)
+.dev-storage/
