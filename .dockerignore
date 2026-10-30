@@ -1,0 +1,12 @@
+# .git reaches only the Dockerfile's `sha` stage, as the `git` build context.
+.git
+node_modules
+.env
+.env.*
+.dev-storage
+.claude
+.github
+deploy
+supabase
+migration-plan
+**/*.test.mjs

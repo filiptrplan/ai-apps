@@ -1,6 +1,7 @@
 // Starts the server: the site, the APIs, /mcp and the background jobs.
 // Configuration is read from the environment, see server/README.md.
 
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
@@ -14,6 +15,15 @@ function env(name, fallback) {
   const value = process.env[name] ?? fallback;
   if (value === undefined) throw new Error(`${name} is not set`);
   return value;
+}
+
+// The image's commit, written by the Dockerfile.
+function gitShaFile() {
+  try {
+    return readFileSync(new URL("../.git-sha", import.meta.url), "utf8").trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 const databaseUrl = env("DATABASE_URL");
@@ -30,7 +40,7 @@ const { app, appData, auth, events, fn } = createApp({
     clientSecret: env("OIDC_CLIENT_SECRET"),
   }),
   mcp: { issuer, clientId: env("MCP_CLIENT_ID", "ai-apps-mcp"), keys: pocketIdKeys(issuer) },
-  sha: env("GIT_SHA", "dev"),
+  sha: env("GIT_SHA", gitShaFile() ?? "dev"),
 });
 
 startSnapshotJob(appData);
