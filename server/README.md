@@ -41,7 +41,7 @@ npm run dev:server          # http://localhost:8090
 
 Or run all of it in Docker: `docker compose -f deploy/compose.dev.yaml up`.
 
-There are no sign-ups: add yourself before signing in, with the email of your Pocket ID account (it's linked to your Pocket ID user on the first sign-in, if Pocket ID reports the email as verified):
+There are no sign-ups: add yourself before signing in, with the email of your Pocket ID account (it's linked to your Pocket ID user on the first sign-in):
 
 ```sh
 docker compose -f deploy/compose.dev.yaml exec db \

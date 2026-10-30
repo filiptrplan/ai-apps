@@ -117,12 +117,16 @@ export function createAuth({ sql, getOidcConfig, publicUrl }) {
     next();
   }
 
-  // Finds the user for a verified Pocket ID identity: by `sub` once linked,
-  // otherwise by email, linking `sub` on the way. Null if there's no such user.
+  // Finds the user for a Pocket ID identity: by `sub` once linked, otherwise
+  // by email, linking `sub` on the way. Null if there's no such user.
+  //
+  // email_verified isn't required: Pocket ID reports false for emails an
+  // admin entered, and only the allowed group can sign in at all. A user
+  // already linked to another `sub` is never relinked by email.
   async function findUser(claims) {
     const [linked] = await sql`select id from public.users where oidc_sub = ${claims.sub}`;
     if (linked) return linked.id;
-    if (typeof claims.email !== "string" || claims.email_verified !== true) return null;
+    if (typeof claims.email !== "string") return null;
     const [user] = await sql`
       update public.users set oidc_sub = ${claims.sub}
       where email = ${claims.email.toLowerCase()} and oidc_sub is null
@@ -189,6 +193,7 @@ export function createAuth({ sql, getOidcConfig, publicUrl }) {
     try {
       const userId = await findUser(claims);
       if (!userId) {
+        console.warn(`auth: no user for ${claims.email ?? "(no email)"}`);
         return res.status(403).type("text").send("This account doesn't have access to the apps.");
       }
       setSessionCookie(res, await createSession(userId));

@@ -132,7 +132,7 @@ test("/auth/login sends the browser to Pocket ID with PKCE, state and nonce", as
   assert.ok(login.flowCookie.attrs.includes("SameSite=Lax"));
 });
 
-test("first sign-in links the user by verified email, later ones by sub", async () => {
+test("first sign-in links the user by email, later ones by sub", async () => {
   const id = await t.addUser("owner@example.com");
   assert.equal(await sessionUser(null), null);
 
@@ -157,17 +157,22 @@ test("first sign-in links the user by verified email, later ones by sub", async 
   assert.deepEqual(await sessionUser(sessionCookie(again)), { id, email: "owner@example.com" });
 });
 
-test("an unknown or unverified email gets a 403 and no session", async () => {
-  await t.addUser("unverified@example.com");
+test("an unknown email, or none, gets a 403 and no session", async () => {
   for (const claims of [
     { sub: "sub-stranger", email: "stranger@example.com", email_verified: true },
-    { sub: "sub-unverified", email: "unverified@example.com", email_verified: false },
     { sub: "sub-no-email" },
   ]) {
     const res = await finishLogin(await startLogin(), claims);
     assert.equal(res.status, 403, claims.sub);
     assert.equal(sessionCookie(res), null);
   }
+});
+
+test("an unverified email still links, as Pocket ID reports admin-entered emails as unverified", async () => {
+  const id = await t.addUser("unverified@example.com");
+  const res = await finishLogin(await startLogin(), { sub: "sub-unverified", email: "unverified@example.com", email_verified: false });
+  assert.equal(res.status, 302);
+  assert.equal((await sessionUser(sessionCookie(res))).id, id);
 });
 
 test("an account already linked to another sub can't be taken over by email", async () => {
