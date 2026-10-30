@@ -736,6 +736,42 @@ $$;
 
 
 --
+-- Name: notify_app_data_change(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_app_data_change() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin
+  perform pg_notify('changes', json_build_object(
+    'table', 'app_data',
+    'user_id', new.user_id,
+    'app_id', new.app_id,
+    'key', new.key,
+    'updated_at', (to_json(new.updated_at at time zone 'UTC') #>> '{}') || '+00:00'
+  )::text);
+  return null;
+end;
+$$;
+
+
+--
+-- Name: notify_mo_change(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_mo_change() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin
+  perform pg_notify('changes', json_build_object('table', tg_table_name)::text);
+  return null;
+end;
+$$;
+
+
+--
 -- Name: set_app_data_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1021,10 +1057,59 @@ CREATE INDEX sessions_user_id_idx ON public.sessions USING btree (user_id);
 
 
 --
+-- Name: app_data app_data_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER app_data_notify_change AFTER INSERT OR UPDATE ON public.app_data FOR EACH ROW EXECUTE FUNCTION public.notify_app_data_change();
+
+
+--
 -- Name: app_data app_data_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER app_data_set_updated_at BEFORE UPDATE ON public.app_data FOR EACH ROW EXECUTE FUNCTION public.set_app_data_updated_at();
+
+
+--
+-- Name: mo_activity_log mo_activity_log_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_activity_log_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_activity_log FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
+
+
+--
+-- Name: mo_categories mo_categories_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_categories_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_categories FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
+
+
+--
+-- Name: mo_chores mo_chores_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_chores_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_chores FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
+
+
+--
+-- Name: mo_reward_requests mo_reward_requests_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_reward_requests_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_reward_requests FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
+
+
+--
+-- Name: mo_rewards mo_rewards_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_rewards_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_rewards FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
+
+
+--
+-- Name: mo_settings mo_settings_notify_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mo_settings_notify_change AFTER INSERT OR DELETE OR UPDATE ON public.mo_settings FOR EACH STATEMENT EXECUTE FUNCTION public.notify_mo_change();
 
 
 --
@@ -1079,4 +1164,5 @@ ALTER TABLE ONLY public.sessions
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20261030130000');
+    ('20261030130000'),
+    ('20261030150000');
