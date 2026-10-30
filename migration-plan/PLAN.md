@@ -71,7 +71,7 @@ vps2: 2 vCPU, 3.7 GB RAM, 38 GB disk. Postgres plus Node need about 300 MB of RA
 | 00 | [00-prep.md](00-prep.md) | Groundwork: `REVIEW.md`, Pocket ID clients, token format, disk check | none | done |
 | 01 | [01-server-and-db.md](01-server-and-db.md) | Server core: Express, dbmate, baseline schema, Pocket ID sign-in, data/backup/storage/Marsova APIs | 00 | done |
 | 02 | [02-realtime-and-client.md](02-realtime-and-client.md) | SSE events, `shared/*` and app call sites rewritten, Supabase removed from the client | 01 | done |
-| 03 | [03-ai-functions.md](03-ai-functions.md) | The 7 edge functions ported to `server/functions/` | 01 | todo |
+| 03 | [03-ai-functions.md](03-ai-functions.md) | The 7 edge functions ported to `server/functions/` | 01 | done, except the real-key checks of the OpenRouter functions (see its Notes) |
 | 04 | [04-mcp.md](04-mcp.md) | `/mcp` on Express with Pocket ID bearer checks; worker deleted | 01, 03 | todo |
 | 05 | [05-deploy.md](05-deploy.md) | Dockerfile, compose, Komodo stack, deploy workflows, staging hostname | 01–04 | todo |
 | 06 | [06-data-and-cutover.md](06-data-and-cutover.md) | Data migration script, dry run, cutover | 05 | todo |
