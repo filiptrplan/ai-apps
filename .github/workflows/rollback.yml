@@ -1,0 +1,39 @@
+# Points `deploy` at an older commit; Komodo redeploys it within a minute.
+# Migrations only roll forward: the older code must work with the newer
+# schema. The next green push fast-forwards `deploy` again.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit to deploy (full or short sha)
+        required: true
+
+env:
+  HEALTH_URL: https://apps-next.trplan.si/api/health
+
+jobs:
+  rollback:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Force deploy to the commit
+        id: push
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          sha=$(git rev-parse --verify --end-of-options "$INPUT_SHA^{commit}")
+          git push --force origin "$sha:refs/heads/deploy"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for it to go live
+        run: sh deploy/wait-for-sha.sh "$HEALTH_URL" "${{ steps.push.outputs.sha }}"

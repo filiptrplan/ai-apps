@@ -1,0 +1,89 @@
+# Checks every PR and push. After a green push to the deploying branch, it
+# fast-forwards `deploy`; Komodo's `ai-apps autodeploy` procedure notices
+# within a minute and redeploys on vps2, and this waits for /api/health to
+# report the new commit. Only GITHUB_TOKEN is used.
+name: Checks and deploy
+
+on:
+  pull_request:
+  push:
+    branches: [master, migration]
+
+env:
+  HEALTH_URL: https://apps-next.trplan.si/api/health
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-retries 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: App and MCP tests
+        run: node --test mcp/*.test.mjs german/*.test.mjs moped-route/*.test.mjs
+
+      - name: Server tests (migrations up, rollback, up)
+        run: node server/runTests.mjs
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
+
+      - name: Committed bundles match a fresh build
+        run: |
+          npm run build
+          git diff --exit-code --stat -- '*-app.js'
+
+      - name: db/schema.sql matches the migrations
+        run: |
+          docker run --rm --network host --user "$(id -u):$(id -g)" -v "$PWD/db:/db" ghcr.io/amacneil/dbmate:2.37 \
+            --url "postgres://postgres:test@localhost:5432/schema_check?sslmode=disable" \
+            --migrations-dir /db/migrations --schema-file /db/schema.sql up
+          git diff --exit-code -- db/schema.sql
+
+  promote:
+    needs: checks
+    # Until the cutover (migration-plan stage 06) the `migration` branch
+    # deploys to staging; then this becomes master, and HEALTH_URL above
+    # https://apps.trplan.si.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/migration'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward deploy to this commit
+        id: push
+        run: |
+          if git push origin "$GITHUB_SHA:refs/heads/deploy"; then exit 0; fi
+          # Rejected: fine if a newer run already moved deploy past this commit.
+          git fetch origin deploy
+          if git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "deploy is already at or past $GITHUB_SHA; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::deploy has diverged from this commit (a rollback to a commit not on this branch?)."
+          exit 1
+
+      - name: Wait for the new version to go live
+        if: steps.push.outputs.skip != 'true'
+        run: sh deploy/wait-for-sha.sh "$HEALTH_URL" "$GITHUB_SHA"
