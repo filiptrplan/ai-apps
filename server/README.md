@@ -16,6 +16,8 @@ An Express app that serves the site and its APIs from one process, on its own Po
 | `routes/backups.js` | `GET /api/backups`, `POST /api/backups/:date/restore`, and the daily snapshot job. |
 | `routes/storage.js` | `GET`/`PUT`/`DELETE /api/storage/:bucket/<userId>/<path>` |
 | `routes/mo.js` | Marsova opravila: `GET /api/mo/:table`, `POST /api/mo/rpc/:fn` |
+| `routes/fn.js` | The AI functions: `POST /api/fn/:name`, and `call()` for running them in-process. |
+| `functions/<name>.js` | One AI function each (`german-ai`, `german-podcast`, `german-tts`, `price-estimate`, `recipe-import`, `shopping-list`, `shopping-merge`): `handle(body, ctx)` returns the JSON answer or throws `HttpError`. Shared code (OpenAI, OpenRouter, CEFR levels, WAV) is in `functions/_shared/`. |
 
 Database migrations aren't run by the server; dbmate runs them first (`db/migrations`, see below).
 
@@ -31,6 +33,13 @@ Database migrations aren't run by the server; dbmate runs them first (`db/migrat
 | `STORAGE_DIR` | `/data/storage` | Where uploaded files live. |
 | `PORT` | `8090` | |
 | `GIT_SHA` | `dev` | Reported by `/api/health`. |
+| `OPENROUTER_API_KEY` | | For `recipe-import`, `shopping-list`, `shopping-merge`, `price-estimate` and the podcast's voices. Without it those functions answer 500 with a message saying so. |
+| `OPENAI_API_KEY` | | For `german-ai`, `german-tts` and the podcast's script. |
+| `OPENAI_MODEL` | `gpt-6.1-sol` | The German app's text model. |
+| `OPENAI_TTS_MODEL` | `gpt-4o-mini-tts` | Spoken example sentences. |
+| `PODCAST_TTS_MODEL` | `google/gemini-3.8-flash-tts` | The podcast's voices, on OpenRouter. |
+
+The keys are read when a function runs, never logged, and never committed.
 
 ## Development
 
@@ -48,6 +57,14 @@ There are no sign-ups: add yourself before signing in, with the email of your Po
 docker compose -f deploy/compose.dev.yaml exec db \
   psql -U ai_apps -c "insert into users (email) values ('you@example.com')"
 ```
+
+## AI functions
+
+`POST /api/fn/:name` with the function's JSON input; `shared/ai.js`'s `callAI` calls it. Signed-out calls get a 401 with the function's own message ("Sign in to use Magic."), errors are `{ error }` with a status, and `callAI` shows that message as is.
+
+The podcast answers at once with the episode's id and makes the episode in the background, in this process, writing progress into `app_data` (so `/api/events` tells the app). One episode at a time per user. A restart kills the jobs in flight; on startup their entries are marked failed.
+
+`recipe-import` fetches the links users give it, and only follows them (and their redirects) to hosts whose addresses are all public, so a link can't reach the database, the tailnet or anything else next to the server.
 
 ## Migrations
 
