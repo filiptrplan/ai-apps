@@ -1,0 +1,112 @@
+# Production on vps2: the Komodo stack `ai-apps`, linked to this repo's
+# `deploy` branch with this file, run from this folder. Each deploy is two
+# steps, so that a failed migration leaves the old app running:
+#
+#   docker compose run --rm migrate   Komodo's pre-deploy command: dumps the
+#                                     database, then applies db/migrations
+#   docker compose up -d --build      only if that worked: builds the app
+#                                     image from the clone and replaces the app
+#
+# (`up` alone would remove the old app before waiting on a migration, so
+# `migrate` and its dump are in a profile that `up` skips.)
+#
+# Komodo's stack environment provides the variables below; data lives in
+# DATA_DIR on the host, owned by uid 1000 (filip), which the nightly rclone
+# backup mirrors to the NAS. The dumps are the backup to restore from; a copy
+# of the running pg folder may not be consistent.
+name: ai-apps
+
+x-db-env: &db-env
+  PGHOST: db
+  PGUSER: ai_apps
+  PGDATABASE: ai_apps
+  PGPASSWORD: ${POSTGRES_PASSWORD:?}
+
+x-dump: &dump
+  image: postgres:17-alpine
+  user: "1000:1000"
+  environment: *db-env
+  volumes:
+    - ./dump.sh:/dump.sh:ro
+    - ${DATA_DIR:-/home/filip/container-data/ai-apps}/dumps:/dumps
+  networks: [internal]
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-alpine
+    user: "1000:1000"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ai_apps
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ai_apps
+    volumes:
+      - ${DATA_DIR:-/home/filip/container-data/ai-apps}/pg:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ai_apps", "-d", "ai_apps"]
+      interval: 5s
+      retries: 30
+
+  predeploy-dump:
+    <<: *dump
+    profiles: [migrate]
+    command: ["sh", "/dump.sh", "pre-deploy", "5"]
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2.37
+    profiles: [migrate]
+    command: ["--wait", "--no-dump-schema", "up"]
+    environment:
+      DATABASE_URL: postgres://ai_apps:${POSTGRES_PASSWORD:?}@db:5432/ai_apps?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+    volumes:
+      - ../db:/db:ro
+    networks: [internal]
+    depends_on:
+      predeploy-dump:
+        condition: service_completed_successfully
+
+  app:
+    build:
+      context: ..
+      additional_contexts:
+        git: ../.git
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://ai_apps:${POSTGRES_PASSWORD:?}@db:5432/ai_apps
+      PUBLIC_URL: ${PUBLIC_URL:?}
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://id.trplan.si}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?}
+      MCP_CLIENT_ID: ${MCP_CLIENT_ID:-ai-apps-mcp}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-}
+      PODCAST_TTS_MODEL: ${PODCAST_TTS_MODEL:-}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8090}:8090"
+    volumes:
+      - ${DATA_DIR:-/home/filip/container-data/ai-apps}/storage:/data/storage
+    # `internal` for the database; `default` for the internet (Pocket ID, AI APIs).
+    networks: [internal, default]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 30s
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db-dump:
+    <<: *dump
+    restart: unless-stopped
+    command: ["sh", "/dump.sh", "daily", "01:00", "nightly", "14"]
+
+networks:
+  internal:
+    internal: true
