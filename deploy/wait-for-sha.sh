@@ -7,7 +7,7 @@ set -u
 url=$1 sha=$2
 
 for _ in $(seq 60); do
-  live=$(curl -fsS --max-time 10 "$url" | jq -r .sha) || live=unreachable
+  body=$(curl -fsS --max-time 10 "$url") && live=$(printf '%s' "$body" | jq -r .sha) || live=unreachable
   echo "$(date -u +%H:%M:%S) live: $live"
   [ "$live" = "$sha" ] && exit 0
   sleep 10
