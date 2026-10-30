@@ -62,6 +62,13 @@ export function createAppDataStore(sql) {
     return rows[0].updated_at;
   }
 
+  // The users who have a row under this app and key, for jobs that look at
+  // everyone's (e.g. the podcast's restart recovery).
+  async function usersWith(appId, key) {
+    const rows = await sql`select user_id from public.app_data where app_id = ${appId} and key = ${key}`;
+    return rows.map((r) => r.user_id);
+  }
+
   // Newest first.
   async function listBackups(userId) {
     return sql`
@@ -111,5 +118,5 @@ export function createAppDataStore(sql) {
     return created.length;
   }
 
-  return { get, put, listBackups, restoreBackup, snapshotAll };
+  return { get, put, usersWith, listBackups, restoreBackup, snapshotAll };
 }
