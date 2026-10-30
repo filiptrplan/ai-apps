@@ -68,13 +68,12 @@ its migration), and `supabase/functions/german-podcast` makes the AI podcast
 episodes: it writes a script after a web search, has Gemini TTS (through
 OpenRouter) speak it as a two-voice dialogue and stores it as a WAV in the
 same bucket, in the background, so the app can be closed meanwhile. They
-call OpenAI directly and need an OpenAI key; the text and speech models can
-be switched with the optional `OPENAI_MODEL` and `OPENAI_TTS_MODEL` secrets
-(the text model has to support the Responses API's web search tool for the
-podcast). The podcast also needs the OpenRouter key from above, and its
-script and voice models can be switched with the optional
-`PODCAST_SCRIPT_MODEL` (default `gpt-6.1-sol`) and `PODCAST_TTS_MODEL`
-(default `google/gemini-3.8-flash-tts`) secrets:
+call OpenAI directly and need an OpenAI key; the text model (default
+`gpt-6.1-sol`) and speech model can be switched with the optional
+`OPENAI_MODEL` and `OPENAI_TTS_MODEL` secrets (the text model has to support
+the Responses API's web search tool for the podcast). The podcast also needs
+the OpenRouter key from above, and its voice model can be switched with the
+optional `PODCAST_TTS_MODEL` secret (default `google/gemini-3.8-flash-tts`):
 
 ```sh
 supabase secrets set OPENAI_API_KEY=...

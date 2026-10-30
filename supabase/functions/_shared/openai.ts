@@ -11,7 +11,7 @@ import { AIError } from "./openrouter.ts";
 
 export { AIError };
 
-const DEFAULT_MODEL = "gpt-6-luna";
+const DEFAULT_MODEL = "gpt-6.1-sol";
 const DEFAULT_TTS_MODEL = "gpt-4o-mini-tts";
 
 function apiKey() {
@@ -45,14 +45,12 @@ export interface StructuredRequest {
   // and every property listed in required.
   schema: Record<string, unknown>;
   schemaName: string;
-  // Overrides OPENAI_MODEL / the default for this call.
-  model?: string;
   maxTokens?: number;
 }
 
 export async function structuredCompletion<T = unknown>(req: StructuredRequest): Promise<T> {
   const res = await post("chat/completions", {
-    model: req.model || Deno.env.get("OPENAI_MODEL") || DEFAULT_MODEL,
+    model: Deno.env.get("OPENAI_MODEL") || DEFAULT_MODEL,
     max_completion_tokens: req.maxTokens ?? 8000,
     messages: [
       { role: "system", content: req.system },
@@ -82,7 +80,7 @@ export async function structuredCompletion<T = unknown>(req: StructuredRequest):
 // Responses API's web search tool), for answers that need current facts.
 export async function searchedCompletion<T = unknown>(req: StructuredRequest): Promise<T> {
   const res = await post("responses", {
-    model: req.model || Deno.env.get("OPENAI_MODEL") || DEFAULT_MODEL,
+    model: Deno.env.get("OPENAI_MODEL") || DEFAULT_MODEL,
     max_output_tokens: req.maxTokens ?? 8000,
     tools: [{ type: "web_search" }],
     instructions: req.system,
