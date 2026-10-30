@@ -1,5 +1,5 @@
 // Supabase Edge Function: makes an AI podcast episode for the German app.
-// Two recurring hosts, Lena and Jonas, talk for about six minutes about one
+// Two recurring hosts, Lena and Jonas, talk for three to four minutes about one
 // of the learner's interests, at their level, using their flashcard words
 // and the grammar they keep getting wrong.
 //
@@ -181,7 +181,7 @@ const SCRIPT_SCHEMA = {
     summary: { type: "string", description: "One English sentence on the angle this episode took." },
     keyWords: {
       type: "array",
-      description: "5–8 important topic words from the episode.",
+      description: "4–6 important topic words from the episode.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -207,8 +207,34 @@ const SCRIPT_SCHEMA = {
   },
 };
 
+// What German fits each CEFR level, for the script. Sub-levels (.1/.2) say
+// how far into the level the listener is.
+const LEVEL_GUIDE: Record<string, string> = {
+  A1: `Grammar: present tense, Perfekt of everyday verbs, war/hatte, main clauses joined with und, aber, oder. Questions with W-words. Avoid subordinate clauses, the passive, relative clauses, the genitive and Konjunktiv. Words: the most common everyday words only. Sentences: short, about 8 words at most.`,
+  A2: `Grammar: main clauses plus simple subordinate clauses with weil, dass, wenn, ob; Perfekt for the past, Präteritum only of sein, haben and modal verbs; modal verbs; separable verbs; würde/hätte/wäre for wishes and what-ifs; comparisons (größer als, am größten). Avoid the passive, relative clauses (at most one or two very simple ones), the genitive and genitive prepositions (trotz, während, statt), zu-infinitive constructions (um/ohne/statt … zu), Konjunktiv I, and abstract nouns on -ung/-heit/-keit unless explained. Words: everyday vocabulary. Sentences: mostly 12 words or fewer.`,
+  B1: `Grammar: everything from A2, plus relative clauses, zu-infinitives and um … zu, obwohl, damit, nachdem, Präteritum when telling a story, and the simple passive. Avoid long nested sentences, heavy nominal style (strings of abstract nouns) and Konjunktiv I. Words: everyday and common abstract vocabulary; explain idioms. Sentences: mostly 15 words or fewer.`,
+  B2: `Grammar: natural spoken German with its full range, including the passive, Konjunktiv II in the past and occasionally Konjunktiv I for reported speech. Words: a wide vocabulary with idioms and nuance; explain only rare or technical words.`,
+};
+const levelGuide = (lvl: string) =>
+  `${LEVEL_GUIDE[lvl.slice(0, 2)] ?? LEVEL_GUIDE.A2} ${lvl.endsWith(".1") ? `(${lvl} is early in the level: stay at its simpler end.)` : `(${lvl} is late in the level: use its full range.)`}`;
+
+// The episode should take three to four minutes at every pace, so slower
+// paces get fewer words (targets as in PACES).
+const WORDS: Record<string, number> = { slowest: 350, slower: 420, natural: 520 };
+
+// Web search can leave source citations in the text ("([site](url))"), which
+// the voices would read out; this removes links and bare URLs.
+const stripLinks = (text: string) =>
+  text
+    .replace(/\(?\[([^\]]*)\]\([^)]*\)\)?/g, (m, label) => (m.startsWith("(") ? "" : label))
+    .replace(/\(?https?:\/\/[^\s)]+\)?/g, "")
+    .replace(/\s+([.,!?;:])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
 function writeScript(input: Input, earlier: string[]) {
   const lvl = input.level;
+  const words = WORDS[input.pace] ?? WORDS.slower;
   return searchedCompletion<Script>({
     system: `You write a short German podcast episode for one listener: an adult English speaker who lives in Zürich, studies at ETH and is learning German. Their level is ${lvl} (CEFR).
 
@@ -217,16 +243,16 @@ The show has two recurring hosts, who are friends (casual "du", teasing, real re
 - Jonas: has read up on today's topic and gets excited about it. He explains with concrete examples and small stories, and sometimes goes too deep until Lena brings him back.
 They don't just agree politely: a bit of disagreement and opinion makes it a real conversation.
 
-Search the web for the topic first, so facts, names and numbers are real and current. Don't invent facts; when unsure, stay general.
+Search the web for the topic first, so facts, names and numbers are real and current. Don't invent facts; when unsure, stay general. Never put sources, citations, links or URLs anywhere in your answer (not in the dialogue, title or summary): everything is read out loud.
 
-Language:
-- Natural spoken standard German (Hochdeutsch) pitched at ${lvl}: mostly short main clauses, everyday words, Perfekt for the past. The listener should follow about 90%.
-- Topic words above ${lvl} are fine on purpose: the first time one comes up, a host explains it in simple German. Those words go in keyWords.
+Language: natural spoken standard German (Hochdeutsch) that a learner at level ${lvl} can follow (about 90%). For ${lvl}:
+${levelGuide(lvl)}
+- Words above ${lvl} are fine on purpose, but at most 6 in the whole episode: the first time one comes up, a host explains it in simple German. Exactly those words go in keyWords. Everything else stays at the level.
 - Use some of the listener's flashcard words where they fit naturally (don't force them all in).
 - Use the listener's problem grammar correctly, several times each, without pointing it out.
 - No English in the dialogue. Write numbers as they're spoken.
 
-Length and shape: about 800 words in total (six minutes of audio), 40–70 turns, most of them 1–3 sentences; nobody talks for more than about 5 sentences in a row. Lena opens by greeting the listener and naming today's topic ("Hallo und willkommen …"); the end is a short wrap-up and goodbye.`,
+Length and shape: short, three to four minutes of audio: about ${words} words in total (stay within ±10%), 20–35 turns, most of them 1–2 sentences; nobody talks for more than about 3 sentences in a row. Stick to one focused angle on the topic rather than covering everything. Lena opens by greeting the listener and naming today's topic in one line ("Hallo und willkommen …"); the end is a quick wrap-up and goodbye.`,
     user: `Topic: ${input.interest}
 Earlier episodes on this topic (take a different angle): ${earlier.length ? `\n${earlier.map(s => `- ${s}`).join("\n")}` : "none"}
 Flashcard words: ${input.words.join(", ") || "-"}
@@ -293,7 +319,7 @@ async function make(id: string, input: Input, request: Request, userId: string) 
     const { history } = await store.read();
     const earlier = history.filter(h => h.interest === input.interest).slice(0, 12).map(h => h.summary);
     const script = await writeScript(input, earlier);
-    const lines = script.lines.filter(l => l.text.trim());
+    const lines = script.lines.map(l => ({ ...l, text: stripLinks(l.text) })).filter(l => l.text);
     if (!lines.length) throw new AIError("empty", "The AI wrote an empty episode - try again.", 502);
     const { bytes, seconds } = await speakDialogue(lines, input.pace, input.level);
     const path = `${userId}/podcast/${id}.wav`;
@@ -301,8 +327,8 @@ async function make(id: string, input: Input, request: Request, userId: string) 
 
     const ready = {
       status: "ready" as const,
-      title: script.title,
-      summary: script.summary,
+      title: stripLinks(script.title),
+      summary: stripLinks(script.summary),
       keyWords: script.keyWords.slice(0, 8),
       lines,
       seconds: Math.round(seconds),
@@ -316,7 +342,7 @@ async function make(id: string, input: Input, request: Request, userId: string) 
       dropped = episodes.slice(KEEP).map(e => e.path as string).filter(Boolean);
       return {
         episodes: episodes.slice(0, KEEP),
-        history: [{ interest: input.interest, title: script.title, summary: script.summary, at: Date.now() }, ...v.history].slice(0, HISTORY),
+        history: [{ interest: input.interest, title: ready.title, summary: ready.summary, at: Date.now() }, ...v.history].slice(0, HISTORY),
       };
     });
     if (dropped.length) await removeAudio(request, dropped);

@@ -1,5 +1,5 @@
 // Podcast: AI episodes about your interests. Pick an interest (or let it
-// surprise you) and the german-podcast function makes a six-minute episode
+// surprise you) and the german-podcast function makes a 3–4 minute episode
 // in the background; play it here, skim its key words or the transcript,
 // and tap words to turn them into cards. Playing an episode to the end
 // logs its minutes and ticks off the day's podcast task.
@@ -59,7 +59,7 @@ function NewEpisode({ app, history, pending, failed, onStarted }) {
     <Card big label="New episode">
       <div className="g-between" style={{ alignItems: "baseline" }}>
         <b style={{ fontSize: 17 }}>New episode</b>
-        <span className="g-small">Lena &amp; Jonas · about 6 min</span>
+        <span className="g-small">Lena &amp; Jonas · 3–4 min</span>
       </div>
       {failed && <p className="g-error">The episode about {failed.interest} didn't work out: {failed.error}</p>}
       <div className="g-chips">

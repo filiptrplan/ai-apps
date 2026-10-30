@@ -28,7 +28,7 @@ export function cardPlanSize(app) {
 
 function taskMeta(task, cardCount) {
   if (task === "cards") return `${sessionMinutes(cardCount)} min`;
-  if (task === "podcast") return "6 min";
+  if (task === "podcast") return "4 min";
   return "10 min";
 }
 
@@ -126,7 +126,7 @@ export function Today({ app }) {
     const t = TASK[now];
     const sub = now === "cards"
       ? cardCount ? `${cardCount} ${cardCount === 1 ? "card" : "cards"} · about ${sessionMinutes(cardCount)} min` : app.refilling ? "Getting new words ready…" : "Nothing due right now"
-      : now === "podcast" ? "One episode · about 6 min"
+      : now === "podcast" ? "One episode · 3–4 min"
       : "3–5 sentences · about 10 min";
     body = (
       <>
