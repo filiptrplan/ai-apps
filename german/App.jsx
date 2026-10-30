@@ -4,8 +4,6 @@
 // data and the actions on it.
 import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
-import { supabase } from "../shared/supabaseClient.js";
-import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import {
   APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, DEFAULT_PODCAST, SUGGEST_BUFFER,
   dayKey, normSettings, normListening, normPodcast, makeCard, findDuplicate, logEpisode, episodeMinutes,
@@ -95,10 +93,6 @@ export function GermanApp() {
     setToast(msg);
     toastT.current = setTimeout(() => setToast(null), 2400);
   }
-
-  useEffect(() => {
-    if (session) runDailyBackupIfNeeded(supabase, session);
-  }, [session]);
 
   // Keeps SUGGEST_BUFFER AI-suggested words ready while online, so new
   // cards keep coming on offline days. Each word remembers the level and

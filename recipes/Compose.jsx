@@ -1,4 +1,4 @@
-import { supabase } from "../shared/supabaseClient.js";
+import { callAI } from "../shared/ai.js";
 import { CATS, uid, parseIng } from "./format.js";
 import { SectionEditor, blankSection, cleanSections } from "./SectionEditor.jsx";
 import { drawScaled, compressPhoto, uploadPhoto, removePhoto, usePhotoUrl } from "./photos.js";
@@ -170,18 +170,11 @@ export function Compose({ initial, session, onCancel, onSave, onDelete }) {
     if (!canRunMagic) return;
     setMagic({ loading: true, error: "" });
     try {
-      const { data, error } = await supabase.functions.invoke("recipe-import", {
-        body: {
-          images: magic.images.map((im) => ({ media: im.media, data: im.data })),
-          link: magic.link.trim(),
-          text: magic.text.trim(),
-        },
+      const data = await callAI("recipe-import", {
+        images: magic.images.map((im) => ({ media: im.media, data: im.data })),
+        link: magic.link.trim(),
+        text: magic.text.trim(),
       });
-      if (error) {
-        // Non-2xx responses carry the function's { error } message in the body.
-        const details = await error.context?.json?.().catch(() => null);
-        throw new Error(details?.error ?? error.message);
-      }
       setFormState({
         name: data.name || "",
         cat: CATS.includes(data.cat) ? data.cat : "Dinner",

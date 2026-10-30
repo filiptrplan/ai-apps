@@ -1,7 +1,5 @@
 import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
-import { supabase } from "../shared/supabaseClient.js";
-import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import { callAI } from "../shared/ai.js";
 import { CATEGORY_ORDER, amountLabel, buildList, formatAmount, listToText } from "./aggregate.js";
 import { runEstimate, estimateKey, priceTotals, chf, priceDetail, monthLabel } from "../shared/prices.js";
@@ -177,10 +175,6 @@ export function ShoppingListApp() {
   const [confirmClear, setConfirmClear] = useState(false);
   // Price estimate for the unticked items, kept while the app is open.
   const [price, setPrice] = useState(null);
-
-  useEffect(() => {
-    if (session) runDailyBackupIfNeeded(supabase, session);
-  }, [session]);
 
   const groups = useMemo(() => buildList(result, extras), [result, extras]);
   const total = groups.reduce((n, g) => n + g.items.length, 0);

@@ -1,9 +1,10 @@
-// The AI podcast episodes (see the german-podcast edge function). That
-// function is the only writer of their app_data row, so unlike
-// useSyncedStorage this just reads it: on open, when the app comes back to
-// the foreground, on refresh(), and live through Realtime. The last value
-// is kept in localStorage, so the list (and cached episodes) work offline.
-import { supabase } from "../shared/supabaseClient.js";
+// The AI podcast episodes (see the german-podcast function). That function
+// is the only writer of their app_data row, so unlike useSyncedStorage this
+// just reads it: on open, when the app comes back to the foreground, on
+// refresh(), and live through /api/events. The last value is kept in
+// localStorage, so the list (and cached episodes) work offline.
+import { apiFetch } from "../shared/api.js";
+import { subscribe } from "../shared/events.js";
 import { APP_ID, KEYS, DEFAULT_EPISODES } from "./model.js";
 
 const { useState, useEffect, useCallback } = React;
@@ -27,32 +28,23 @@ export function useEpisodes(session) {
 
   const refresh = useCallback(async () => {
     if (!userId) return;
-    const { data } = await supabase
-      .from("app_data")
-      .select("value")
-      .eq("app_id", APP_ID)
-      .eq("key", KEYS.episodes)
-      .maybeSingle();
-    if (data) apply(data.value);
+    const row = await apiFetch(`/api/data/${APP_ID}/${KEYS.episodes}`).catch(() => null);
+    if (row) apply(row.value);
   }, [userId, apply]);
 
   useEffect(() => {
     if (!userId) return;
     refresh();
-    const channel = supabase
-      .channel(`app_data:${APP_ID}:episodes:${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "app_data", filter: `user_id=eq.${userId}` }, payload => {
-        const row = payload.new;
-        if (row && row.app_id === APP_ID && row.key === KEYS.episodes) apply(row.value);
-      })
-      .subscribe();
+    const unsubscribe = subscribe("data", change => {
+      if (change.resync || (change.app_id === APP_ID && change.key === KEYS.episodes)) refresh();
+    });
     const onVisible = () => document.visibilityState === "visible" && refresh();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [userId, refresh, apply]);
+  }, [userId, refresh]);
 
   return [value, refresh];
 }

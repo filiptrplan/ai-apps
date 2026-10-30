@@ -1,8 +1,6 @@
-import { supabase } from "./shared/supabaseClient.js";
-import { runDailyBackupIfNeeded } from "./shared/backup.js";
 import { useSyncedStorage } from "./shared/syncStorage.js";
 
-const { useState, useMemo, useEffect } = React;
+const { useState, useMemo } = React;
 
 /* ---------------------------------------------------------
    ICONS — small inline SVGs, feather-style, no dependency
@@ -244,13 +242,6 @@ function SemesterBuilderApp() {
   const [customCourses, setCustomCourses, customCoursesConflict] = useStorage(STORAGE_KEYS.customCourses, []);
   const [view, setView] = useState("overview");
   const [pickerSemester, setPickerSemester] = useState(null);
-
-  // Take today's backup snapshot (no-op if already done, or logged out).
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      runDailyBackupIfNeeded(supabase, session);
-    });
-  }, []);
 
   const fullCatalog = useMemo(() => [...CATALOG, ...customCourses], [customCourses]);
 

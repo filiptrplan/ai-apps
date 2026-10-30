@@ -1,11 +1,11 @@
 // Spoken example sentences and podcast episodes. Each sentence is spoken
-// once by the german-tts edge function (OpenAI TTS), which stores the mp3 in
-// the private german-audio bucket at "<user id>/<sha-256 of the text>.mp3".
+// once by the german-tts function (OpenAI TTS), which stores the mp3 in the
+// private german-audio bucket at "<user id>/<sha-256 of the text>.mp3".
 // The path follows from the text, so cards don't need to remember it.
 // Episodes (WAV) are stored by the german-podcast function at the path
 // their entry holds. Played files are kept in the Cache API, so they also play
 // offline.
-import { supabase } from "../shared/supabaseClient.js";
+import { apiFetch } from "../shared/api.js";
 import { callAI } from "../shared/ai.js";
 
 const CACHE = "german-audio";
@@ -38,6 +38,11 @@ async function toCache(name, blob) {
   } catch {}
 }
 
+// The stored file as a Blob, or null if there's none (or it can't be read).
+function download(path) {
+  return apiFetch(`/api/storage/${BUCKET}/${path}`, { as: "blob" }).catch(() => null);
+}
+
 async function fetchAudio(text, session) {
   const hash = await sha256(text);
   const cached = await fromCache(hash);
@@ -45,10 +50,10 @@ async function fetchAudio(text, session) {
   if (!session) throw new Error("Sign in on the home page to hear sentences.");
 
   const path = `${session.user.id}/${hash}.mp3`;
-  let { data } = await supabase.storage.from(BUCKET).download(path);
+  let data = await download(path);
   if (!data) {
     await callAI("german-tts", { text: text.trim(), path });
-    ({ data } = await supabase.storage.from(BUCKET).download(path));
+    data = await download(path);
   }
   if (!data) throw new Error("Couldn't load the audio.");
   await toCache(hash, data);
@@ -76,7 +81,7 @@ export async function episodeAudio(path, session) {
   const cached = await fromCache(name);
   if (cached) return cached;
   if (!session) throw new Error("Sign in on the home page to play episodes.");
-  const { data } = await supabase.storage.from(BUCKET).download(path);
+  const data = await download(path);
   if (!data) throw new Error("Couldn't load the episode.");
   await toCache(name, data);
   return data;

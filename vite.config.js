@@ -2,14 +2,22 @@ const fs = require("fs");
 const path = require("path");
 
 module.exports = {
-  // Match Cloudflare's clean URLs (for example, /interval-timer).
+  // Match the site's clean URLs (for example, /interval-timer).
   appType: "mpa",
+  // The API, sign-in and live updates come from the dev server
+  // (`npm run dev:server`, see server/README.md).
+  server: {
+    proxy: {
+      "/api": "http://localhost:8090",
+      "/auth": "http://localhost:8090",
+    },
+  },
   plugins: [
     {
       // The prebuilt *-app.js bundles are classic scripts. Vite would treat
       // them as modules and prepend an `import` for any dynamic import()
-      // inside (e.g. supabase-js), which breaks them, so serve them as-is —
-      // exactly as Cloudflare does.
+      // inside, which breaks them, so serve them as-is — exactly as the
+      // server does.
       name: "serve-app-bundles-raw",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {

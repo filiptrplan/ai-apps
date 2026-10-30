@@ -1,6 +1,4 @@
 import { STORAGE_KEYS, uid, useStorage } from "./storage.js";
-import { supabase } from "../shared/supabaseClient.js";
-import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import {
   defaultFieldsForType,
   formatDate,
@@ -170,13 +168,6 @@ export function ClimbingTrackerApp() {
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Take today's backup snapshot (no-op if already done, or logged out).
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      runDailyBackupIfNeeded(supabase, session);
-    });
   }, []);
 
   // New routines open straight into the editor (name field focused); one

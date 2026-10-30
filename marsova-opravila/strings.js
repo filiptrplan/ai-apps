@@ -34,13 +34,7 @@ export const strings = {
     title: "Račun",
     subtitle:
       "Prijava ni obvezna — aplikacija deluje enako naprej, prijavljena ali ne. Koristna je, če želiš do nje dostopati tudi kje drugje na apps.trplan.si, brez ovinka čez glavno stran.",
-    emailLabel: "E-pošta",
-    emailPlaceholder: "ti@example.com",
-    passwordLabel: "Geslo",
-    signIn: "Prijava",
-    signUp: "Ustvari račun",
-    signUpNotice:
-      "Račun je ustvarjen. Če je potrebna potrditev, preveri e-pošto.",
+    signIn: "Prijava s Pocket ID",
     signOut: "Odjava",
     loggedInAs: (email) => `Prijavljena kot ${email}`,
     loading: "Nalagam …",

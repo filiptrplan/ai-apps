@@ -1,7 +1,5 @@
 import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
-import { supabase } from "../shared/supabaseClient.js";
-import { runDailyBackupIfNeeded } from "../shared/backup.js";
 import { PRICE_TIERS } from "../shared/prices.js";
 import { callAI } from "../shared/ai.js";
 import { uid, plural, normRecipe } from "./format.js";
@@ -61,10 +59,6 @@ export function RecipesApp() {
   const merging = useRef(false);
   const listsRef = useRef(lists);
   listsRef.current = lists;
-
-  useEffect(() => {
-    if (session) runDailyBackupIfNeeded(supabase, session);
-  }, [session]);
 
   const list = lists.find((l) => l.id === activeId) || lists[0];
   const recipe = recipes.find((r) => r.id === recipeId);

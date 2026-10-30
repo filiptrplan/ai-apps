@@ -1,21 +1,14 @@
-// Recipe photos in the private "recipe-photos" Supabase Storage bucket.
-// Photos are shrunk and re-encoded in the browser before upload, stored
-// under "<user id>/<file>" (the bucket's policies only allow your own
-// folder), and shown through signed URLs that are cached so the browser can
-// keep reusing the downloaded image.
+// Recipe photos in the private "recipe-photos" storage bucket. Photos are
+// shrunk and re-encoded in the browser before upload, stored under
+// "<user id>/<file>" (the server only allows your own folder), and shown
+// straight from /api/storage, which the session cookie unlocks.
 
-import { supabase } from "../shared/supabaseClient.js";
+import { apiFetch } from "../shared/api.js";
 import { uid } from "./format.js";
-
-const { useState, useEffect } = React;
 
 const BUCKET = "recipe-photos";
 const PHOTO_MAX_SIDE = 1280;
 const PHOTO_QUALITY = 0.8;
-const URL_TTL_S = 7 * 24 * 3600;
-// Signed URLs are reused until they have less than this left.
-const URL_MIN_LEFT_MS = 24 * 3600 * 1000;
-const URL_CACHE_PREFIX = "recipes-photo-url:";
 
 // Draws an image file onto a canvas no larger than maxSide on its long edge.
 export function drawScaled(file, maxSide) {
@@ -51,70 +44,27 @@ export async function compressPhoto(file) {
   return { blob, preview: URL.createObjectURL(blob) };
 }
 
+const photoUrl = (path) => `/api/storage/${BUCKET}/${path}`;
+
 export async function uploadPhoto(session, blob) {
   const ext = blob.type === "image/webp" ? "webp" : "jpg";
   const path = `${session.user.id}/${Date.now()}-${uid()}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
-    contentType: blob.type,
-    cacheControl: "31536000",
-  });
-  if (error) throw new Error(`Photo upload failed: ${error.message}`);
+  try {
+    await apiFetch(photoUrl(path), { method: "PUT", body: blob, headers: { "Content-Type": blob.type } });
+  } catch (err) {
+    throw new Error(`Photo upload failed: ${err.message}`);
+  }
   return path;
 }
 
 // Best effort: a leftover file only costs a little storage.
 export async function removePhoto(path) {
   if (!path) return;
-  await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
-  try {
-    localStorage.removeItem(URL_CACHE_PREFIX + path);
-  } catch {}
+  await apiFetch(photoUrl(path), { method: "DELETE" }).catch(() => {});
 }
 
-const inflight = new Map();
-
-function cachedUrl(path) {
-  try {
-    const hit = JSON.parse(localStorage.getItem(URL_CACHE_PREFIX + path));
-    if (hit && hit.exp - Date.now() > URL_MIN_LEFT_MS) return hit.url;
-  } catch {}
-  return null;
-}
-
-function signedUrl(path) {
-  const hit = cachedUrl(path);
-  if (hit) return Promise.resolve(hit);
-  if (!inflight.has(path)) {
-    const p = supabase.storage
-      .from(BUCKET)
-      .createSignedUrl(path, URL_TTL_S)
-      .then(({ data, error }) => {
-        if (error || !data) return null;
-        try {
-          localStorage.setItem(URL_CACHE_PREFIX + path, JSON.stringify({ url: data.signedUrl, exp: Date.now() + URL_TTL_S * 1000 }));
-        } catch {}
-        return data.signedUrl;
-      })
-      .finally(() => inflight.delete(path));
-    inflight.set(path, p);
-  }
-  return inflight.get(path);
-}
-
-// The displayable URL of a stored photo, or null while loading, when
-// signed out, or when there's no photo.
+// The displayable URL of a stored photo, or null when signed out or when
+// there's no photo.
 export function usePhotoUrl(path, session) {
-  const [url, setUrl] = useState(() => (path && session ? cachedUrl(path) : null));
-  useEffect(() => {
-    if (!path || !session) {
-      setUrl(null);
-      return;
-    }
-    let cancelled = false;
-    signedUrl(path).then((u) => !cancelled && setUrl(u));
-    return () => {
-      cancelled = true;
-    };
-  }, [path, session && session.user.id]);
-  return url;
+  return path && session ? photoUrl(path) : null;
 }

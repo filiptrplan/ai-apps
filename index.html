@@ -89,19 +89,6 @@
       margin:0 0 24px;
       font-size:.95rem;
     }
-    .account input{
-      font:inherit;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      min-width:0;
-    }
-    .account form{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .account .muted{color:var(--muted)}
     .account button{
       font:inherit;
       cursor:pointer;
@@ -234,15 +221,8 @@
   </main>
 
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-    import { runDailyBackupIfNeeded, listBackups, restoreBackup } from "./shared/backup.js";
-
-    // Same public (anon/publishable) key as shared/supabaseClient.js, used
-    // here directly since this page has no build step.
-    const supabase = createClient(
-      "https://zqxvlczqfqmcojbgwogs.supabase.co",
-      "sb_publishable_IYIQPdhNqRWKj2SCS3pHKA_kp4jbYVr"
-    );
+    import { getSession, onSessionChange, signIn, signOut } from "./shared/auth.js";
+    import { listBackups, restoreBackup } from "./shared/backup.js";
 
     const account = document.getElementById("account");
     const backups = document.getElementById("backups");
@@ -260,12 +240,10 @@
         return;
       }
       backups.hidden = false;
-      await runDailyBackupIfNeeded(supabase, session);
-      const rows = await listBackups(supabase, session);
-      renderBackupList(session, rows);
+      renderBackupList(await listBackups());
     }
 
-    function renderBackupList(session, rows) {
+    function renderBackupList(rows) {
       backupList.replaceChildren();
       if (rows.length === 0) {
         const p = document.createElement("p");
@@ -291,7 +269,7 @@
           if (!ok) return;
           button.disabled = true;
           button.textContent = "Restoring…";
-          const { error } = await restoreBackup(supabase, session, row.backup_date);
+          const { error } = await restoreBackup(row.backup_date);
           button.disabled = false;
           button.textContent = "Restore";
           const status = document.createElement("p");
@@ -307,47 +285,13 @@
       }
     }
 
-    function renderLoggedOut(message) {
+    function renderLoggedOut() {
       account.replaceChildren();
-      const form = document.createElement("form");
-      const emailInput = document.createElement("input");
-      emailInput.type = "email";
-      emailInput.required = true;
-      emailInput.autocomplete = "email";
-      emailInput.placeholder = "you@example.com";
-      const passwordInput = document.createElement("input");
-      passwordInput.type = "password";
-      passwordInput.required = true;
-      passwordInput.minLength = 6;
-      passwordInput.autocomplete = "current-password";
-      passwordInput.placeholder = "password";
-      const signInButton = document.createElement("button");
-      signInButton.type = "submit";
-      signInButton.textContent = "Sign in";
-      const signUpButton = document.createElement("button");
-      signUpButton.type = "submit";
-      signUpButton.className = "secondary";
-      signUpButton.textContent = "Create account";
-      form.append(emailInput, passwordInput, signInButton, signUpButton);
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const signingUp = e.submitter === signUpButton;
-        signInButton.disabled = true;
-        signUpButton.disabled = true;
-        const { error } = signingUp
-          ? await supabase.auth.signUp({ email: emailInput.value, password: passwordInput.value })
-          : await supabase.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
-        if (error) renderLoggedOut(error.message);
-      });
-      account.appendChild(form);
-      if (message) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.style.margin = "0";
-        p.style.flexBasis = "100%";
-        p.textContent = message;
-        account.appendChild(p);
-      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Sign in with Pocket ID";
+      button.addEventListener("click", () => signIn("/"));
+      account.appendChild(button);
     }
 
     function renderLoggedIn(session) {
@@ -358,21 +302,18 @@
       button.type = "button";
       button.className = "secondary";
       button.textContent = "Log out";
-      button.addEventListener("click", () => supabase.auth.signOut());
+      button.addEventListener("click", () => signOut());
       account.append(span, button);
     }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    function render(session) {
       if (session) renderLoggedIn(session);
       else renderLoggedOut();
       refreshBackups(session);
-    });
+    }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) renderLoggedIn(data.session);
-      else renderLoggedOut();
-      refreshBackups(data.session);
-    });
+    onSessionChange(render);
+    getSession().then(render);
   </script>
 </body>
 </html>
