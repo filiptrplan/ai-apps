@@ -110,7 +110,7 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 
 ### Still to check
 
-- [ ] The scheduled procedure (not a manual run) deploys a code-only commit, and CI's wait passes.
+- [x] The scheduled procedure (not a manual run) deploys a code-only commit, and CI's wait passes: docs commit `e0ec5bf`, run 41095089090. CI moved `deploy` 7b93993..e0ec5bf at about 17:01:45 UTC+1; the poll saw `7b93993` three times, then `e0ec5bf` at 17:02:21; the whole run took 1m13s.
 - [ ] A PR runs only the checks; a failing test leaves `deploy` untouched.
 - [ ] A broken migration on a test branch fails CI.
 - [ ] A broken migration on `deploy` leaves the old app running on vps2 (shown locally above).
