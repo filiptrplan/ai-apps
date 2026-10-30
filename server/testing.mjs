@@ -47,7 +47,8 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
   url.pathname = `/${dbName}`;
   const sql = createDb(url.toString());
 
-  const storageDir = await mkdtemp(path.join(tmpdir(), "ai-apps-storage-"));
+  // A dot folder, like .dev-storage, so serving files from one is tested.
+  const storageDir = await mkdtemp(path.join(tmpdir(), ".ai-apps-storage-"));
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;

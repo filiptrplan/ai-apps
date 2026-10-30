@@ -11,7 +11,9 @@ export function storageRoutes({ storage, requireUser }) {
   router.get(route, requireUser, (req, res, next) => {
     const { file, type } = storage.resolve(req.params.bucket, req.params.path, req.user.id);
     res.set({ "Content-Type": type, "Cache-Control": "private, no-cache", "X-Content-Type-Options": "nosniff" });
-    res.sendFile(file, { cacheControl: false }, (err) => {
+    // dotfiles: STORAGE_DIR itself may be a dot folder (.dev-storage);
+    // storage.resolve already refuses path segments starting with a dot.
+    res.sendFile(file, { cacheControl: false, dotfiles: "allow" }, (err) => {
       if (!err) return;
       if (err.code === "ENOENT" || err.status === 404) {
         if (!res.headersSent) res.status(404).json({ error: "Not found." });
