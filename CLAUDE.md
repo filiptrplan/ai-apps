@@ -1,6 +1,6 @@
 # Notes for Claude
 
-A collection of small personal apps served as a static site (apps.trplan.si) by a Cloudflare Worker (`wrangler.jsonc`, `worker.js`), with Supabase for sign-in, data, storage and AI edge functions.
+A collection of small personal apps at apps.trplan.si. This branch (`migration`) moves them off Supabase and the Cloudflare Worker onto one self-hosted Node server (`server/`, see `migration-plan/` and `server/README.md`); `master` still runs on Supabase until the cutover.
 
 ## How an app is laid out
 
@@ -50,7 +50,7 @@ The exception is Marsova opravila, which has its own `mo_*` tables (see its migr
 
 ### MCP server
 
-`mcp/` is an MCP server mounted by `worker.js` at `/mcp`, so Claude can read and change the apps' data. It uses OAuth with Supabase Auth and the user's own token, so RLS applies. `mcp/appData.js` reads and writes the same `app_data` rows, with retries keyed on `updated_at` so a tool call never overwrites a save an open app made meanwhile. Each app's tools live in `mcp/apps/<app>.js` and reuse the app's `model.js` where they can.
+`mcp/` is an MCP server mounted by `server/mcp.js` at `/mcp`, so Claude can read and change the apps' data. It uses OAuth with Pocket ID (`id.trplan.si`): the bearer token's `sub` picks the user, and every query is scoped to them. `mcp/appData.js` reads and writes the same `app_data` rows, with retries keyed on `updated_at` so a tool call never overwrites a save an open app made meanwhile. Each app's tools live in `mcp/apps/<app>.js` and reuse the app's `model.js` where they can.
 
 ## Supabase
 
