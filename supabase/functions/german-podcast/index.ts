@@ -21,8 +21,9 @@
 // each user to their own data.
 //
 // Needs the OPENAI_API_KEY and OPENROUTER_API_KEY secrets (see
-// _shared/openai.ts and _shared/openrouter.ts); the speech model can be
-// switched with the optional PODCAST_TTS_MODEL secret.
+// _shared/openai.ts and _shared/openrouter.ts); the script and speech
+// models can be switched with the optional PODCAST_SCRIPT_MODEL and
+// PODCAST_TTS_MODEL secrets.
 // Deploy with:
 //   supabase functions deploy german-podcast
 
@@ -43,6 +44,7 @@ const HISTORY = 100;
 const STALE_MS = 10 * 60 * 1000;
 const LEVELS = ["A1.1", "A1.2", "A2.1", "A2.2", "B1.1", "B1.2", "B2.1", "B2.2"];
 
+const SCRIPT_MODEL = "gpt-6.1-sol";
 const TTS_MODEL = "google/gemini-3.8-flash-tts";
 // The dialogue is spoken in chunks of whole turns up to about this long
 // (roughly a minute of audio), SPEAK_AT_ONCE at a time.
@@ -233,6 +235,7 @@ Flashcard words: ${input.words.join(", ") || "-"}
 Grammar to use correctly: ${input.mistakes.join("; ") || "-"}`,
     schema: SCRIPT_SCHEMA,
     schemaName: "podcast_episode",
+    model: Deno.env.get("PODCAST_SCRIPT_MODEL") || SCRIPT_MODEL,
     maxTokens: 16000,
   });
 }

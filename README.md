@@ -72,8 +72,9 @@ call OpenAI directly and need an OpenAI key; the text and speech models can
 be switched with the optional `OPENAI_MODEL` and `OPENAI_TTS_MODEL` secrets
 (the text model has to support the Responses API's web search tool for the
 podcast). The podcast also needs the OpenRouter key from above, and its
-voice model can be switched with the optional `PODCAST_TTS_MODEL` secret
-(default `google/gemini-3.8-flash-tts`):
+script and voice models can be switched with the optional
+`PODCAST_SCRIPT_MODEL` (default `gpt-6.1-sol`) and `PODCAST_TTS_MODEL`
+(default `google/gemini-3.8-flash-tts`) secrets:
 
 ```sh
 supabase secrets set OPENAI_API_KEY=...
