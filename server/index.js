@@ -1,4 +1,4 @@
-// Starts the server: the site, the APIs and the daily backup job.
+// Starts the server: the site, the APIs, /mcp and the background jobs.
 // Configuration is read from the environment, see server/README.md.
 
 import path from "node:path";
@@ -7,6 +7,7 @@ import { createApp } from "./app.js";
 import { createOidcClient } from "./auth.js";
 import { createDb } from "./db.js";
 import { listenForChanges } from "./events.js";
+import { pocketIdKeys } from "./mcp.js";
 import { startSnapshotJob } from "./routes/backups.js";
 
 function env(name, fallback) {
@@ -17,16 +18,18 @@ function env(name, fallback) {
 
 const databaseUrl = env("DATABASE_URL");
 const sql = createDb(databaseUrl);
+const issuer = env("OIDC_ISSUER", "https://id.trplan.si");
 const { app, appData, auth, events, fn } = createApp({
   sql,
   storageDir: env("STORAGE_DIR", "/data/storage"),
   siteRoot: path.resolve(fileURLToPath(import.meta.url), "../.."),
   publicUrl: env("PUBLIC_URL"),
   getOidcConfig: createOidcClient({
-    issuer: env("OIDC_ISSUER", "https://id.trplan.si"),
+    issuer,
     clientId: env("OIDC_CLIENT_ID"),
     clientSecret: env("OIDC_CLIENT_SECRET"),
   }),
+  mcp: { issuer, clientId: env("MCP_CLIENT_ID", "ai-apps-mcp"), keys: pocketIdKeys(issuer) },
   sha: env("GIT_SHA", "dev"),
 });
 

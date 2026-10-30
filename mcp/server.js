@@ -8,7 +8,7 @@ import * as recipes from "./apps/recipes.js";
 
 const APPS = [climbing, recipes, german];
 
-// `deps` is { appData, removePhoto?, callFunction? }; see http.js.
+// `deps` is { appData, removePhoto?, callFunction? }; see server/mcp.js.
 export function createMcpServer(deps) {
   const server = new McpServer(
     { name: "ai-apps", title: "AI Apps", version: "1.0.0" },

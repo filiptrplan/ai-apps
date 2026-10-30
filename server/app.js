@@ -1,11 +1,14 @@
 // Builds the Express app from its parts, so tests can run it against their
 // own database, storage folder and OpenID provider. index.js starts it.
-
+//
+// `mcp` is { issuer, clientId, keys } for /mcp's token checks (`keys` a
+// jose key set, see mcp.js); without it /mcp isn't served.
 
 import express from "express";
 import { createAppDataStore } from "./appData.js";
 import { createAuth } from "./auth.js";
 import { createEventHub } from "./events.js";
+import { createTokenVerifier, mcpRoutes } from "./mcp.js";
 import { createStorage } from "./storage.js";
 import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
@@ -15,7 +18,7 @@ import { mapsRoutes } from "./routes/maps.js";
 import { moRoutes } from "./routes/mo.js";
 import { storageRoutes } from "./routes/storage.js";
 
-export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, sha = "dev" }) {
+export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, mcp, sha = "dev" }) {
   const appData = createAppDataStore(sql);
   const auth = createAuth({ sql, getOidcConfig, publicUrl });
   const storage = createStorage(storageDir);
@@ -36,6 +39,11 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
     res.status(ok ? 200 : 503).set("Cache-Control", "no-store").json({ ok, sha });
   });
 
+  // Before the session cookie: /mcp only takes bearer tokens.
+  if (mcp) {
+    const verifyToken = createTokenVerifier({ sql, ...mcp });
+    app.use(mcpRoutes({ appData, storage, fn, verifyToken, publicUrl, issuer: mcp.issuer }));
+  }
   app.use(auth.loadUser);
   app.use(auth.router);
   // Storage takes raw bodies, so JSON parsing is limited to the JSON APIs.
