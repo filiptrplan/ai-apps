@@ -88,6 +88,22 @@ npm run db:migrate             # applies it to the dev database and rewrites db/
 
 Commit `db/schema.sql` with the migration. Never edit a migration that's already on `master`; add a new one.
 
+## Deploying
+
+vps2 runs the Komodo stack `ai-apps` from the `deploy` branch (`deploy/compose.yaml`, run from `deploy/`). Nothing deploys by hand:
+
+1. A push to the deploying branch (`migration` until the cutover, then `master`) runs CI. When it's green, CI fast-forwards `deploy` to the commit and waits for `/api/health` to report it (`deploy/wait-for-sha.sh`).
+2. Komodo's procedure `ai-apps autodeploy` runs the Action of the same name every minute (`deploy/komodo-autodeploy.ts`, kept here for reference; the copy in Komodo is the one that runs). When `deploy` has a commit that isn't deployed, it deploys it, once per commit. Komodo's own `DeployStackIfChanged` isn't used, because it only notices compose file changes.
+3. The deploy runs `docker compose run --rm migrate` first (the stack's pre-deploy command): a dump into `dumps/pre-deploy-*.sql.gz` (the newest 5 are kept), then dbmate. If that fails, the old app keeps running. Then `docker compose up -d --build` builds the image in the clone and replaces the app.
+
+Rollback: run the **Rollback** workflow with a commit sha; it force-pushes `deploy` there and waits for it to go live. The next green push moves `deploy` forward again.
+
+The stack's environment (in Komodo) holds `POSTGRES_PASSWORD`, `PUBLIC_URL`, the OIDC client and the AI keys. Data is in `~/container-data/ai-apps/` on vps2: `pg` (Postgres, running as uid 1000), `storage` and `dumps`, all mirrored to the NAS at 03:30. The `db-dump` service writes `dumps/nightly-*.sql.gz` at 01:00 UTC and keeps 14. Restore one into an empty database:
+
+```sh
+gunzip -c dumps/nightly-<time>.sql.gz | docker exec -i ai-apps-db-1 psql -U ai_apps -d <empty db>
+```
+
 ## Tests
 
 ```sh

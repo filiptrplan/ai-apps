@@ -10,21 +10,21 @@ Stages 01–04 merged on the `migration` branch.
 
 ## Deliverables
 
-- [ ] `Dockerfile` (`node:22-alpine`, `npm ci --omit=dev`, `GIT_SHA` build arg, runs `server/index.js`) and `.dockerignore`.
-- [ ] `deploy/compose.yaml` with these services:
+- [x] `Dockerfile` (`node:22-alpine`, `npm ci --omit=dev`, `GIT_SHA` build arg, runs `server/index.js`) and `.dockerignore`.
+- [x] `deploy/compose.yaml` with these services:
   - `db`: `postgres:17-alpine`, internal network only, data in `~/container-data/ai-apps/pg`, healthcheck.
   - `migrate`: one-shot. First `pg_dump` to `dumps/pre-deploy-<timestamp>.sql.gz` (keeping the last 5), then `dbmate --wait up` (image `ghcr.io/amacneil/dbmate`, mounts `db/`).
   - `app`: `build: ..`, `127.0.0.1:8090`, `/data/storage` volume, `depends_on: migrate (service_completed_successfully)`.
   - `db-dump`: nightly `pg_dump` into `dumps/`, keeping 14.
-- [ ] `GET /api/health` returns the sha baked into the image.
-- [ ] `.github/workflows/deploy.yml` (see Design notes).
-- [ ] `.github/workflows/rollback.yml`.
-- [ ] GitHub ruleset on `deploy`: no deletion, no non-fast-forward pushes (the rollback workflow's actor is the exception).
-- [ ] Komodo stack `ai-apps` on server `VPS`, linked repo `filiptrplan/ai-apps`, branch `deploy`, `deploy/compose.yaml`.
-- [ ] Komodo procedure `ai-apps autodeploy`, scheduled every minute, running `DeployStackIfChanged ai-apps`. **Verified** to notice a code-only change (see Design notes).
-- [ ] Stack secrets set via a scratchpad script the user runs: `POSTGRES_PASSWORD`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, model overrides, `PUBLIC_URL`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `MCP_CLIENT_ID` only if it isn't `ai-apps-mcp` (the default).
-- [ ] Staging: tunnel route `apps-next.trplan.si` → `http://localhost:8090` on the VPS tunnel (and its Pocket ID callback URL, from stage 00).
-- [ ] `CLAUDE.md` build/test section updated for the new CI checks (full rewrite is stage 07).
+- [x] `GET /api/health` returns the sha baked into the image.
+- [x] `.github/workflows/deploy.yml` (see Design notes).
+- [x] `.github/workflows/rollback.yml`.
+- [x] GitHub ruleset on `deploy`: no deletion. (No non-fast-forward rule: see Notes.)
+- [x] Komodo stack `ai-apps` on server `VPS`, linked repo `filiptrplan/ai-apps`, branch `deploy`, `deploy/compose.yaml`.
+- [x] Komodo procedure `ai-apps autodeploy`, scheduled every minute. `DeployStackIfChanged` did **not** notice a code-only change, so it runs the Action `ai-apps autodeploy` instead (see Notes).
+- [x] Stack secrets set via a scratchpad script the user runs: `POSTGRES_PASSWORD`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, model overrides, `PUBLIC_URL`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `MCP_CLIENT_ID` only if it isn't `ai-apps-mcp` (the default).
+- [x] Staging: tunnel route `apps-next.trplan.si` → `http://localhost:8090` on the VPS tunnel (and its Pocket ID callback URL, from stage 00).
+- [x] `CLAUDE.md` build/test section updated for the new CI checks (full rewrite is stage 07).
 - [ ] Homelab note updated with the new stack (vps2 table, tunnel hostnames, backups).
 
 ## Files touched
@@ -84,4 +84,40 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 
 ## Notes
 
-(Fill in as work lands.)
+### Evidence so far (2026-10-30)
+
+- **Image:** `docker build --build-context git=.git .` locally: 254 MB, runs as `node` (uid 1000), `.git-sha` = HEAD. On vps2 Komodo builds it in the clone (no build args), and `/api/health` reports the full sha.
+- **Compose, locally** (scratch `DATA_DIR`, `APP_PORT=8091`): `compose run --rm migrate` → pre-deploy dump, both migrations; `up -d --build` → app healthy, `/german` 200, `db` publishes no port. A broken migration (`select from nonexistent_table`): `run migrate` exits 2 and the app container id is unchanged, still serving. The newest pre-deploy dump restores into a scratch `postgres:17-alpine` (`create role ai_apps`, `gunzip | psql -v ON_ERROR_STOP=1` exit 0) with the inserted row and 2 `schema_migrations`. `dump.sh daily <next minute>` wrote `nightly-*.sql.gz` on time.
+- **CI:** run 41093251374 green (tests, server tests with up/rollback/up, bundle check, schema check); promote pushed `deploy` = `56ff00c`, polled through the 502s and passed at 16:50:52 when staging reported it.
+- **First deploy** (`km x deploy-stack ai-apps`, 62 s): clone of `deploy`, `.env` written to `deploy/`, pre-deploy ran in `deploy/` (dump + migrations), build, up. `https://apps-next.trplan.si/api/health` → `{"ok":true,"sha":"56ff00c…"}`; `schema_migrations` lists both files; `~/container-data/ai-apps/pg` owned by filip.
+- **Code-only change:** after `deploy` moved to `7b93993`, Komodo's stack info had `latest_hash 7b93993`, `deployed_hash 56ff00c`, and the every-minute `DeployStackIfChanged` ran several times without deploying (it compares compose contents only). The Action (`deploy/komodo-autodeploy.ts`) deployed `7b93993` on its first run (log: `deploying 7b93993 (deployed: 56ff00c)`); a second run was a no-op in 1.9 s.
+- **Ports:** from the workstation, `178.105.22.185:8090` and `:5432` closed. `docker ps`: `app` on `127.0.0.1:8090`, `db` unpublished.
+- vps2 disk after the first build: 21 GB free of 38.
+
+### Decisions and findings
+
+- **Two-step deploy.** `docker compose up` removes the old app container *before* it waits on `migrate` (`service_completed_successfully`), so a failed migration left no app running at all (seen locally). `predeploy-dump` and `migrate` are therefore in a `migrate` profile that `up` skips, and the stack's pre-deploy command runs `docker compose run --rm migrate` (path empty = the run directory, `deploy/`); if it fails, Komodo stops before `up`.
+- **Dumps use `postgres:17-alpine`**, not the dbmate image (its `pg_dump` is 18, whose dumps a 17 `psql` may not read), so the plan's single `migrate` service became `predeploy-dump` + `migrate`.
+- **Everything runs as uid 1000** (`db`, dumps, `app` as `node`), so the 03:30 rclone backup (user filip) can read `pg/`; a root/uid-70 Postgres folder would give rclone IO errors, and `rclone sync` then skips its deletions for the whole run.
+- **Separate `git` build context:** `.git` stays out of the main context (and the image); only the `sha` stage reads it. `COPY --exclude` isn't available on the local BuildKit.
+- **Autodeploy Action** instead of `DeployStackIfChanged`: refreshes the stack cache, deploys when `latest_hash` ≠ `deployed_hash`, and records the hash in the Komodo variable `AI_APPS_LAST_ATTEMPTED` first, so a failing commit is tried once rather than rebuilt every minute. A new commit (or a rollback) is a new hash and deploys.
+- **Ruleset without non-fast-forward:** a personal repo can't name GitHub Actions as a bypass actor ("must be part of the ruleset source or owner organization"), so blocking force pushes would block the rollback workflow too. Only deletion is blocked; the promote step only fast-forwards by construction.
+- **No `package-lock.json`:** the image and CI install with pnpm 9 from `pnpm-lock.yaml`; the stale npm lockfile is gone. `pdf-tools-app.js` was rebuilt with pnpm (only `node_modules` path comments changed), so every bundle now matches a fresh build.
+- **Staging user:** the owner's row (`b9ef8bfd-…`, `filip@trplan.si`) was inserted by hand into staging's `users` for the sign-in and MCP checks. Stage 06's script must cope with the row already existing.
+- `APP_PORT` (default 8090) only exists to test the stack next to the dev server.
+- `Global Auto Update` (03:00) now also runs `PruneImages` on VPS.
+- vps2 dropped off the tailnet during this stage ("Logged out" in `tailscale status`, cause unknown without the journal); the user logged it back in. Komodo's UI was unreachable meanwhile, while SSH and the API over the public IP worked.
+
+### Still to check
+
+- [ ] The scheduled procedure (not a manual run) deploys a code-only commit, and CI's wait passes.
+- [ ] A PR runs only the checks; a failing test leaves `deploy` untouched.
+- [ ] A broken migration on a test branch fails CI.
+- [ ] A broken migration on `deploy` leaves the old app running on vps2 (shown locally above).
+- [ ] The rollback workflow redeploys an older sha, then forward again.
+- [ ] The first nightly dump (01:00 UTC) exists and restores into a scratch container.
+- [ ] `restart-stack` keeps data intact.
+- [ ] Sign-in with Pocket ID works on staging.
+- [ ] claude.ai connects to `https://apps-next.trplan.si/mcp` with `ai-apps-mcp`; `german_get_overview`, `recipes_save_list`, `climbing_log_workout` work.
+- [ ] The OpenRouter functions, once each on staging.
+- [ ] Homelab note updated.

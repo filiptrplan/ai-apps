@@ -23,9 +23,11 @@ npx pnpm@9 install --frozen-lockfile   # pnpm, to match the committed bundles
 npm run build                          # every *-app.jsx → *-app.js
 ```
 
-The build rewrites every app's bundle. Commit only the bundles of the apps you changed, and revert the others (`pdf-tools-app.js` in particular tends to differ).
+The build rewrites every app's bundle. With pnpm's `node_modules` every unchanged bundle comes out byte for byte the same, so commit the ones that changed.
 
-Tests: `node --test mcp/*.test.mjs german/*.test.mjs moped-route/*.test.mjs`.
+Tests: `npm test` (the app and MCP tests, then the server's against a throwaway Postgres in Docker).
+
+CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the migrations (up, rollback, up), and fails if a committed bundle or `db/schema.sql` differs from a fresh build or dump. A green push to the deploying branch then fast-forwards `deploy`, and vps2 redeploys it (see `server/README.md`, Deploying). Migrations only roll forward, so code that the rollback workflow may go back to must still work with the newer schema.
 
 ## Shared code
 
