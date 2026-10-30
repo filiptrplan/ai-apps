@@ -17,7 +17,7 @@ Nothing.
   - `ai-apps-mcp`: redirect URI is claude.ai's connector callback; public or confidential, whichever claude.ai's connector settings accept.
   - A group of allowed users, attached to both clients.
   - The second user invited, using the same email as their Supabase account, and their passkey set up.
-- [ ] Pocket ID access-token format checked: are tokens issued to `ai-apps-mcp` JWTs (verifiable against the JWKS) or opaque? Record the answer and the claims (`iss`, `aud`, `sub`, `exp`) in the Notes below.
+- [x] Pocket ID access-token format checked: are tokens issued to `ai-apps-mcp` JWTs (verifiable against the JWKS) or opaque? Record the answer and the claims (`iss`, `aud`, `sub`, `exp`) in the Notes below.
 - [x] vps2 free disk and memory recorded in the Notes.
 - [x] Both Supabase users' ids and emails recorded in the Notes (ids are needed to link users; emails must match the Pocket ID accounts).
 
@@ -127,3 +127,15 @@ Only `app_data` and `app_data_backups` reference users; the `mo_*` tables don't 
 ### Pocket ID (2026-10-30)
 
 Issuer `https://id.trplan.si`, JWKS at `/.well-known/jwks.json`, ID tokens signed `RS256`, `registration_endpoint` null.
+
+Clients `ai-apps` (confidential) and `ai-apps-mcp` (public, PKCE) created by the user with custom client ids, each limited to the allowed group.
+
+### Access-token format (2026-10-30)
+
+Checked by running the authorization-code + PKCE flow for `ai-apps-mcp` (a scratchpad script with a temporary `http://localhost:8765/callback` redirect URI) and decoding the token's header and payload:
+
+- **JWT**, not opaque. Header `{"alg":"RS256","kid":"gCz3DdRG_mI","typ":"at+jwt"}`; the signature verifies against the JWKS.
+- Claims: `iss` = `https://id.trplan.si`; `aud` = `["ai-apps-mcp", "https://id.trplan.si"]` (an array); `sub` = the Pocket ID user id (a UUID, not the Supabase id); `client_id` = `ai-apps-mcp`; `exp` - `iat` = 3600 s; also `jti`, `scope`, `scp`. **No `email` claim.**
+- The token response also has `id_token` and `refresh_token` (with `offline_access`).
+
+For stage 04: verify with `jose` against the JWKS, require `iss`, `aud` containing `ai-apps-mcp` **and** `client_id` = `ai-apps-mcp` (a token for `ai-apps` would carry its own id there), and map `sub` to our user through `users.oidc_sub`. No userinfo fallback is needed. Since there's no email in the token, a user must have signed in to the app once (which links `oidc_sub`) before MCP works for them.
