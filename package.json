@@ -1,8 +1,9 @@
 {
   "name": "ai-apps",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.cjs",
     "dev": "vite",
     "dev:server": "node --watch-path=server --env-file-if-exists=.env server/index.js",
     "test": "node --test mcp/*.test.mjs german/*.test.mjs moped-route/*.test.mjs && node server/runTests.mjs",

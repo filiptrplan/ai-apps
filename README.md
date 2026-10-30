@@ -20,7 +20,7 @@ pnpm install
 pnpm run build
 ```
 
-This runs `build.js`, which compiles every `*-app.jsx` file in the repo
+This runs `build.cjs`, which compiles every `*-app.jsx` file in the repo
 root into its matching `*-app.js` file via esbuild.
 
 ## Supabase Edge Functions
