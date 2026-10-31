@@ -111,13 +111,17 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 ### Still to check
 
 - [x] The scheduled procedure (not a manual run) deploys a code-only commit, and CI's wait passes: docs commit `e0ec5bf`, run 41095089090. CI moved `deploy` 7b93993..e0ec5bf at about 17:01:45 UTC+1; the poll saw `7b93993` three times, then `e0ec5bf` at 17:02:21; the whole run took 1m13s.
-- [ ] A PR runs only the checks; a failing test leaves `deploy` untouched.
-- [ ] A broken migration on a test branch fails CI.
-- [ ] A broken migration on `deploy` leaves the old app running on vps2 (shown locally above).
-- [ ] The rollback workflow redeploys an older sha, then forward again.
-- [ ] The first nightly dump (01:00 UTC) exists and restores into a scratch container.
-- [ ] `restart-stack` keeps data intact.
+- [x] A PR runs only the checks; a failing test leaves `deploy` untouched: PR #38 (run 41204808878), `checks` failed at "App and MCP tests", `promote` skipped, `deploy` stayed at `03959b2`.
+- [x] A broken migration on a test branch fails CI: PR #39 (run 41204811520) failed at "Server tests (migrations up, rollback, up)". Both PRs closed, branches deleted.
+- [x] A broken migration on `deploy` leaves the old app running on vps2: pushed `c4b0ddc` (a broken migration on top of `03959b2`) to `deploy` at 14:01:30 UTC. The Action deployed it once at 14:02:01: the pre-deploy dump ran, then dbmate failed (`relation "nonexistent_table" does not exist`), and the app stayed up and healthy on `03959b2`. At 14:03 the Action skipped it (already attempted).
+- [ ] The rollback workflow redeploys an older sha, then forward again. GitHub only dispatches workflows that exist on the default branch, so `rollback.yml` can't run before the merge to `master` (stage 06). Done by hand instead with the workflow's steps (force-push `deploy`, `wait-for-sha.sh`): see below.
+- [x] The first nightly dump (01:00 UTC) exists and restores into a scratch container: `nightly-20261031T010000Z.sql.gz` restored with `ON_ERROR_STOP` into a throwaway `postgres:17-alpine` on vps2 (role `ai_apps` created first): 14 tables, the users row, 2 migrations.
+- [x] `restart-stack` keeps data intact: RestartStack at 14:02:40 UTC, all containers restarted, the users row (`b9ef8bfd…`) and the dumps still there, health back on `03959b2`. `docker compose restart` also restarts the exited `predeploy-dump` container, so a restart makes one extra pre-deploy dump (harmless, 5 kept).
 - [ ] Sign-in with Pocket ID works on staging.
 - [ ] claude.ai connects to `https://apps-next.trplan.si/mcp` with `ai-apps-mcp`; `german_get_overview`, `recipes_save_list`, `climbing_log_workout` work.
 - [ ] The OpenRouter functions, once each on staging.
-- [ ] Homelab note updated.
+- [x] Homelab note updated.
+
+### Komodo Core ran out of processes (2026-10-31)
+
+The push of `03959b2` didn't deploy: from about 09:55 UTC every Action run failed with `Os { code: 11, kind: WouldBlock }`. Komodo Core runs as PID 1 in its container without an init, so the `git` processes it spawns were never reaped: 4,533 zombies, about 6 an hour from the other stacks' polling since 18 Oct and about 130 an hour from this Action's per-minute `RefreshStackCache`. Fixed with `init: true` on `core` in `~/komodo/mongo.compose.yaml` on vps2 (backup `mongo.compose.yaml.bak-2026-10-31`) and recreating Core (same image). Zombies dropped to periphery's handful, and the next run deployed `03959b2` at 14:01:18. The failed promote run (41204788623) was correct: it reported that the commit never went live.
