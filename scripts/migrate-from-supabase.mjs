@@ -5,7 +5,7 @@
 //
 // Reads from env (never from the repo):
 //
-//   SUPABASE_DB_URL            the session-pooler connection string
+//   SUPABASE_DB_URL            the session pooler, as the read-only role below
 //   SUPABASE_URL               https://<project>.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY  for storage downloads
 //   TARGET_DATABASE_URL        the new database, e.g. through an SSH tunnel
@@ -13,6 +13,15 @@
 //                              remote (vps2:container-data/ai-apps/storage)
 //   SSH_COMMAND                ssh for rsync and the remote checks (default "ssh")
 //   FILES_DIR                  local copy of the files (default .supabase-export/storage)
+//
+// The source role is `migrator` (LOGIN BYPASSRLS, SELECT on storage.objects and
+// the copied tables). The `postgres` role can't grant access to the auth
+// schema, so users are read through a view it owns:
+//
+//   create schema migration;
+//   create view migration.auth_users as select id, email, created_at from auth.users;
+//   grant usage on schema migration to migrator;
+//   grant select on migration.auth_users to migrator;
 //
 // Re-running replaces the target's data, so rows and files deleted on Supabase
 // disappear here too. Users are upserted by id, keeping a linked oidc_sub.
@@ -94,7 +103,7 @@ function sameList(a, b) {
 // --- Users ---------------------------------------------------------------
 
 async function sourceUsers() {
-  const rows = await source`select id, lower(email) as email, created_at from auth.users order by id`;
+  const rows = await source`select id, lower(email) as email, created_at from migration.auth_users order by id`;
   return rows.map((u) => ({ ...u, email: EMAIL_OVERRIDES[u.id] ?? u.email }));
 }
 
