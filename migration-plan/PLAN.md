@@ -74,7 +74,7 @@ vps2: 2 vCPU, 3.7 GB RAM, 38 GB disk. Postgres plus Node need about 300 MB of RA
 | 03 | [03-ai-functions.md](03-ai-functions.md) | The 7 edge functions ported to `server/functions/` | 01 | done, except the real-key checks of the OpenRouter functions (see its Notes) |
 | 04 | [04-mcp.md](04-mcp.md) | `/mcp` on Express with Pocket ID bearer checks; worker deleted | 01, 03 | done, except the real OAuth check (moved to 05) |
 | 05 | [05-deploy.md](05-deploy.md) | Dockerfile, compose, Komodo stack, deploy workflows, staging hostname | 01–04 | done, except running the rollback workflow itself (moved to 06; it can only be dispatched from `master`) |
-| 06 | [06-data-and-cutover.md](06-data-and-cutover.md) | Data migration script, dry run, cutover | 05 | todo |
+| 06 | [06-data-and-cutover.md](06-data-and-cutover.md) | Data migration script, dry run, cutover | 05 | in progress: script and staging run done, cutover next |
 | 07 | [07-decommission.md](07-decommission.md) | After 2 stable weeks: delete Supabase and the Worker, docs, final review, delete `migration-plan/` | 06 | todo |
 
 02 and 03 can run in parallel once 01 is done.
