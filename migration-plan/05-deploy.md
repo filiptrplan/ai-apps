@@ -25,7 +25,7 @@ Stages 01–04 merged on the `migration` branch.
 - [x] Stack secrets set via a scratchpad script the user runs: `POSTGRES_PASSWORD`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, model overrides, `PUBLIC_URL`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `MCP_CLIENT_ID` only if it isn't `ai-apps-mcp` (the default).
 - [x] Staging: tunnel route `apps-next.trplan.si` → `http://localhost:8090` on the VPS tunnel (and its Pocket ID callback URL, from stage 00).
 - [x] `CLAUDE.md` build/test section updated for the new CI checks (full rewrite is stage 07).
-- [ ] Homelab note updated with the new stack (vps2 table, tunnel hostnames, backups).
+- [x] Homelab note updated with the new stack (vps2 table, tunnel hostnames, backups).
 
 ## Files touched
 
@@ -114,12 +114,12 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 - [x] A PR runs only the checks; a failing test leaves `deploy` untouched: PR #38 (run 41204808878), `checks` failed at "App and MCP tests", `promote` skipped, `deploy` stayed at `03959b2`.
 - [x] A broken migration on a test branch fails CI: PR #39 (run 41204811520) failed at "Server tests (migrations up, rollback, up)". Both PRs closed, branches deleted.
 - [x] A broken migration on `deploy` leaves the old app running on vps2: pushed `c4b0ddc` (a broken migration on top of `03959b2`) to `deploy` at 14:01:30 UTC. The Action deployed it once at 14:02:01: the pre-deploy dump ran, then dbmate failed (`relation "nonexistent_table" does not exist`), and the app stayed up and healthy on `03959b2`. At 14:03 the Action skipped it (already attempted).
-- [ ] The rollback workflow redeploys an older sha, then forward again. GitHub only dispatches workflows that exist on the default branch, so `rollback.yml` can't run before the merge to `master` (stage 06). Done by hand instead with the workflow's steps: force-pushed `deploy` from the broken `c4b0ddc` to `7b93993` at 14:05:45 UTC, live at 14:06:15. Forward again through CI: pushing `d438bfd` to `migration` fast-forwarded `deploy` (run 41208579858, both jobs green), live at 14:07:22. One poll in between got `unreachable`: a redeploy has a few seconds of downtime while the app container is recreated.
+- [ ] (Moved to stage 06.) The rollback workflow redeploys an older sha, then forward again. GitHub only dispatches workflows that exist on the default branch, so `rollback.yml` can't run before the merge to `master` (stage 06). Done by hand instead with the workflow's steps: force-pushed `deploy` from the broken `c4b0ddc` to `7b93993` at 14:05:45 UTC, live at 14:06:15. Forward again through CI: pushing `d438bfd` to `migration` fast-forwarded `deploy` (run 41208579858, both jobs green), live at 14:07:22. One poll in between got `unreachable`: a redeploy has a few seconds of downtime while the app container is recreated.
 - [x] The first nightly dump (01:00 UTC) exists and restores into a scratch container: `nightly-20261031T010000Z.sql.gz` restored with `ON_ERROR_STOP` into a throwaway `postgres:17-alpine` on vps2 (role `ai_apps` created first): 14 tables, the users row, 2 migrations.
 - [x] `restart-stack` keeps data intact: RestartStack at 14:02:40 UTC, all containers restarted, the users row (`b9ef8bfd…`) and the dumps still there, health back on `03959b2`. `docker compose restart` also restarts the exited `predeploy-dump` container, so a restart makes one extra pre-deploy dump (harmless, 5 kept).
-- [ ] Sign-in with Pocket ID works on staging.
+- [x] Sign-in with Pocket ID works on staging (user check, 2026-10-31; their row's `oidc_sub` got linked).
 - [x] claude.ai connects to `https://apps-next.trplan.si/mcp` with `ai-apps-mcp`; `german_get_overview`, `recipes_save_list`, `climbing_log_workout` work. It first failed: claude.ai sends `resource=<PUBLIC_URL>/mcp` (RFC 8707), which Pocket ID refuses (`invalid_request`) unless that URL is set up as an API the client may use, and the token's `aud` is then that URL. The user added the API in Pocket ID; `/mcp` now checks `aud` against its own URL (`5b85c7f`). Checked from Claude Code on 2026-10-31: the three overviews, `recipes_save_list`, `recipes_add_to_list`, `climbing_save_exercise`, `climbing_log_workout`, and `recipes_estimate_price` (an OpenRouter call).
-- [ ] The OpenRouter functions, once each on staging.
+- [x] The OpenRouter functions, once each on staging (user check, 2026-10-31; `recipes_estimate_price` over MCP too).
 - [x] Homelab note updated.
 
 ### Komodo Core ran out of processes (2026-10-31)
