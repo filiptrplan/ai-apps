@@ -118,7 +118,7 @@ New: `Dockerfile`, `.dockerignore`, `deploy/compose.yaml`, `.github/workflows/*.
 - [x] The first nightly dump (01:00 UTC) exists and restores into a scratch container: `nightly-20261031T010000Z.sql.gz` restored with `ON_ERROR_STOP` into a throwaway `postgres:17-alpine` on vps2 (role `ai_apps` created first): 14 tables, the users row, 2 migrations.
 - [x] `restart-stack` keeps data intact: RestartStack at 14:02:40 UTC, all containers restarted, the users row (`b9ef8bfd…`) and the dumps still there, health back on `03959b2`. `docker compose restart` also restarts the exited `predeploy-dump` container, so a restart makes one extra pre-deploy dump (harmless, 5 kept).
 - [ ] Sign-in with Pocket ID works on staging.
-- [ ] claude.ai connects to `https://apps-next.trplan.si/mcp` with `ai-apps-mcp`; `german_get_overview`, `recipes_save_list`, `climbing_log_workout` work.
+- [x] claude.ai connects to `https://apps-next.trplan.si/mcp` with `ai-apps-mcp`; `german_get_overview`, `recipes_save_list`, `climbing_log_workout` work. It first failed: claude.ai sends `resource=<PUBLIC_URL>/mcp` (RFC 8707), which Pocket ID refuses (`invalid_request`) unless that URL is set up as an API the client may use, and the token's `aud` is then that URL. The user added the API in Pocket ID; `/mcp` now checks `aud` against its own URL (`5b85c7f`). Checked from Claude Code on 2026-10-31: the three overviews, `recipes_save_list`, `recipes_add_to_list`, `climbing_save_exercise`, `climbing_log_workout`, and `recipes_estimate_price` (an OpenRouter call).
 - [ ] The OpenRouter functions, once each on staging.
 - [x] Homelab note updated.
 
