@@ -27,7 +27,7 @@ The build rewrites every app's bundle. With pnpm's `node_modules` every unchange
 
 Tests: `npm test` (the app and MCP tests, then the server's against a throwaway Postgres in Docker).
 
-CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the migrations (up, rollback, up), and fails if a committed bundle or `db/schema.sql` differs from a fresh build or dump. A green push to the deploying branch then fast-forwards `deploy`, and vps2 redeploys it (see `server/README.md`, Deploying). Migrations only roll forward, so code that the rollback workflow may go back to must still work with the newer schema.
+CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the migrations (up, rollback, up), and fails if a committed bundle or `db/schema.sql` differs from a fresh build or dump. A green push to the deploying branch then fast-forwards `deploy`, and vps2 redeploys it (see `server/README.md`, Deploying). Migrations only roll forward, so code that the rollback workflow may go back to must still work with the newer schema. The rollback workflow can't go back across a change to `.github/workflows/` (`GITHUB_TOKEN` has no `workflows` permission); force-push `deploy` by hand then.
 
 ## Shared code
 
