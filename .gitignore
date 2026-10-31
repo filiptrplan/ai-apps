@@ -11,3 +11,6 @@ node_modules/
 
 # Server dev storage (STORAGE_DIR in .env.example)
 .dev-storage/
+
+# Supabase export from scripts/migrate-from-supabase.mjs
+.supabase-export/
