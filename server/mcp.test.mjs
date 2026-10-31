@@ -35,13 +35,14 @@ async function linkedUser() {
   return { id, sub };
 }
 
-// An access token as Pocket ID issues it for ai-apps-mcp; `claims` and
+// An access token as Pocket ID issues it to ai-apps-mcp for this server's
+// /mcp (the `resource` claude.ai asks for); `claims` and
 // `options` override parts of it.
 async function token(sub, claims = {}, { typ = "at+jwt", signWith = key.privateKey, expiresIn = "1h" } = {}) {
   return new SignJWT({ client_id: CLIENT, scope: "openid", ...claims })
     .setProtectedHeader({ alg: "RS256", kid: "k1", typ })
     .setIssuer(ISSUER)
-    .setAudience([CLIENT, ISSUER])
+    .setAudience(claims.aud ?? `${t.base}/mcp`)
     .setSubject(sub)
     .setIssuedAt()
     .setExpirationTime(expiresIn)
@@ -122,10 +123,8 @@ test("bad tokens get 401 invalid_token", async () => {
       .setProtectedHeader({ alg: "RS256", kid: "k1", typ: "at+jwt" })
       .setIssuer("https://evil.example").setAudience([CLIENT]).setSubject(u.sub).setExpirationTime("1h")
       .sign(key.privateKey),
-    "wrong audience": await new SignJWT({ client_id: CLIENT })
-      .setProtectedHeader({ alg: "RS256", kid: "k1", typ: "at+jwt" })
-      .setIssuer(ISSUER).setAudience(["ai-apps", ISSUER]).setSubject(u.sub).setExpirationTime("1h")
-      .sign(key.privateKey),
+    "another server's token": await token(u.sub, { aud: "https://other.example/mcp" }),
+    "no resource asked for": await token(u.sub, { aud: [CLIENT, ISSUER] }),
     "the app client's token": await token(u.sub, { client_id: "ai-apps" }),
     "an ID token": await token(u.sub, {}, { typ: "JWT" }),
     "someone else's key": await token(u.sub, {}, { signWith: otherKey.privateKey }),

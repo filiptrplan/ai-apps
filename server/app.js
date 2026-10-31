@@ -8,7 +8,7 @@ import express from "express";
 import { createAppDataStore } from "./appData.js";
 import { createAuth } from "./auth.js";
 import { createEventHub } from "./events.js";
-import { createTokenVerifier, mcpRoutes } from "./mcp.js";
+import { createTokenVerifier, MCP_PATH, mcpRoutes } from "./mcp.js";
 import { createStorage } from "./storage.js";
 import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
@@ -41,7 +41,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
 
   // Before the session cookie: /mcp only takes bearer tokens.
   if (mcp) {
-    const verifyToken = createTokenVerifier({ sql, ...mcp });
+    const verifyToken = createTokenVerifier({ sql, ...mcp, resource: `${new URL(publicUrl).origin}${MCP_PATH}` });
     app.use(mcpRoutes({ appData, storage, fn, verifyToken, publicUrl, issuer: mcp.issuer }));
   }
   app.use(auth.loadUser);

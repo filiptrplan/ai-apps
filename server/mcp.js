@@ -7,9 +7,12 @@
 // with the pre-registered public client ai-apps-mcp) runs the authorization
 // code flow there and sends the access token as a bearer token.
 //
-// Access tokens are RS256 JWTs (typ at+jwt) with no email in them, so the
-// user is found by `sub` (users.oidc_sub), which is linked when they first
-// sign in to the apps. Until then the token is refused.
+// claude.ai asks for a token for this server (the `resource` parameter,
+// RFC 8707), which Pocket ID only issues if `<PUBLIC_URL>/mcp` is set up as
+// an API there and ai-apps-mcp may use it (see server/README.md); the token's
+// aud is then that URL. Access tokens are RS256 JWTs (typ at+jwt) with no
+// email in them, so the user is found by `sub` (users.oidc_sub), which is
+// linked when they first sign in to the apps. Until then the token is refused.
 
 import express from "express";
 import { createRemoteJWKSet, errors, jwtVerify } from "jose";
@@ -49,22 +52,28 @@ export function pocketIdKeys(issuer) {
 export class AuthUnavailableError extends Error {}
 
 // Returns verify(token): the user ({ id, email }) the access token is for,
-// or null if it isn't a valid ai-apps-mcp token for a known user. Throws
-// AuthUnavailableError when the keys can't be fetched.
-export function createTokenVerifier({ sql, issuer, clientId, keys }) {
+// or null if it isn't a valid ai-apps-mcp token for `resource` (this
+// server's /mcp URL) and a known user. Throws AuthUnavailableError when the
+// keys can't be fetched. Logs why a token is refused, never the token.
+export function createTokenVerifier({ sql, issuer, clientId, keys, resource }) {
+  const refuse = (why) => {
+    console.warn(`mcp: token refused: ${why}`);
+    return null;
+  };
   return async function verify(token) {
     let payload;
     try {
-      ({ payload } = await jwtVerify(token, keys, { issuer, audience: clientId, typ: "at+jwt" }));
+      ({ payload } = await jwtVerify(token, keys, { issuer, audience: resource, typ: "at+jwt" }));
     } catch (err) {
-      if (TOKEN_ERRORS.some((E) => err instanceof E)) return null;
+      if (TOKEN_ERRORS.some((E) => err instanceof E)) return refuse(err.claim ? `${err.claim}: ${err.message}` : err.code);
       throw new AuthUnavailableError(err.message);
     }
-    // aud also lists the issuer, so client_id is what tells an ai-apps-mcp
-    // token from one issued to another client.
-    if (payload.client_id !== clientId || typeof payload.sub !== "string") return null;
+    // aud only says the token is for this server, so client_id is what
+    // tells an ai-apps-mcp token from one issued to another client.
+    if (payload.client_id !== clientId) return refuse(`client_id is ${JSON.stringify(payload.client_id)}`);
+    if (typeof payload.sub !== "string") return refuse("no sub");
     const [user] = await sql`select id, email from public.users where oidc_sub = ${payload.sub}`;
-    return user ?? null;
+    return user ?? refuse("no user with this sub (never signed in to the apps)");
   };
 }
 

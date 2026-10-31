@@ -98,7 +98,7 @@ Compare against the final Supabase dump taken at cutover (on the NAS, see sectio
 
 ## 6. MCP
 
-- [ ] claude.ai's connector points at `https://apps.trplan.si/mcp`, uses client `ai-apps-mcp`, and connects.
+- [ ] claude.ai's connector points at `https://apps.trplan.si/mcp`, uses client `ai-apps-mcp`, and connects. Pocket ID has the API `https://apps.trplan.si/mcp`, and `ai-apps-mcp` has user-delegated access to it.
 - [ ] Every tool in `mcp/apps/*.js` is called once with a valid result. List them with `grep -ho 'registerTool("[a-z_]*"' mcp/apps/*.js` and tick them here.
 - [ ] The `updated_at` guard retries: while a tool call is writing, change the same key from the app (or simulate with a `PUT` between the read and write in a test). The tool's write retries and neither change is lost. The test in `mcp/*.test.mjs` covering this passes.
 

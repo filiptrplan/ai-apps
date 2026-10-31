@@ -13,7 +13,7 @@ Stage 05 (a deployed staging stack).
 - [ ] `scripts/migrate-from-supabase.mjs` (see Design notes), with a `--dry-run` that only reports counts.
 - [ ] A staging dry run (staging's `users` already has the owner's row with their Supabase id, added by hand in stage 05; the script must upsert, not fail): the script runs against `apps-next.trplan.si`'s database and storage; every app is tested there.
 - [ ] A short written cutover checklist in the Notes below, with the rollback plan.
-- [ ] `migration` merged to `master`; the `deploy` promotion now runs from `master`: the promote job's `if` and `HEALTH_URL` in `deploy.yml`, `HEALTH_URL` in `rollback.yml`, and the stack's `PUBLIC_URL` in Komodo (stage 05 Notes). Then run the Rollback workflow once to an older sha and forward again (it can only be dispatched once it's on `master`).
+- [ ] `migration` merged to `master`; the `deploy` promotion now runs from `master`: the promote job's `if` and `HEALTH_URL` in `deploy.yml`, `HEALTH_URL` in `rollback.yml`, and the stack's `PUBLIC_URL` in Komodo (stage 05 Notes). In Pocket ID, add the API `https://apps.trplan.si/mcp` and give `ai-apps-mcp` access to it (server/README.md, MCP), or claude.ai's connector can't authorize. Then run the Rollback workflow once to an older sha and forward again (it can only be dispatched once it's on `master`).
 - [ ] Cutover performed (see below) and verified.
 - [ ] A final Supabase export taken just before the switch, stored on the NAS.
 - [ ] Homelab note updated: `apps.trplan.si` now served by vps2.

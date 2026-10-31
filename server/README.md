@@ -71,11 +71,18 @@ The podcast answers at once with the episode's id and makes the episode in the b
 
 ## MCP
 
-`/mcp` takes `Authorization: Bearer <access token>` from Pocket ID. The token must be a signed `at+jwt` from `OIDC_ISSUER` with `aud` and `client_id` = `MCP_CLIENT_ID`, and its `sub` must belong to a user who has signed in to the apps at least once (that's when `users.oidc_sub` is linked; the token has no email). Anything else gets a 401 with `WWW-Authenticate` pointing at `/.well-known/oauth-protected-resource/mcp`, which names Pocket ID as the authorization server.
+`/mcp` takes `Authorization: Bearer <access token>` from Pocket ID. The token must be a signed `at+jwt` from `OIDC_ISSUER` with `aud` = `<PUBLIC_URL>/mcp` and `client_id` = `MCP_CLIENT_ID`, and its `sub` must belong to a user who has signed in to the apps at least once (that's when `users.oidc_sub` is linked; the token has no email). Anything else gets a 401 with `WWW-Authenticate` pointing at `/.well-known/oauth-protected-resource/mcp`, which names Pocket ID as the authorization server.
 
 Pocket ID's signing keys are kept for a day, so `/mcp` keeps working while the NAS is down; if they can't be fetched at all, `/mcp` answers 503 rather than a token error, so the client doesn't throw its token away.
 
 claude.ai connects with the pre-registered public client `ai-apps-mcp` (Pocket ID has no dynamic client registration), entered in the connector's advanced settings.
+
+claude.ai asks Pocket ID for a token for `<PUBLIC_URL>/mcp` (the `resource` parameter), and Pocket ID refuses the authorization (`invalid_request`, "The 'resource' or 'scope' parameter is invalid") unless that resource is set up for the client:
+
+1. Administration → APIs → Add API, with the resource `<PUBLIC_URL>/mcp` (e.g. `https://apps.trplan.si/mcp`; it can't be changed later). It needs no permissions.
+2. Administration → OIDC Clients → `ai-apps-mcp` → Access → API access → Add API: that API, user-delegated access.
+
+The server logs why it refuses a token (`mcp: token refused: …`, never the token itself).
 
 ## Migrations
 
