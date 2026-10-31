@@ -11,7 +11,7 @@ on:
         required: true
 
 env:
-  HEALTH_URL: https://apps-next.trplan.si/api/health
+  HEALTH_URL: https://apps.trplan.si/api/health
 
 jobs:
   rollback:

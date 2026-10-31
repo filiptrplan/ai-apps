@@ -7,10 +7,10 @@ name: Checks and deploy
 on:
   pull_request:
   push:
-    branches: [master, migration]
+    branches: [master]
 
 env:
-  HEALTH_URL: https://apps-next.trplan.si/api/health
+  HEALTH_URL: https://apps.trplan.si/api/health
 
 jobs:
   checks:
@@ -55,10 +55,7 @@ jobs:
 
   promote:
     needs: checks
-    # Until the cutover (migration-plan stage 06) the `migration` branch
-    # deploys to staging; then this becomes master, and HEALTH_URL above
-    # https://apps.trplan.si.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/migration'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
