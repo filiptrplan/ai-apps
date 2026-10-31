@@ -14,8 +14,8 @@ Stage 05 (a deployed staging stack).
 - [x] A staging dry run (staging's `users` already has the owner's row with their Supabase id, added by hand in stage 05; the script must upsert, not fail): the script runs against `apps-next.trplan.si`'s database and storage; every app is tested there.
 - [x] A short written cutover checklist in the Notes below, with the rollback plan.
 - [ ] `migration` merged to `master`; the `deploy` promotion now runs from `master`: the promote job's `if` and `HEALTH_URL` in `deploy.yml`, `HEALTH_URL` in `rollback.yml`, and the stack's `PUBLIC_URL` in Komodo (stage 05 Notes). In Pocket ID, add the API `https://apps.trplan.si/mcp` and give `ai-apps-mcp` access to it (server/README.md, MCP), or claude.ai's connector can't authorize. Then run the Rollback workflow once to an older sha and forward again (it can only be dispatched once it's on `master`).
-- [ ] Cutover performed (see below) and verified.
-- [ ] A final Supabase export taken just before the switch, stored on the NAS.
+- [x] Cutover performed (see below) and verified.
+- [x] A final Supabase export taken just before the switch, stored on the NAS.
 - [ ] Homelab note updated: `apps.trplan.si` now served by vps2.
 
 ## Files touched
@@ -54,6 +54,20 @@ New: `scripts/migrate-from-supabase.mjs`. Outside the repo, with the user's conf
 5. Sign in with Pocket ID on each device. The first sign-in links the account by email. Old Supabase sessions are gone.
 6. Re-add the claude.ai MCP connector with the `ai-apps-mcp` client id and secret, and run one tool call per app.
 7. Watch the logs for errors for an hour.
+
+### Cutover (2026-10-31, 17:39–17:50 UTC)
+
+The user accepted the rollback risk (data written after the switch isn't copied back) and asked for the cutover right away.
+
+1. Final export at 17:39: `final-20261031T1739Z.sql.gz` (148 kB, 11 tables plus the users view) and the 9 files, copied to `vps2:~/container-data/ai-apps/supabase-export-20261031/` (76 MB, `gzip -t` ok). The 03:30 rclone run mirrors it to the NAS `backup-vps` share, and Hyper Backup versions it from there.
+2. Final copy: every check `ok` (2 users, 26 `app_data`, 6 backups, `mo_*` unchanged, 9 files by sha256), 11 s.
+3. Komodo: `PUBLIC_URL` → `https://apps.trplan.si`, changed inside the Core container with only that line rewritten (no secret left vps2), then `deploy-stack ai-apps` (10.6 s). `/.well-known/oauth-protected-resource/mcp` now names `https://apps.trplan.si/mcp`.
+4. Cloudflare, in Chrome: removed the `apps.trplan.si` custom domain from the Worker `ai-apps`, then added the published application `apps.trplan.si` → `http://localhost:8090` on `VPS_TUNNEL` (the DNS CNAME was created with it). `https://apps.trplan.si/api/health` answered from vps2 within seconds; `/auth/login` redirects to Pocket ID with the `apps.trplan.si` callback.
+5. Pocket ID, in Chrome: API "AI Apps MCP", resource `https://apps.trplan.si/mcp`, with user-delegated access for `ai-apps-mcp` (as for staging).
+6. `c0333e6` (workflows switched to `master` and `https://apps.trplan.si`) fast-forwarded `master` from `5c93ebe`; run 41226164747: checks and promote green, health reports `c0333e6`.
+7. Chrome on `https://apps.trplan.si`: "Sign in with Pocket ID" → signed in as the owner (the existing Pocket ID session, no prompt). German, recipes, climbing and Marsova show the same data as before, no console errors.
+
+**Rollback across a workflow change fails.** The first Rollback run (41226443572, target `69c33e4`) was refused: `refusing to allow a GitHub App to create or update workflow .github/workflows/deploy.yml without workflows permission`. `GITHUB_TOKEN` can't get that permission, so the workflow can only roll back to commits whose `.github/workflows/` match the current `deploy`. Across a workflow change, force-push `deploy` by hand (`git push --force origin <sha>:deploy`); Komodo picks it up the same way. Nothing changed: `deploy` and production stayed on `c0333e6`.
 
 ### Rollback plan
 
@@ -108,6 +122,20 @@ Not between 00:00 and 00:45 UTC (Pocket ID stalls). About 15 minutes.
 8. Re-add the claude.ai connector (`https://apps.trplan.si/mcp`, `ai-apps-mcp`); one tool call per app.
 9. Run the Rollback workflow once to an older sha and forward again.
 10. Watch `docker logs ai-apps-app-1` for an hour; update the Homelab note.
+
+### Cutover (2026-10-31, 17:39–17:50 UTC)
+
+The user accepted the rollback risk (data written after the switch isn't copied back) and asked for the cutover right away.
+
+1. Final export at 17:39: `final-20261031T1739Z.sql.gz` (148 kB, 11 tables plus the users view) and the 9 files, copied to `vps2:~/container-data/ai-apps/supabase-export-20261031/` (76 MB, `gzip -t` ok). The 03:30 rclone run mirrors it to the NAS `backup-vps` share, and Hyper Backup versions it from there.
+2. Final copy: every check `ok` (2 users, 26 `app_data`, 6 backups, `mo_*` unchanged, 9 files by sha256), 11 s.
+3. Komodo: `PUBLIC_URL` → `https://apps.trplan.si`, changed inside the Core container with only that line rewritten (no secret left vps2), then `deploy-stack ai-apps` (10.6 s). `/.well-known/oauth-protected-resource/mcp` now names `https://apps.trplan.si/mcp`.
+4. Cloudflare, in Chrome: removed the `apps.trplan.si` custom domain from the Worker `ai-apps`, then added the published application `apps.trplan.si` → `http://localhost:8090` on `VPS_TUNNEL` (the DNS CNAME was created with it). `https://apps.trplan.si/api/health` answered from vps2 within seconds; `/auth/login` redirects to Pocket ID with the `apps.trplan.si` callback.
+5. Pocket ID, in Chrome: API "AI Apps MCP", resource `https://apps.trplan.si/mcp`, with user-delegated access for `ai-apps-mcp` (as for staging).
+6. `c0333e6` (workflows switched to `master` and `https://apps.trplan.si`) fast-forwarded `master` from `5c93ebe`; run 41226164747: checks and promote green, health reports `c0333e6`.
+7. Chrome on `https://apps.trplan.si`: "Sign in with Pocket ID" → signed in as the owner (the existing Pocket ID session, no prompt). German, recipes, climbing and Marsova show the same data as before, no console errors.
+
+**Rollback across a workflow change fails.** The first Rollback run (41226443572, target `69c33e4`) was refused: `refusing to allow a GitHub App to create or update workflow .github/workflows/deploy.yml without workflows permission`. `GITHUB_TOKEN` can't get that permission, so the workflow can only roll back to commits whose `.github/workflows/` match the current `deploy`. Across a workflow change, force-push `deploy` by hand (`git push --force origin <sha>:deploy`); Komodo picks it up the same way. Nothing changed: `deploy` and production stayed on `c0333e6`.
 
 ### Rollback plan
 
