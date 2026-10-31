@@ -11,7 +11,7 @@ Stage 05 (a deployed staging stack).
 ## Deliverables
 
 - [x] `scripts/migrate-from-supabase.mjs` (see Design notes), with a `--dry-run` that only reports counts.
-- [ ] A staging dry run (staging's `users` already has the owner's row with their Supabase id, added by hand in stage 05; the script must upsert, not fail): the script runs against `apps-next.trplan.si`'s database and storage; every app is tested there.
+- [x] A staging dry run (staging's `users` already has the owner's row with their Supabase id, added by hand in stage 05; the script must upsert, not fail): the script runs against `apps-next.trplan.si`'s database and storage; every app is tested there.
 - [x] A short written cutover checklist in the Notes below, with the rollback plan.
 - [ ] `migration` merged to `master`; the `deploy` promotion now runs from `master`: the promote job's `if` and `HEALTH_URL` in `deploy.yml`, `HEALTH_URL` in `rollback.yml`, and the stack's `PUBLIC_URL` in Komodo (stage 05 Notes). In Pocket ID, add the API `https://apps.trplan.si/mcp` and give `ai-apps-mcp` access to it (server/README.md, MCP), or claude.ai's connector can't authorize. Then run the Rollback workflow once to an older sha and forward again (it can only be dispatched once it's on `master`).
 - [ ] Cutover performed (see below) and verified.
@@ -92,7 +92,7 @@ Local, gitignored, in `.supabase-export/`: `run-migration.sh` opens a tunnel to 
 - Chrome on `apps-next`, signed in as the owner: all 11 pages load with no console errors. German ("Frei heute", 10 cards) and Marsova (193 available, 546 total) match production; recipes, shopping list, climbing plan, semester builder and interval timer show the migrated data. Migrated audio is served as `audio/wav`/`audio/mpeg` and plays (271 s episode); both recipe photos decode; a PUT into the migrated photo folder works.
 - Staging MCP (claude.ai connector): `german_get_overview`, `recipes_get_overview`, `climbing_get_overview` return the migrated data (15 cards, 4 recipes, 32 workouts).
 - Final export rehearsed: `pg_dump -n public -n migration --no-owner --no-privileges` as `migrator` from `postgres:17-alpine` → 148 kB gzip, 11 tables plus the users view.
-- Still to do on staging: generate a podcast episode (an OpenAI call, the user's to run).
+- Podcast on staging, in Chrome (the user asked me to run it): "Bouldern" → `POST /api/fn/german-podcast` 200, spinner, and about 1.5 min later the episode "Bouldern: Erst mal klein anfangen" (2:34, 5 key words) with its WAV (7.4 MB) in the migrated user's `podcast/` folder; the player loads it fully, no console errors. The migrated episodes are listed below it. (The cutover run removes this test episode, since Supabase doesn't have it.)
 
 ### Cutover checklist
 
