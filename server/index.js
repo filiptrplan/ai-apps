@@ -39,6 +39,7 @@ const { app, appData, auth, events, fn } = createApp({
     clientId: env("OIDC_CLIENT_ID"),
     clientSecret: env("OIDC_CLIENT_SECRET"),
   }),
+  moNtfyUrl: env("MO_NTFY_URL", "https://ntfy.sh/marsova-opravila") || undefined,
   mcp: { issuer, clientId: env("MCP_CLIENT_ID", "ai-apps-mcp"), keys: pocketIdKeys(issuer) },
   sha: env("GIT_SHA", gitShaFile() ?? "dev"),
 });

@@ -41,6 +41,7 @@ Database migrations aren't run by the server; dbmate runs them first (`db/migrat
 | `OPENAI_MODEL` | `gpt-6.1-sol` | The German app's text model. |
 | `OPENAI_TTS_MODEL` | `gpt-4o-mini-tts` | Spoken example sentences. |
 | `PODCAST_TTS_MODEL` | `google/gemini-3.8-flash-tts` | The podcast's voices, on OpenRouter. |
+| `MO_NTFY_URL` | `https://ntfy.sh/marsova-opravila` | The ntfy topic told about each new Marsova opravila reward request. Empty sends none. |
 
 The keys are read when a function runs, never logged, and never committed.
 

@@ -3,6 +3,8 @@
 //
 // `mcp` is { issuer, clientId, keys } for /mcp's token checks (`keys` a
 // jose key set, see mcp.js); without it /mcp isn't served.
+// `moNtfyUrl`: where Marsova opravila's reward requests are announced (see
+// routes/mo.js); without it, they aren't.
 
 import express from "express";
 import { createAppDataStore } from "./appData.js";
@@ -18,7 +20,7 @@ import { mapsRoutes } from "./routes/maps.js";
 import { moRoutes } from "./routes/mo.js";
 import { storageRoutes } from "./routes/storage.js";
 
-export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, mcp, sha = "dev" }) {
+export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, mcp, moNtfyUrl, sha = "dev" }) {
   const appData = createAppDataStore(sql);
   const auth = createAuth({ sql, getOidcConfig, publicUrl });
   const storage = createStorage(storageDir);
@@ -51,7 +53,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   app.use(dataRoutes({ appData, requireUser }));
   app.use(backupRoutes({ appData, requireUser }));
   app.use(storageRoutes({ storage, requireUser }));
-  app.use(moRoutes({ sql }));
+  app.use(moRoutes({ sql, ntfyUrl: moNtfyUrl, publicUrl }));
   app.use(fn.router);
   app.use(events.router);
   app.use(mapsRoutes());

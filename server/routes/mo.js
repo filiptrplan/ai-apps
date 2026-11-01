@@ -7,6 +7,9 @@
 //
 // Errors raised by the functions come back as { error: "<code>" } (e.g.
 // "invalid_pin", "unauthorized"), the same codes the app already handles.
+//
+// `ntfyUrl`: a ntfy topic URL (e.g. https://ntfy.sh/marsova-opravila) that
+// gets a notification for every new reward request; without it, none is sent.
 
 import express from "express";
 
@@ -58,7 +61,21 @@ const FUNCTIONS = {
 // missing argument, or a check constraint.
 const CLIENT_ERRORS = new Set(["P0001", "28000", "22P02", "22003", "42883", "23514", "23503"]);
 
-export function moRoutes({ sql }) {
+// Sent in the background, so a slow or failing ntfy never holds up the app.
+function notifyRequest(ntfyUrl, publicUrl, request) {
+  const url = new URL(ntfyUrl);
+  url.searchParams.set("title", "Nov zahtevek za nagrado");
+  url.searchParams.set("tags", "gift");
+  if (publicUrl) url.searchParams.set("click", new URL("/marsova-opravila#/admin", publicUrl).href);
+  const body = `${request.emoji ?? ""} ${request.title} · ${request.cost} točk`.trim();
+  fetch(url, { method: "POST", body, signal: AbortSignal.timeout(10_000) })
+    .then((res) => {
+      if (!res.ok) console.error(`mo: ntfy answered ${res.status}`);
+    })
+    .catch((err) => console.error("mo: couldn't send the ntfy notification:", err.message));
+}
+
+export function moRoutes({ sql, ntfyUrl, publicUrl }) {
   const router = express.Router();
 
   router.get("/api/mo/:table", async (req, res) => {
@@ -86,6 +103,7 @@ export function moRoutes({ sql }) {
         names.map((n) => args[n])
       );
       const result = fn.value ? rows[0]?.value ?? null : rows[0] ?? null;
+      if (req.params.fn === "mo_request_reward" && ntfyUrl && result) notifyRequest(ntfyUrl, publicUrl, result);
       res.json(result === "" ? null : result);
     } catch (err) {
       if (CLIENT_ERRORS.has(err.code)) {

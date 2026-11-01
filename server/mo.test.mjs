@@ -1,6 +1,6 @@
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { setup } from "./testing.mjs";
+import { mockFetch, setup } from "./testing.mjs";
 
 let t;
 before(async () => (t = await setup()));
@@ -100,4 +100,33 @@ test("chores, rewards and points work through the user-side functions", async ()
   const log = await table("mo_activity_log");
   assert.deepEqual(log.map((r) => r.kind).sort(), ["chore_completed", "reward_approved", "reward_requested"]);
   assert.deepEqual(await rpc("mo_admin_adjust_points", { p_token: token, p_delta: -100 }), { status: 400, body: { error: "would_go_negative" } });
+});
+
+test("a new reward request is announced on ntfy", async () => {
+  const ntfy = mockFetch(() => new Response("{}"));
+  const n = await setup({ moNtfyUrl: "https://ntfy.example/marsova-opravila", publicUrl: "https://apps.example" });
+  try {
+    const call = async (fn, args) => (await n.request(`/api/mo/rpc/${fn}`, { method: "POST", json: args })).json();
+    const { token } = await call("mo_admin_bootstrap_pin", { p_pin: "1234" });
+    const chore = await call("mo_admin_create_chore", {
+      p_token: token, p_emoji: "🧹", p_title: "Pometanje", p_description: null, p_category_id: null, p_points: 5,
+    });
+    const reward = await call("mo_admin_create_reward", {
+      p_token: token, p_emoji: "🍦", p_title: "Sladoled", p_description: null, p_cost: 4,
+    });
+    await call("mo_request_reward", { p_reward_id: reward.id }); // not enough points: no notification
+    await call("mo_complete_chore", { p_chore_id: chore.id });
+    await call("mo_request_reward", { p_reward_id: reward.id });
+
+    for (let i = 0; i < 100 && !ntfy.calls.length; i++) await new Promise((r) => setTimeout(r, 20));
+    assert.equal(ntfy.calls.length, 1);
+    const { url, init } = ntfy.calls[0];
+    assert.equal(`${url.origin}${url.pathname}`, "https://ntfy.example/marsova-opravila");
+    assert.equal(url.searchParams.get("title"), "Nov zahtevek za nagrado");
+    assert.equal(url.searchParams.get("click"), "https://apps.example/marsova-opravila#/admin");
+    assert.equal(init.body, "🍦 Sladoled · 4 točk");
+  } finally {
+    ntfy.restore();
+    await n.close();
+  }
 });

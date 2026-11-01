@@ -88,6 +88,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-}
       PODCAST_TTS_MODEL: ${PODCAST_TTS_MODEL:-}
+      MO_NTFY_URL: ${MO_NTFY_URL-https://ntfy.sh/marsova-opravila}
     ports:
       - "127.0.0.1:${APP_PORT:-8090}:8090"
     volumes:
