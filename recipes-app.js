@@ -755,10 +755,10 @@
     ), /* @__PURE__ */ React.createElement("div", null, todo.map((i) => renderRow(i, true))), todo.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "ra-empty" }, "Nothing left to get."), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "ra-section-head cart" }, /* @__PURE__ */ React.createElement("span", null, "In the cart \xB7 ", done.length), /* @__PURE__ */ React.createElement("button", { className: "ra-small-btn", onClick: clearDone }, "Clear")), done.map((i) => renderRow(i, false))));
   }
 
-  // recipes/photos.js
-  var BUCKET = "recipe-photos";
+  // shared/photos.js
   var PHOTO_MAX_SIDE = 1280;
   var PHOTO_QUALITY = 0.8;
+  var newId = () => globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
   function drawScaled(file, maxSide) {
     return new Promise((resolve, reject) => {
       const src = URL.createObjectURL(file);
@@ -787,24 +787,29 @@
     if (!blob) throw new Error("Couldn't compress that image.");
     return { blob, preview: URL.createObjectURL(blob) };
   }
-  var photoUrl = (path) => `/api/storage/${BUCKET}/${path}`;
-  async function uploadPhoto(session, blob) {
+  var photoUrl = (bucket, path) => `/api/storage/${bucket}/${path}`;
+  async function uploadPhoto(bucket, session, blob) {
     const ext = blob.type === "image/webp" ? "webp" : "jpg";
-    const path = `${session.user.id}/${Date.now()}-${uid()}.${ext}`;
+    const path = `${session.user.id}/${Date.now()}-${newId()}.${ext}`;
     try {
-      await apiFetch(photoUrl(path), { method: "PUT", body: blob, headers: { "Content-Type": blob.type } });
+      await apiFetch(photoUrl(bucket, path), { method: "PUT", body: blob, headers: { "Content-Type": blob.type } });
     } catch (err) {
       throw new Error(`Photo upload failed: ${err.message}`);
     }
     return path;
   }
-  async function removePhoto(path) {
+  async function removePhoto(bucket, path) {
     if (!path) return;
-    await apiFetch(photoUrl(path), { method: "DELETE" }).catch(() => {
+    await apiFetch(photoUrl(bucket, path), { method: "DELETE" }).catch(() => {
     });
   }
+
+  // recipes/photos.js
+  var BUCKET = "recipe-photos";
+  var uploadPhoto2 = (session, blob) => uploadPhoto(BUCKET, session, blob);
+  var removePhoto2 = (path) => removePhoto(BUCKET, path);
   function usePhotoUrl(path, session) {
-    return path && session ? photoUrl(path) : null;
+    return path && session ? photoUrl(BUCKET, path) : null;
   }
 
   // recipes/Photo.jsx
@@ -1280,14 +1285,14 @@
         setSaving(true);
         setSaveError("");
         try {
-          path = await uploadPhoto(session, photo.blob);
+          path = await uploadPhoto2(session, photo.blob);
         } catch (err) {
           setSaving(false);
           setSaveError(err.message);
           return;
         }
       }
-      if (oldPath && oldPath !== path) removePhoto(oldPath);
+      if (oldPath && oldPath !== path) removePhoto2(oldPath);
       const notes = form.notes.trim();
       onSave({
         id: initial ? initial.id : uid(),
@@ -1593,7 +1598,7 @@
     }
     function deleteRecipe(id) {
       const r = recipes.find((x) => x.id === id);
-      if (r && r.photo) removePhoto(r.photo);
+      if (r && r.photo) removePhoto2(r.photo);
       setRecipes((rs) => rs.filter((x) => x.id !== id));
       setTimers((ts) => Object.fromEntries(Object.entries(ts).filter(([k]) => !k.startsWith(id + ":"))));
       setCompose(null);
