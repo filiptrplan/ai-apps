@@ -6,7 +6,7 @@
     "build": "node build.cjs",
     "dev": "vite",
     "dev:server": "node --watch-path=server --env-file-if-exists=.env server/index.js",
-    "test": "node --test mcp/*.test.mjs german/*.test.mjs moped-route/*.test.mjs && node server/runTests.mjs",
+    "test": "node --test mcp/*.test.mjs climbing-tracker/*.test.mjs german/*.test.mjs moped-route/*.test.mjs && node server/runTests.mjs",
     "test:server": "node server/runTests.mjs",
     "db:migrate": "docker compose -f deploy/compose.dev.yaml run --rm --user \"$(id -u):$(id -g)\" migrate --wait up"
   },

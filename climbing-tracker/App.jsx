@@ -16,6 +16,7 @@ import {
   applyRoutineStep,
   isIntervalType,
   isStepComplete,
+  isStretchRoutine,
 } from "./format.js";
 import {
   emptyPlan,
@@ -31,9 +32,16 @@ import {
   cycleSummary,
 } from "./plan.js";
 import { buildLlmGuidance } from "./llmGuidance.js";
+import { stretchExerciseFromLibrary, LIBRARY_CREDIT } from "./stretchLibrary.js";
+import { uploadPhoto, removePhoto, exercisePhotoUrls } from "./photos.js";
+import { getAudioCtx } from "./sounds.js";
+import { useSession } from "../shared/auth.js";
 import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
+import { StretchPlayer } from "./components/StretchPlayer.jsx";
+import { StretchLibraryPicker } from "./components/StretchLibraryPicker.jsx";
+import { PhotoThumb, PhotoViewer } from "./components/ExercisePhoto.jsx";
 import { RoutineEditPage } from "./components/RoutineEditPage.jsx";
 import { DayEditPage } from "./components/DayEditPage.jsx";
 import { useDragReorder } from "./components/useDragReorder.js";
@@ -51,8 +59,9 @@ const roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
 
 // The workout in progress, kept in this device's localStorage (not synced)
 // so it survives the phone discarding the backgrounded app: { session, logs,
-// order, interRest, timer }, written on every logged change (running timers
-// included) and dropped on finish/cancel.
+// order, interRest, timer, player }, written on every logged change (running
+// timers included) and dropped on finish/cancel. `player` is the stretch
+// player's clock, for a session with mode "stretch".
 const ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
 
 function readActiveSession() {
@@ -105,17 +114,41 @@ export function ClimbingTrackerApp() {
   const openNewExercise = () => {
     setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     setEditingId(null);
+    setExerciseSaveError("");
     setFormOpen(true);
   };
   const openEditExercise = (ex) => {
     setDraft({ ...ex });
     setEditingId(ex.id);
+    setExerciseSaveError("");
     setFormOpen(true);
   };
-  const saveExercise = () => {
-    if (!draft.name.trim()) return;
-    const ex = { ...draft, notes: (draft.notes || "").trim() };
+  // A newly picked photo (draft.photoUpload) is uploaded first; the photo it
+  // replaces, if it was an upload, is removed once the exercise is saved.
+  const session = useSession();
+  const [savingExercise, setSavingExercise] = useState(false);
+  const [exerciseSaveError, setExerciseSaveError] = useState("");
+  const saveExercise = async () => {
+    if (!draft.name.trim() || savingExercise) return;
+    const { photoUpload, ...rest } = draft;
+    let photo = rest.photo || null;
+    if (photoUpload) {
+      setSavingExercise(true);
+      setExerciseSaveError("");
+      try {
+        photo = { path: await uploadPhoto(session, photoUpload.blob) };
+      } catch (err) {
+        setExerciseSaveError(err.message);
+        return;
+      } finally {
+        setSavingExercise(false);
+      }
+    }
+    const ex = { ...rest, photo, notes: (draft.notes || "").trim() };
+    if (!photo) delete ex.photo;
     if (editingId) {
+      const old = exercises.find(e => e.id === editingId)?.photo;
+      if (old?.path && old.path !== photo?.path) removePhoto(old.path);
       setExercises(exercises.map(e => e.id === editingId ? { ...ex, id: editingId } : e));
     } else {
       setExercises([...exercises, { ...ex, id: uid() }]);
@@ -123,9 +156,20 @@ export function ClimbingTrackerApp() {
     setFormOpen(false);
   };
   const deleteExercise = (id) => {
+    const photo = exercises.find(e => e.id === id)?.photo;
+    if (photo?.path) removePhoto(photo.path);
     setExercises(exercises.filter(e => e.id !== id));
     setRoutines(routines.map(r => ({ ...r, steps: r.steps.filter(step => step.exerciseId !== id) })));
   };
+
+  // Stretches from the built-in library are copied into the exercises. The
+  // picker stays open, so several can be added in one go.
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const addFromLibrary = (stretch) => {
+    if (exercises.some(e => e.photo?.library === stretch.id)) return;
+    setExercises([...exercises, { ...stretchExerciseFromLibrary(stretch), id: uid() }]);
+  };
+  const [viewingPhoto, setViewingPhoto] = useState(null);
 
   // Exercise categories (managed in Settings). Deleting one leaves its
   // exercises uncategorized.
@@ -172,11 +216,15 @@ export function ClimbingTrackerApp() {
 
   // New routines open straight into the editor (name field focused); one
   // abandoned with no name and no exercises is discarded on the way out.
-  const createRoutine = () => {
-    const r = { id: uid(), name: "", steps: [] };
+  // A routine is a workout or stretching, picked first and fixed after.
+  const [routineKindOpen, setRoutineKindOpen] = useState(false);
+  const createRoutine = (kind) => {
+    const r = kind === "stretch" ? { id: uid(), name: "", kind, steps: [] } : { id: uid(), name: "", steps: [] };
     setRoutines([...routines, r]);
+    setRoutineKindOpen(false);
     setEditingRoutineId(r.id);
   };
+  const updateRoutine = (id, patch) => setRoutines(routines.map(r => r.id === id ? { ...r, ...patch } : r));
   const closeRoutineEditor = () => {
     const r = routines.find(x => x.id === editingRoutineId);
     if (r && !r.name.trim() && r.steps.length === 0) deleteRoutine(r.id);
@@ -232,7 +280,10 @@ export function ClimbingTrackerApp() {
   const renameRoutine = (id, name) => setRoutines(routines.map(r => r.id === id ? { ...r, name } : r));
   const addStepToRoutine = (routineId, exerciseId) => {
     if (!exerciseId) return;
-    const step = { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
+    const stretching = isStretchRoutine(routines.find(r => r.id === routineId));
+    const step = stretching
+      ? { id: uid(), exerciseId, holdSec: null }
+      : { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
     setRoutines(routines.map(r => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
   };
   const updateRoutineStepById = (routineId, stepId, patch) => {
@@ -307,23 +358,41 @@ export function ClimbingTrackerApp() {
   const sessionOrderRef = useRef(restored?.order || null);
   const sessionInterRestRef = useRef(restored?.interRest || null);
   const sessionTimerRef = useRef(restored?.timer || null);
-  const persistSession = (session = activeSession) => writeActiveSession(session && {
-    session, logs: sessionLogsRef.current, order: sessionOrderRef.current, interRest: sessionInterRestRef.current, timer: sessionTimerRef.current,
+  const sessionPlayerRef = useRef(restored?.player || null);
+  const persistSession = (current = activeSession) => writeActiveSession(current && {
+    session: current, logs: sessionLogsRef.current, order: sessionOrderRef.current, interRest: sessionInterRestRef.current, timer: sessionTimerRef.current, player: sessionPlayerRef.current,
   });
-  const setActiveSession = (session) => {
+  const setActiveSession = (current) => {
     sessionInterRestRef.current = null;
     sessionTimerRef.current = null;
-    if (!session) { sessionLogsRef.current = []; sessionOrderRef.current = null; }
-    setActiveSessionState(session);
-    persistSession(session);
+    sessionPlayerRef.current = null;
+    if (!current) { sessionLogsRef.current = []; sessionOrderRef.current = null; }
+    setActiveSessionState(current);
+    persistSession(current);
   };
 
+  // Stretches play in the full-screen stretch player instead (mode "stretch").
+  const startStretches = (base, stretches, timing) => {
+    if (stretches.length === 0) return;
+    getAudioCtx(); // unlock audio on this tap
+    sessionLogsRef.current = [];
+    sessionOrderRef.current = null;
+    setActiveSession({ id: uid(), ...base, mode: "stretch", exercises: stretches, timing, startedAt: Date.now() });
+  };
   const startExercise = (ex) => {
+    if (ex.type === "stretch") return startStretches({ kind: "exercise", refId: ex.id, refName: ex.name }, [ex], {});
     sessionLogsRef.current = [null];
     sessionOrderRef.current = null;
     setActiveSession({ id: uid(), kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
   };
   const startRoutine = (r) => {
+    if (isStretchRoutine(r)) {
+      const stretches = r.steps.map(step => {
+        const ex = exercises.find(e => e.id === step.exerciseId);
+        return ex && ex.type === "stretch" ? applyRoutineStep(ex, step) : null;
+      }).filter(Boolean);
+      return startStretches({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine" }, stretches, { switchSec: r.switchSec, breakSec: r.breakSec });
+    }
     const exs = normalizeSupersets(r.steps).map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
       return ex ? applyRoutineStep(ex, step) : null;
@@ -359,6 +428,19 @@ export function ClimbingTrackerApp() {
       if (performed && performed.weightMode === "added" && bodyweight) performed = { ...performed, bodyweight };
       if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed, routineStepId: ex.routineStepId });
     });
+    logSession(current, results);
+  };
+  // `done` is the stretch player's [{ index, sidesDone }].
+  const finishStretches = (done) => {
+    const current = activeSession;
+    const results = done.map(({ index, sidesDone }) => {
+      const ex = current.exercises[index];
+      return { exerciseId: ex.id, exerciseName: ex.name, performed: buildPerformedFromLog(ex, { sidesDone }), routineStepId: ex.routineStepId };
+    });
+    logSession(current, results);
+  };
+  const handlePlayerChange = (player) => { sessionPlayerRef.current = player; persistSession(); };
+  const logSession = (current, results) => {
     if (results.length > 0) {
       const entry = {
         id: uid(),
@@ -549,6 +631,21 @@ export function ClimbingTrackerApp() {
 
   // The workout takes over the whole screen on desktop too (no sidebar), so
   // it can't be left half-finished by switching tabs.
+  if (activeSession?.mode === "stretch") {
+    return (
+      <div style={rootStyle}>
+        <StretchPlayer
+          key={activeSession.id}
+          session={activeSession}
+          initialState={sessionPlayerRef.current}
+          onStateChange={handlePlayerChange}
+          onFinish={finishStretches}
+          onDiscard={cancelSession}
+        />
+      </div>
+    );
+  }
+
   if (activeSession) {
     return (
       <div style={rootStyle}>
@@ -646,6 +743,7 @@ export function ClimbingTrackerApp() {
             () => { deleteRoutine(editingRoutine.id); setEditingRoutineId(null); }
           )}
           onRename={name => renameRoutine(editingRoutine.id, name)}
+          onUpdate={patch => updateRoutine(editingRoutine.id, patch)}
           onAddStep={exerciseId => addStepToRoutine(editingRoutine.id, exerciseId)}
           onUpdateStep={(stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch)}
           onRemoveStep={idx => removeFromRoutine(editingRoutine.id, idx)}
@@ -667,14 +765,27 @@ export function ClimbingTrackerApp() {
       <>
       {tab === "Exercises" && (
         <>
-          <Header title="Exercises" right={exercises.length > 0 && addButton(openNewExercise, "New exercise")} />
+          <Header
+            title="Exercises"
+            right={exercises.length > 0 && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ ...s.iconBtn, color: C.accent }} onClick={() => setLibraryOpen(true)} aria-label="Add from the stretch library"><Icon.stretch size={24} /></button>
+                {addButton(openNewExercise, "New exercise")}
+              </div>
+            )}
+          />
           <div style={pageStyle}>
             {exercises.length === 0 ? (
               <EmptyState
                 icon="exercises"
                 title="No exercises yet"
-                text="Add hangs, pull-ups, core work — anything you want to track."
-                action={<button style={s.btnPrimary} onClick={openNewExercise}><Icon.plus size={20} /> New exercise</button>}
+                text="Add hangs, pull-ups, core work — anything you want to track. Or pick stretches from the library."
+                action={
+                  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button style={s.btnPrimary} onClick={openNewExercise}><Icon.plus size={20} /> New exercise</button>
+                    <button style={s.btnSecondary} onClick={() => setLibraryOpen(true)}><Icon.stretch size={20} /> Stretch library</button>
+                  </div>
+                }
               />
             ) : (
               groupByCategory(exercises, categories).map(({ category, exercises: group }) => (
@@ -683,7 +794,8 @@ export function ClimbingTrackerApp() {
                   <div style={{ ...listStyle, marginBottom: 16 }}>
                     {group.map(ex => (
                       <div key={ex.id} style={s.row}>
-                        <button style={s.rowMain} onClick={() => openStats(ex.id)}>
+                        {exercisePhotoUrls(ex, session).length > 0 && <span style={{ marginLeft: 8, display: "flex" }}><PhotoThumb exercise={ex} onOpen={() => setViewingPhoto(ex)} /></span>}
+                        <button style={{ ...s.rowMain, ...(exercisePhotoUrls(ex, session).length > 0 && { paddingLeft: 0 }) }} onClick={() => openStats(ex.id)}>
                           <div style={s.rowTitle}>{ex.name}</div>
                           <div style={s.rowMeta}>{formatTargetSummary(ex)}</div>
                         </button>
@@ -702,18 +814,24 @@ export function ClimbingTrackerApp() {
 
       {tab === "Routines" && (
         <>
-          <Header title="Routines" right={routines.length > 0 && addButton(createRoutine, "New routine")} />
+          <Header title="Routines" right={routines.length > 0 && addButton(() => setRoutineKindOpen(true), "New routine")} />
           <div style={pageStyle}>
             {routines.length === 0 ? (
               <EmptyState
                 icon="routines"
                 title="No routines yet"
-                text="Chain exercises into a session with per-set targets and rests."
-                action={<button style={s.btnPrimary} onClick={createRoutine}><Icon.plus size={20} /> New routine</button>}
+                text="Chain exercises into a session with per-set targets and rests, or stretches into a guided, timed sequence."
+                action={<button style={s.btnPrimary} onClick={() => setRoutineKindOpen(true)}><Icon.plus size={20} /> New routine</button>}
               />
-            ) : (
+            ) : [false, true].map(stretching => {
+              const group = routines.filter(r => isStretchRoutine(r) === stretching);
+              if (group.length === 0) return null;
+              const sectioned = routines.some(r => isStretchRoutine(r));
+              return (
+              <div key={stretching ? "stretch" : "workout"} style={{ marginBottom: 16 }}>
+              {sectioned && <div style={s.sectionLabel}>{stretching ? "Stretching" : "Workouts"}</div>}
               <div style={listStyle}>
-                {routines.map(r => {
+                {group.map(r => {
                   const nameOf = step => exercises.find(e => e.id === step.exerciseId)?.name;
                   const names = r.steps.map(nameOf).filter(Boolean);
                   const blocks = groupSteps(r.steps.filter(nameOf), step => step.supersetGroup || null)
@@ -738,7 +856,9 @@ export function ClimbingTrackerApp() {
                   );
                 })}
               </div>
-            )}
+              </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -878,7 +998,7 @@ export function ClimbingTrackerApp() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={s.rowTitle}>
                             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{h.refName}</span>
-                            {h.kind === "routine" && <span style={s.badge}>Routine</span>}
+                            {h.kind === "routine" && <span style={s.badge}>{isStretchRoutine(routines.find(r => r.id === h.refId)) || h.steps.every(st => st.performed.type === "stretch") ? "Stretching" : "Routine"}</span>}
                           </div>
                           <div style={s.rowMeta}>
                             {formatDate(h.date)}{h.durationSec != null ? ` · ${formatDuration(h.durationSec)}` : ""}
@@ -1030,6 +1150,13 @@ export function ClimbingTrackerApp() {
               </div>
             </div>
 
+            <div style={cardStyle}>
+              <div style={s.sectionTitle}>Credits</div>
+              <div style={{ ...s.hint, marginBottom: 0 }}>
+                Stretch library: <a href={LIBRARY_CREDIT.url} target="_blank" rel="noopener nofollow" style={{ color: C.accent }}>{LIBRARY_CREDIT.text}</a>.
+              </div>
+            </div>
+
             {history.length > 0 && (
               <div style={cardStyle}>
                 <div style={s.sectionTitle}>Danger zone</div>
@@ -1054,6 +1181,8 @@ export function ClimbingTrackerApp() {
           <ExerciseForm
             draft={draft}
             categories={categories}
+            saving={savingExercise}
+            saveError={exerciseSaveError}
             onChange={setDraft}
             onSave={saveExercise}
             onDelete={editingId ? () => requestConfirm(
@@ -1064,6 +1193,35 @@ export function ClimbingTrackerApp() {
           />
         </Sheet>
       )}
+
+      {libraryOpen && (
+        <StretchLibraryPicker
+          addedIds={new Set(exercises.map(e => e.photo?.library).filter(Boolean))}
+          onPick={addFromLibrary}
+          onClose={() => setLibraryOpen(false)}
+        />
+      )}
+
+      {routineKindOpen && (
+        <Sheet title="New routine" onClose={() => setRoutineKindOpen(false)}>
+          <button style={s.pickerItem} onClick={() => createRoutine("workout")}>
+            <span style={{ color: C.accent, display: "flex" }}><Icon.exercises size={26} /></span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>Workout</span>
+              <span style={{ display: "block", fontSize: 13, color: C.muted, marginTop: 2 }}>Sets, reps and intervals, logged as you go</span>
+            </span>
+          </button>
+          <button style={{ ...s.pickerItem, borderBottom: "none" }} onClick={() => createRoutine("stretch")}>
+            <span style={{ color: C.green, display: "flex" }}><Icon.stretch size={26} /></span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>Stretching</span>
+              <span style={{ display: "block", fontSize: 13, color: C.muted, marginTop: 2 }}>Timed holds that play full screen, one after another</span>
+            </span>
+          </button>
+        </Sheet>
+      )}
+
+      {viewingPhoto && <PhotoViewer exercise={viewingPhoto} onClose={() => setViewingPhoto(null)} />}
 
       {transferMode && (
         <Sheet

@@ -131,6 +131,7 @@ export function mcpRoutes({ appData, storage, fn, verifyToken, publicUrl, issuer
       const server = createMcpServer({
         appData: createAppData(appData, user.id),
         removePhoto: (path) => storage.remove("recipe-photos", path.split("/"), user.id),
+        removeClimbingPhoto: (path) => storage.remove("climbing-photos", path.split("/"), user.id),
         callFunction: (name, body) => fn.call(name, body, user),
       });
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });

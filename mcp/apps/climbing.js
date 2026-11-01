@@ -14,8 +14,10 @@ import {
   formatPerformedSummary,
   formatTargetSummary,
   groupSteps,
+  isStretchRoutine,
   normalizeSupersets,
 } from "../../climbing-tracker/format.js";
+import { STRETCH_LIBRARY, findLibraryStretch, stretchExerciseFromLibrary } from "../../climbing-tracker/stretchLibrary.js";
 import {
   cycleSummary,
   dayLabel,
@@ -37,11 +39,12 @@ const TYPE_FIELDS = {
   weighted: ["sets", "reps", "weight", "weightMode", "restSec"],
   interval: ["workSec", "restSec", "sets"],
   weightedInterval: ["workSec", "restSec", "sets", "weight", "weightMode"],
+  stretch: ["holdSec", "twoSided"],
 };
 const TYPES = Object.keys(TYPE_FIELDS);
-const ALL_TYPE_FIELDS = ["sets", "reps", "weight", "weightMode", "workSec", "restSec"];
+const ALL_TYPE_FIELDS = ["sets", "reps", "weight", "weightMode", "workSec", "restSec", "holdSec", "twoSided"];
 
-export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets), optional exercise categories (one per exercise, shown as sections), a history of logged workouts, and a week plan (numbered days, each with routines and notes, ticked off in any order and reset as a cycle). Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
+export const instructions = `Climbing Tracker (climbing_* tools): the user's climbing training app (${APP_URL}) with exercises, routines (ordered exercise steps, optionally supersets), optional exercise categories (one per exercise, shown as sections), a history of logged workouts, and a week plan (numbered days, each with routines and notes, ticked off in any order and reset as a cycle). Stretches are exercises of type "stretch" (a timed hold, optionally per side) that go into stretch routines (kind "stretch"), which the app plays full screen; the built-in stretch library (in climbing_get_overview) has ready-made ones with pictures. Call climbing_get_overview first: it returns the ids every other tool takes. Weights are in kg, durations in seconds. Changes show up in the app right away.`;
 
 // Thrown for anything the caller can fix; McpServer turns it into an
 // isError tool result with this message.
@@ -107,6 +110,8 @@ function describeRoutine(r, exercises) {
   return {
     id: r.id,
     name: r.name,
+    kind: isStretchRoutine(r) ? "stretch" : "workout",
+    ...(isStretchRoutine(r) ? withoutNulls({ switchSec: r.switchSec, breakSec: r.breakSec }) : {}),
     steps: (r.steps || []).map(step => {
       const ex = exercises.find(e => e.id === step.exerciseId);
       return withoutNulls({
@@ -191,12 +196,18 @@ function templateChanges(entry, exercises, routines) {
 // targets (already merged with any routine step overrides).
 function performedFromInput(ex, input, bodyweight) {
   let log;
-  if (isIntervalType(ex.type)) {
+  if (ex.type === "stretch") {
+    if (input.sets || input.completedSets != null || input.weight != null) fail(`"${ex.name}" is a stretch: give sidesDone (plus holdSec if it differed), not sets or weights.`);
+    const sides = ex.twoSided ? 2 : 1;
+    if (input.sidesDone != null && input.sidesDone > sides) fail(`"${ex.name}" is ${ex.twoSided ? "two" : "one"}-sided, so sidesDone is at most ${sides}.`);
+    log = { sidesDone: input.sidesDone ?? sides, holdSec: input.holdSec };
+  } else if (isIntervalType(ex.type)) {
     if (input.sets) fail(`"${ex.name}" is an ${ex.type} exercise: give completedSets (plus workSec/restSec if they differed), not sets.`);
     if (input.completedSets == null) fail(`"${ex.name}" is an ${ex.type} exercise: give completedSets.`);
     if (input.weight != null && ex.type !== "weightedInterval") fail(`"${ex.name}" is an interval exercise and has no weight.`);
     log = { completedSets: input.completedSets, workSec: input.workSec, restSec: input.restSec, weight: input.weight };
   } else {
+    if (input.sidesDone != null || input.holdSec != null) fail(`"${ex.name}" is a ${ex.type} exercise: sidesDone and holdSec are for stretches.`);
     if (input.completedSets != null) fail(`"${ex.name}" is a ${ex.type} exercise: give sets (one entry per set), not completedSets.`);
     if (input.weight != null) fail(`"${ex.name}" is a ${ex.type} exercise: give the weight per set in sets, not weight.`);
     if (!input.sets || input.sets.length === 0) fail(`"${ex.name}" is a ${ex.type} exercise: give the performed sets.`);
@@ -212,6 +223,7 @@ function performedFromInput(ex, input, bodyweight) {
 // The targets as they were recorded with an earlier log, so correcting a
 // workout doesn't reset them to today's template.
 function targetsFromPerformed(ex, p) {
+  if (p.type === "stretch") return { ...ex, type: p.type, holdSec: p.holdSec, twoSided: p.twoSided };
   if (isIntervalType(p.type)) return { ...ex, type: p.type, sets: p.targetSets, workSec: p.workSec, restSec: p.restSec, weight: p.weight, weightMode: p.weightMode };
   return { ...ex, type: p.type, sets: p.targetSets, reps: p.targetReps, weight: p.targetWeight, weightMode: p.weightMode };
 }
@@ -248,7 +260,13 @@ function matchRoutineSteps(routine, routineSteps, inputs, exercises) {
     .sort((a, b) => routineSteps.indexOf(a.step) - routineSteps.indexOf(b.step));
 }
 
-function buildRoutineSteps(inputs, exercises, existing) {
+// A stretch routine holds only stretches, a workout routine none.
+function checkStepKind(ex, stretching, where) {
+  if (stretching && ex.type !== "stretch") fail(`${where}: a stretch routine can only hold stretch exercises.`);
+  if (!stretching && ex.type === "stretch") fail(`${where}: stretches go into stretch routines (kind "stretch"), not workout routines.`);
+}
+
+function buildRoutineSteps(inputs, exercises, existing, stretching) {
   const existingIds = new Set((existing?.steps || []).map(s => s.id));
   const seen = new Set();
   const steps = inputs.map((input, i) => {
@@ -258,6 +276,13 @@ function buildRoutineSteps(inputs, exercises, existing) {
     if (input.id && seen.has(input.id)) fail(`${where}: step id "${input.id}" is used twice.`);
     const id = input.id ?? uid();
     seen.add(id);
+    checkStepKind(ex, stretching, where);
+    if (stretching) {
+      const extra = ["sets", "workSec", "restSec", "restAfterSec", "targetSets", "supersetGroup"].filter(k => input[k] != null);
+      if (extra.length > 0) fail(`${where}: stretch steps only take holdSec, not ${extra.join(", ")}.`);
+      return { id, exerciseId: ex.id, holdSec: input.holdSec ?? null };
+    }
+    if (input.holdSec != null) fail(`${where}: holdSec only applies to stretch steps.`);
     let targetSets = null;
     if (input.workSec != null && !isIntervalType(ex.type)) fail(`${where}: workSec only applies to interval exercises.`);
     if (input.targetSets) {
@@ -302,20 +327,22 @@ const performedStep = z.object({
       .describe("kg. For weightMode \"added\", the weight on top of bodyweight. Defaults to the target weight."),
   })).optional().describe("reps/weighted exercises: one entry per completed set, in order."),
   completedSets: z.number().int().min(1).optional().describe("interval/weightedInterval exercises: number of work phases completed."),
+  sidesDone: z.number().int().min(1).max(2).optional().describe("stretch exercises: holds done, 1 or 2 (both sides of a two-sided stretch). Defaults to all of them."),
+  holdSec: z.number().int().min(1).optional().describe("stretch exercises: only if the hold differed from the target."),
   workSec: z.number().int().min(1).optional().describe("interval/weightedInterval exercises: only if it differed from the target."),
   restSec: z.number().int().min(0).optional().describe("interval/weightedInterval exercises: only if it differed from the target."),
   weight: z.number().min(0).optional()
     .describe("weightedInterval exercises: kg used (on top of bodyweight for weightMode \"added\"), only if it differed from the target."),
 });
 
-export function register(server, { appData }) {
+export function register(server, { appData, removeClimbingPhoto }) {
   const read = (name, fallback) => appData.read(APP_ID, STORAGE_KEYS[name], fallback);
   const update = (name, fallback, mutate) => appData.update(APP_ID, STORAGE_KEYS[name], fallback, mutate);
   const readAll = () => Promise.all([read("exercises", []), read("routines", []), read("history", []), read("settings", {})]);
 
   server.registerTool("climbing_get_overview", {
     title: "Climbing: overview",
-    description: "All of the user's climbing exercises (with targets and notes), routines (with their steps), the week plan (days, their routines and notes, which are ticked, and which routines are logged this cycle), bodyweight, and a summary of recent training. Call this first: it has the ids the other climbing tools take.",
+    description: "All of the user's climbing exercises (with targets, notes and picture), routines (with their kind and steps), the week plan (days, their routines and notes, which are ticked, and which routines are logged this cycle), bodyweight, the built-in stretch library (libraryId for climbing_save_exercise; `added` when the user already has it), and a summary of recent training. Call this first: it has the ids the other climbing tools take.",
     inputSchema: {},
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async () => {
@@ -338,6 +365,14 @@ export function register(server, { appData }) {
         lastDone: lastEntry(h => h.kind === "routine" && h.refId === r.id),
       })),
       plan: describePlan(plan, routines, history),
+      stretchLibrary: STRETCH_LIBRARY.map(st => ({
+        libraryId: st.id,
+        name: st.name,
+        muscles: st.muscles,
+        twoSided: st.twoSided,
+        ...(st.equipment ? { equipment: st.equipment } : {}),
+        ...(exercises.some(e => e.photo?.library === st.id) ? { added: true } : {}),
+      })),
       history: {
         totalWorkouts: history.length,
         last7Days: since(7),
@@ -521,6 +556,8 @@ export function register(server, { appData }) {
     title: "Climbing: save exercise",
     description: `Create an exercise (no id: name and type required; unset targets get the app's defaults) or change an existing one (id: only the fields you pass change). Changing type drops the fields that don't apply to the new type. Check climbing_get_overview first so you don't create a duplicate of an existing exercise.
 
+To add a stretch from the built-in library, pass its libraryId (from climbing_get_overview): the new exercise gets the library's name, picture, instructions as notes and sides, and a 30s hold, any of which you can override. On an existing exercise, libraryId sets its picture to that library stretch's (null removes the picture).
+
 The exercise data model (ids are assigned by the server, so ignore the "id" fields below):
 
 ${EXERCISE_GUIDANCE}`,
@@ -534,17 +571,32 @@ ${EXERCISE_GUIDANCE}`,
       weightMode: z.enum(["added", "total"]).optional().describe("weighted/weightedInterval only"),
       workSec: z.number().int().min(1).optional().describe("interval/weightedInterval only"),
       restSec: z.number().int().min(0).optional(),
+      holdSec: z.number().int().min(1).optional().describe("stretch only: seconds to hold (per side when twoSided)"),
+      twoSided: z.boolean().optional().describe("stretch only: held once on each side"),
+      libraryId: z.string().nullable().optional().describe("A stretchLibrary libraryId from climbing_get_overview, or null to remove the picture."),
       notes: z.string().optional().describe("Free-form notes shown with the exercise. Replaces the existing notes."),
       categoryId: z.string().nullable().optional().describe("Category id from climbing_get_overview (create one with climbing_save_category), or null to remove the category. Left out: unchanged."),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  }, async input => {
+  }, async rawInput => {
     let saved;
     let created = false;
+    let replacedUpload = null;
     const categories = await read("categories", []);
-    if (input.categoryId) findCategory(categories, input.categoryId);
+    if (rawInput.categoryId) findCategory(categories, rawInput.categoryId);
+    const library = rawInput.libraryId
+      ? findLibraryStretch(rawInput.libraryId) || fail(`No library stretch "${rawInput.libraryId}". See stretchLibrary in climbing_get_overview.`)
+      : null;
     await update("exercises", [], exercises => {
-      const existing = input.id ? findExercise(exercises, input.id) : null;
+      const existing = rawInput.id ? findExercise(exercises, rawInput.id) : null;
+      // A new exercise from the library starts from the library's values
+      // (only its picture and notes, if it's made some other type).
+      let input = rawInput;
+      if (library && !existing) {
+        const { holdSec, twoSided, ...base } = stretchExerciseFromLibrary(library);
+        const stretch = (rawInput.type ?? "stretch") === "stretch" ? { holdSec, twoSided } : {};
+        input = { ...base, ...stretch, ...withoutNulls(rawInput) };
+      }
       if (!existing) {
         if (!input.name?.trim() || !input.type) fail("A new exercise needs a name and a type.");
         const duplicate = exercises.find(e => e.name.trim().toLowerCase() === input.name.trim().toLowerCase());
@@ -565,11 +617,18 @@ ${EXERCISE_GUIDANCE}`,
         notes: (input.notes ?? existing?.notes ?? "").trim(),
       };
       if (input.categoryId !== undefined) ex.categoryId = input.categoryId;
+      if (input.libraryId !== undefined) {
+        if (existing?.photo?.path) replacedUpload = existing.photo.path;
+        if (library) ex.photo = { library: library.id };
+        else delete ex.photo;
+      }
+      delete ex.libraryId;
       ALL_TYPE_FIELDS.filter(k => !TYPE_FIELDS[type].includes(k)).forEach(k => delete ex[k]);
       saved = ex;
       created = !existing;
       return existing ? exercises.map(e => e.id === ex.id ? ex : e) : [...exercises, ex];
     });
+    if (replacedUpload && removeClimbingPhoto) await removeClimbingPhoto(replacedUpload).catch(() => {});
     return json({ [created ? "created" : "updated"]: describeExercise(saved, categories) });
   });
 
@@ -611,6 +670,9 @@ ${ROUTINE_GUIDANCE}`,
     inputSchema: {
       id: z.string().optional().describe("Existing routine to change. Leave out to create one."),
       name: z.string().min(1).optional(),
+      kind: z.enum(["workout", "stretch"]).optional().describe('New routines default to "workout". A "stretch" routine holds only stretch exercises and plays full screen.'),
+      switchSec: z.number().int().min(0).nullable().optional().describe("stretch routines only: seconds to switch sides (default 5)"),
+      breakSec: z.number().int().min(0).nullable().optional().describe("stretch routines only: seconds between stretches (default 5)"),
       steps: z.array(z.object({
         id: z.string().optional().describe("Existing step id, to keep that step. Leave out for new steps."),
         exerciseId: z.string(),
@@ -623,10 +685,11 @@ ${ROUTINE_GUIDANCE}`,
           weight: z.number().min(0).optional(),
         })).min(1).nullable().optional(),
         supersetGroup: z.string().nullable().optional(),
+        holdSec: z.number().int().min(1).nullable().optional().describe("stretch routines only: the hold for this step"),
       })).min(1).optional(),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  }, async ({ id, name, steps }) => {
+  }, async ({ id, name, kind, switchSec, breakSec, steps }) => {
     const exercises = await read("exercises", []);
     let saved;
     let created = false;
@@ -637,11 +700,25 @@ ${ROUTINE_GUIDANCE}`,
         const duplicate = routines.find(r => (r.name || "").trim().toLowerCase() === name.trim().toLowerCase());
         if (duplicate) fail(`A routine named "${duplicate.name}" already exists (id "${duplicate.id}"). Pass its id to change it.`);
       }
+      const stretching = (kind ?? (isStretchRoutine(existing) ? "stretch" : "workout")) === "stretch";
+      if (!stretching && (switchSec != null || breakSec != null)) fail("switchSec and breakSec are for stretch routines.");
+      if (!steps && kind !== undefined) {
+        existing.steps.forEach((step, i) => {
+          const ex = exercises.find(e => e.id === step.exerciseId);
+          if (ex) checkStepKind(ex, stretching, `Step ${i + 1} (${ex.name})`);
+        });
+      }
+      const { kind: _kind, switchSec: _switch, breakSec: _break, ...rest } = existing ?? {};
       const routine = {
-        ...(existing ?? {}),
+        ...rest,
         id: existing?.id ?? uid(),
         name: (name ?? existing.name ?? "").trim(),
-        steps: steps ? buildRoutineSteps(steps, exercises, existing) : existing.steps,
+        ...(stretching ? withoutNulls({
+          kind: "stretch",
+          switchSec: switchSec !== undefined ? switchSec : existing?.switchSec,
+          breakSec: breakSec !== undefined ? breakSec : existing?.breakSec,
+        }) : {}),
+        steps: steps ? buildRoutineSteps(steps, exercises, existing, stretching) : existing.steps,
       };
       saved = routine;
       created = !existing;
@@ -726,6 +803,7 @@ ${ROUTINE_GUIDANCE}`,
           : r);
       });
       await update("exercises", [], exercises => exercises.filter(e => e.id !== id));
+      if (ex.photo?.path && removeClimbingPhoto) await removeClimbingPhoto(ex.photo.path).catch(() => {});
       return json({ deleted: { kind, id, name: ex.name }, removedFromRoutines: affected.map(r => r.name) });
     }
     if (kind === "category") {

@@ -18,6 +18,10 @@ export const BUCKETS = {
     maxBytes: 2 * MiB,
     types: { "image/webp": [".webp"], "image/jpeg": [".jpg", ".jpeg"] },
   },
+  "climbing-photos": {
+    maxBytes: 2 * MiB,
+    types: { "image/webp": [".webp"], "image/jpeg": [".jpg", ".jpeg"] },
+  },
   "german-audio": {
     maxBytes: 50 * MiB,
     types: { "audio/mpeg": [".mp3"], "audio/wav": [".wav"] },

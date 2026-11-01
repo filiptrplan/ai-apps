@@ -381,6 +381,72 @@ export const s = {
   timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
   controls: { display: "flex", gap: 10 },
 
+  // Exercise pictures: thumbnails and the full-screen viewer.
+  thumb: {
+    flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0,
+    borderRadius: 10, overflow: "hidden", border: `1px solid ${C.border}`, background: C.surface2, cursor: "pointer",
+  },
+  thumbImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  viewer: {
+    position: "fixed", inset: 0, zIndex: 120, display: "flex", flexDirection: "column",
+    background: "rgba(8,8,10,0.97)", animation: "ct-fade .18s ease-out",
+  },
+  viewerHeader: { display: "flex", alignItems: "center", gap: 8, padding: `calc(${SAFE_TOP} + 8px) 8px 8px 20px` },
+  viewerTitle: { flex: 1, minWidth: 0, fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  viewerBody: {
+    flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", width: "100%", maxWidth: 720, margin: "0 auto",
+    padding: `8px 16px calc(24px + ${SAFE_BOTTOM})`,
+  },
+  viewerImgBtn: { display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "pointer" },
+  viewerImg: { display: "block", width: "100%", maxHeight: "60dvh", objectFit: "contain", borderRadius: 14 },
+  viewerDots: { display: "flex", justifyContent: "center", gap: 6, marginTop: 12 },
+  viewerDot: { width: 7, height: 7, borderRadius: 4, background: C.border },
+  viewerDotActive: { background: C.accent },
+  viewerNotes: { marginTop: 18, fontSize: 15, lineHeight: 1.55, color: "#C8C8CE", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+
+  // Stretch player: full screen, picture in a frame whose border is the countdown.
+  player: {
+    minHeight: "100dvh", display: "flex", flexDirection: "column",
+    padding: `calc(${SAFE_TOP} + 6px) 16px calc(20px + ${SAFE_BOTTOM})`,
+  },
+  playerTop: { display: "flex", alignItems: "center", gap: 8, marginLeft: -8 },
+  playerTitle: {
+    flex: 1, minWidth: 0, fontSize: 16, fontWeight: 600, textAlign: "center", color: C.muted,
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  playerCount: { minWidth: 40, textAlign: "right", fontSize: 15, fontWeight: 700, color: C.muted, fontVariantNumeric: "tabular-nums" },
+  playerProgress: { height: 4, borderRadius: 2, background: C.surface2, margin: "8px 0 0", overflow: "hidden" },
+  playerProgressFill: { height: "100%", background: C.accent, borderRadius: 2, transition: "width .25s linear" },
+  playerMain: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 0" },
+  playerDigits: { fontSize: 72, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
+  playerName: {
+    display: "flex", alignItems: "center", gap: 6, maxWidth: "100%", marginTop: 14, padding: "4px 8px",
+    background: "none", border: "none", color: C.text, fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em", cursor: "pointer",
+  },
+  playerSub: { marginTop: 4, fontSize: 15, color: C.muted, fontVariantNumeric: "tabular-nums" },
+  playerControls: { display: "flex", alignItems: "center", justifyContent: "center", gap: 14 },
+  playerBtn: {
+    width: 60, height: 60, borderRadius: 30, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    border: `1px solid ${C.border}`, background: C.surface2, color: C.text, cursor: "pointer",
+  },
+  playerBtnMain: { width: 78, height: 78, borderRadius: 39, border: "none", background: C.accent, color: C.accentInk },
+  playerDone: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
+  playerDoneTitle: { fontSize: 32, fontWeight: 700, marginTop: 12 },
+  playerDoneSub: { fontSize: 15, color: C.muted, marginTop: 6, lineHeight: 1.5 },
+  // Square, and short enough to leave room for the clock and controls.
+  frame: { position: "relative", width: "min(100%, 46dvh)", maxWidth: 420, aspectRatio: "1 / 1" },
+  frameInner: {
+    position: "absolute", inset: "4.5%", padding: 0, border: "none", borderRadius: "4%", overflow: "hidden",
+    background: C.surface, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  frameImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  framePlaceholder: { display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: C.dim, fontSize: 15, fontWeight: 600, padding: 16 },
+  frameLabel: {
+    position: "absolute", top: 10, left: 10, padding: "4px 10px", borderRadius: 8,
+    background: "rgba(14,14,16,0.82)", color: C.green, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase",
+  },
+  frameRing: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" },
+
   // Week plan
   dayCard: {
     display: "flex", alignItems: "flex-start", gap: 4,
@@ -433,6 +499,7 @@ export const d = {
   main: { flex: 1, minWidth: 0, marginLeft: SIDEBAR_WIDTH },
   // Full-screen pages without the sidebar (active workout).
   focus: { maxWidth: CONTENT_MAX, margin: "0 auto" },
+  player: { maxWidth: 640, margin: "0 auto" },
 
   sidebar: {
     position: "fixed", top: 0, bottom: 0, left: 0, width: SIDEBAR_WIDTH, zIndex: 30,

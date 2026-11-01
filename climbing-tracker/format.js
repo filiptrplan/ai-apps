@@ -5,6 +5,7 @@ export const EXERCISE_TYPES = [
   { value: "weighted", label: "Weighted" },
   { value: "interval", label: "Interval" },
   { value: "weightedInterval", label: "Interval +kg" },
+  { value: "stretch", label: "Stretch" },
 ];
 
 // "weightedInterval" is an interval (work/rest timer) with a weight on top,
@@ -13,7 +14,15 @@ export function isIntervalType(type) {
   return type === "interval" || type === "weightedInterval";
 }
 
+// A "stretch" is a timed hold, once or once per side (twoSided). It only
+// goes into stretch routines (routine.kind "stretch"), which play in the
+// full-screen stretch player rather than the set-based session page.
+export function isStretchRoutine(routine) {
+  return routine?.kind === "stretch";
+}
+
 export function defaultFieldsForType(type) {
+  if (type === "stretch") return { holdSec: 30, twoSided: false };
   if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
   if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
   if (type === "weightedInterval") return { workSec: 10, restSec: 5, sets: 6, weight: 5, weightMode: "added" };
@@ -25,6 +34,7 @@ export function formatWeightLabel(weightMode, weight) {
 }
 
 export function formatTargetSummary(ex) {
+  if (ex.type === "stretch") return `${ex.holdSec}s ${ex.twoSided ? "per side" : "hold"}`;
   const restPart = !isIntervalType(ex.type) && ex.restSec > 0 ? ` · ${ex.restSec}s rest` : "";
   if (isIntervalType(ex.type)) {
     const weightPart = ex.type === "weightedInterval" ? ` @ ${formatWeightLabel(ex.weightMode, ex.weight)}` : "";
@@ -94,6 +104,7 @@ export function mergeById(existing, incoming) {
 // trigger the "rest before the next exercise" countdown in a session.
 export function isStepComplete(exercise, log) {
   if (!log) return false;
+  if (exercise.type === "stretch") return (log.sidesDone || 0) >= (exercise.twoSided ? 2 : 1);
   if (isIntervalType(exercise.type)) {
     const target = log.targetSets ?? exercise.sets ?? 1;
     return (log.completedSets || 0) >= target;
@@ -109,6 +120,10 @@ export function isStepComplete(exercise, log) {
 // (and, for weighted intervals, the weight too).
 export function buildPerformedFromLog(exercise, log) {
   if (!log) return null;
+  if (exercise.type === "stretch") {
+    if (!log.sidesDone) return null;
+    return { type: "stretch", holdSec: log.holdSec ?? exercise.holdSec, twoSided: !!exercise.twoSided, sidesDone: log.sidesDone };
+  }
   if (isIntervalType(exercise.type)) {
     if (!log.completedSets) return null;
     return {
@@ -150,6 +165,10 @@ export function buildPerformedFromLog(exercise, log) {
 
 export function formatPerformedSummary(step) {
   const p = step.performed;
+  if (p.type === "stretch") {
+    if (!p.twoSided) return `${p.holdSec}s hold`;
+    return p.sidesDone >= 2 ? `${p.holdSec}s per side` : `${p.holdSec}s, one side only`;
+  }
   if (p.type === "weighted") {
     return `${p.sets.length} sets: ` + p.sets.map(s => `${s.reps}×${formatWeightLabel(p.weightMode, s.weight)}`).join(", ");
   }
@@ -194,6 +213,8 @@ export function formatSetsPattern(sets, isWeighted) {
 export function computeTemplateDrift(entry, step, exercises, routines) {
   const ex = exercises.find(e => e.id === step.exerciseId);
   if (!ex) return null;
+  // A stretch is played as set up, so there's nothing to drift.
+  if (step.performed.type === "stretch") return null;
 
   let routine = null;
   let routineStep = null;
@@ -303,8 +324,9 @@ export function formatDriftSummary(drift) {
 
 // The exercise as performed in a routine: the step's sets/rest (and, for
 // intervals, work) overrides (or per-set targetSets pattern) applied over
-// the exercise's own defaults.
+// the exercise's own defaults. A stretch step can only override the hold.
 export function applyRoutineStep(ex, step) {
+  if (ex.type === "stretch") return { ...ex, holdSec: step.holdSec ?? ex.holdSec, routineStepId: step.id };
   return {
     ...ex,
     ...(isIntervalType(ex.type) && { workSec: step.workSec ?? ex.workSec }),

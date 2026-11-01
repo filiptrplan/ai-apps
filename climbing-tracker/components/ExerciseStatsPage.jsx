@@ -6,6 +6,7 @@ import { LineChart } from "./LineChart.jsx";
 import { Header, EmptyState, useIsDesktop } from "./Layout.jsx";
 import { Icon } from "./Icons.jsx";
 import { ExerciseNotes } from "./ExerciseNotes.jsx";
+import { useExercisePhotos, PhotoViewer } from "./ExercisePhoto.jsx";
 
 const { useState, useMemo } = React;
 
@@ -18,6 +19,8 @@ export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, on
   const [range, setRange] = useState("all");
   const [metricId, setMetricId] = useState(null);
   const [cursorIdx, setCursorIdx] = useState(null);
+  const [viewing, setViewing] = useState(false);
+  const photos = useExercisePhotos(exercise);
 
   const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
   const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
@@ -41,6 +44,11 @@ export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, on
       />
       <div style={{ ...s.pageWithBottomBar, ...(desktop && d.pageWithBottomBar) }}>
         <div style={desktop ? { maxWidth: 560 } : undefined}>
+          {photos.length > 0 && (
+            <button style={{ ...s.viewerImgBtn, marginBottom: 12 }} onClick={() => setViewing(true)} aria-label={`Show picture of ${exercise.name}`}>
+              <img src={photos[0]} alt="" style={{ ...s.viewerImg, width: "auto", maxWidth: "100%", height: 220, objectFit: "cover" }} />
+            </button>
+          )}
           <ExerciseNotes notes={exercise.notes} onSave={onNotesChange} />
         </div>
         {allSessions.length === 0 ? (
@@ -125,9 +133,10 @@ export function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, on
 
       <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
         <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onStart}>
-          <Icon.play size={18} /> Start exercise
+          <Icon.play size={18} /> {exercise.type === "stretch" ? "Play" : "Start exercise"}
         </button>
       </div>
+      {viewing && <PhotoViewer exercise={exercise} onClose={() => setViewing(false)} />}
     </>
   );
 }

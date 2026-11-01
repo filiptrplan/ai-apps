@@ -50,6 +50,14 @@ const round1 = v => Math.round(v * 10) / 10;
 // counts bodyweight into volume. Each session uses the bodyweight recorded
 // when it was logged, falling back to the current setting for older logs.
 export function metricsFor(exercise, bodyweight) {
+  if (exercise.type === "stretch") {
+    return [{
+      id: "holdSec", label: "Hold",
+      value: x => Math.max(...x.performed.map(p => p.holdSec)),
+      format: v => `${v}s`,
+      axis: v => `${v}s`,
+    }];
+  }
   if (exercise.type === "weighted") {
     const withBw = exercise.weightMode === "added" && bodyweight > 0;
     const bwOf = x => x.performed.find(p => p.bodyweight > 0)?.bodyweight ?? bodyweight;

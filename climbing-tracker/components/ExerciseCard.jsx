@@ -4,6 +4,7 @@ import { SetsCard } from "./SetsCard.jsx";
 import { IntervalCard } from "./IntervalCard.jsx";
 import { ExerciseNotes } from "./ExerciseNotes.jsx";
 import { Icon } from "./Icons.jsx";
+import { PhotoThumb, PhotoViewer } from "./ExercisePhoto.jsx";
 
 const { useState } = React;
 
@@ -17,6 +18,7 @@ function progressOf(exercise, log) {
 
 export function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [progress, setProgress] = useState(() => progressOf(exercise, initialLog));
   const complete = progress.total > 0 && progress.done >= progress.total;
 
@@ -35,6 +37,7 @@ export function ExerciseCard({ exercise, initialLog, notes, position, total, lab
           </div>
           <div style={s.exerciseCardTarget}>{formatTargetSummary(exercise)}</div>
         </button>
+        <PhotoThumb exercise={exercise} size={40} onOpen={() => setViewing(true)} />
         <span style={{ ...s.progressPill, ...(complete ? s.progressPillDone : {}) }}>
           {complete ? <Icon.check size={16} /> : `${progress.done}/${progress.total}`}
         </span>
@@ -55,6 +58,7 @@ export function ExerciseCard({ exercise, initialLog, notes, position, total, lab
           ? <IntervalCard exercise={exercise} initialLog={initialLog} superset={!!exercise.supersetGroup} onChange={handleChange} />
           : <SetsCard exercise={exercise} initialLog={initialLog} onChange={handleChange} />}
       </div>
+      {viewing && <PhotoViewer exercise={{ ...exercise, notes }} onClose={() => setViewing(false)} />}
     </div>
   );
 }

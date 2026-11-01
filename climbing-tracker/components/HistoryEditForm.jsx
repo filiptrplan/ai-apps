@@ -16,7 +16,8 @@ function toLocalInput(iso) {
 const num = v => Number(v) || 0;
 
 // Editor for a logged workout: when it happened, how long it took, and what
-// was actually done in each step (sets, reps, weights, interval values).
+// was actually done in each step (sets, reps, weights, interval values,
+// stretch holds).
 // Works on a copy; onSave gets the updated entry. Steps can be removed, but
 // at least one has to stay - deleting the whole entry is its own action.
 export function HistoryEditForm({ entry, onSave, onCancel }) {
@@ -39,6 +40,9 @@ export function HistoryEditForm({ entry, onSave, onCancel }) {
   const save = () => {
     const cleaned = steps.map(st => {
       const p = st.performed;
+      if (p.type === "stretch") {
+        return { ...st, performed: { ...p, holdSec: num(p.holdSec), sidesDone: Math.max(1, Math.min(p.twoSided ? 2 : 1, num(p.sidesDone))) } };
+      }
       if (isIntervalType(p.type)) {
         return { ...st, performed: {
           ...p,
@@ -84,7 +88,12 @@ export function HistoryEditForm({ entry, onSave, onCancel }) {
               )}
             </div>
 
-            {isIntervalType(p.type) ? (
+            {p.type === "stretch" ? (
+              <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+                <NumberField label="Hold" value={p.holdSec} onChange={v => updatePerformed(i, { holdSec: v })} min={1} suffix="s" />
+                {p.twoSided && <NumberField label="Sides done" value={p.sidesDone} onChange={v => updatePerformed(i, { sidesDone: v })} min={1} />}
+              </div>
+            ) : isIntervalType(p.type) ? (
               <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
                 <NumberField label="Sets done" value={p.completedSets} onChange={v => updatePerformed(i, { completedSets: v })} min={0} />
                 <NumberField label="Target sets" value={p.targetSets} onChange={v => updatePerformed(i, { targetSets: v })} min={1} />

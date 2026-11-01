@@ -1,10 +1,12 @@
 import { s, d, C } from "../styles.js";
-import { resolveStepTargetSets, formatTargetSummary, groupByCategory, groupSteps, isIntervalType } from "../format.js";
+import { resolveStepTargetSets, formatTargetSummary, groupByCategory, groupSteps, isIntervalType, isStretchRoutine } from "../format.js";
+import { DEFAULT_SWITCH_SEC, DEFAULT_BREAK_SEC } from "../stretchPlayer.js";
 import { SetTargetsEditor } from "./SetTargetsEditor.jsx";
 import { NumberField } from "./NumberField.jsx";
 import { Header, Sheet, useIsDesktop } from "./Layout.jsx";
 import { Icon } from "./Icons.jsx";
 import { useDragReorder } from "./useDragReorder.js";
+import { PhotoThumb, PhotoViewer } from "./ExercisePhoto.jsx";
 
 const { useState } = React;
 
@@ -21,9 +23,17 @@ const toStepValue = (v) => v === "" ? null : Math.round(v);
 // bracketed as one unit: numbered 1A/1B, dragged as a whole by the grip in
 // its own header, and its rests (stored on the last member) edited at its
 // foot. A member card's grip only reorders it within its superset.
-export function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
+//
+// A stretch routine (routine.kind "stretch") only takes stretch exercises
+// and a workout routine none: each step can override the hold, and the
+// routine sets the side-switch and between-stretch breaks (onUpdate). It has
+// no supersets.
+export function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onUpdate, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
   const desktop = useIsDesktop();
+  const stretching = isStretchRoutine(routine);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [viewing, setViewing] = useState(null);
+  const pickable = exercises.filter(e => (e.type === "stretch") === stretching);
   const resolved = routine.steps
     .map(step => ({ step, exercise: exercises.find(e => e.id === step.exerciseId) }))
     .filter(x => x.exercise)
@@ -71,11 +81,16 @@ export function RoutineEditPage({ routine, exercises, categories = [], onBack, o
             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{ex.name}</span>
           </div>
         </div>
+        <PhotoThumb exercise={ex} size={40} onOpen={() => setViewing(ex)} />
         <button style={s.iconBtn} onClick={() => onRemoveStep(i)} aria-label={`Remove ${ex.name}`}><Icon.x size={20} /></button>
       </div>
 
       <div style={s.exerciseCardBody}>
-        {isIntervalType(ex.type) ? (
+        {ex.type === "stretch" ? (
+          <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
+            <NumberField label={ex.twoSided ? "Hold per side" : "Hold"} value={step.holdSec ?? ex.holdSec} onChange={v => onUpdateStep(step.id, { holdSec: toStepValue(v) })} min={1} inc={5} suffix="s" />
+          </div>
+        ) : isIntervalType(ex.type) ? (
           <div style={{ ...s.fieldGrid, marginBottom: 0 }}>
             <NumberField label="Work" value={step.workSec ?? ex.workSec} onChange={v => onUpdateStep(step.id, { workSec: toStepValue(v) })} min={1} suffix="s" />
             <NumberField label="Sets" value={step.sets ?? ex.sets} onChange={v => onUpdateStep(step.id, { sets: toStepValue(v) })} min={1} />
@@ -99,7 +114,7 @@ export function RoutineEditPage({ routine, exercises, categories = [], onBack, o
   return (
     <>
       <Header
-        title="Edit routine"
+        title={stretching ? "Edit stretches" : "Edit routine"}
         left={<button style={s.textBtn} onClick={onBack}><Icon.back size={20} /> Routines</button>}
         right={null}
       />
@@ -113,11 +128,18 @@ export function RoutineEditPage({ routine, exercises, categories = [], onBack, o
           autoFocus={!routine.name}
         />
 
+        {stretching && (
+          <div style={s.fieldGrid}>
+            <NumberField label="Side switch" value={routine.switchSec ?? DEFAULT_SWITCH_SEC} onChange={v => onUpdate({ switchSec: toStepValue(v) })} min={0} suffix="s" />
+            <NumberField label="Break" value={routine.breakSec ?? DEFAULT_BREAK_SEC} onChange={v => onUpdate({ breakSec: toStepValue(v) })} min={0} suffix="s" />
+          </div>
+        )}
+
         {blocks.map((block, b) => {
           const first = block[0], last = block[block.length - 1];
           const nextFirst = blocks[b + 1]?.[0];
           const joinsSuperset = block.length > 1 || blocks[b + 1]?.length > 1;
-          const after = nextFirst
+          const after = nextFirst && !stretching
             ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset")
             : null;
 
@@ -155,7 +177,7 @@ export function RoutineEditPage({ routine, exercises, categories = [], onBack, o
         })}
 
         <button style={{ ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }} onClick={() => setPickerOpen(true)}>
-          <Icon.plus size={20} /> Add exercise
+          <Icon.plus size={20} /> {stretching ? "Add stretch" : "Add exercise"}
         </button>
 
         <button style={{ ...s.btnDangerText, ...(desktop ? {} : s.btnBlock), marginTop: 28 }} onClick={onDelete}>
@@ -165,16 +187,22 @@ export function RoutineEditPage({ routine, exercises, categories = [], onBack, o
 
       <div style={{ ...s.bottomBar, ...(desktop && d.bottomBar) }}>
         <button style={{ ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...(desktop && d.bottomBarBtn) }} onClick={onStart} disabled={resolved.length === 0}>
-          <Icon.play size={18} /> Start routine
+          <Icon.play size={18} /> {stretching ? "Play" : "Start routine"}
         </button>
       </div>
 
+      {viewing && <PhotoViewer exercise={viewing} onClose={() => setViewing(null)} />}
+
       {pickerOpen && (
-        <Sheet title="Add exercise" onClose={() => setPickerOpen(false)}>
-          {exercises.length === 0 && (
-            <p style={s.sheetMessage}>No exercises yet — create some in the Exercises tab first.</p>
+        <Sheet title={stretching ? "Add stretch" : "Add exercise"} onClose={() => setPickerOpen(false)}>
+          {pickable.length === 0 && (
+            <p style={s.sheetMessage}>
+              {stretching
+                ? "No stretches yet. Add some from the stretch library in the Exercises tab first."
+                : "No exercises yet — create some in the Exercises tab first."}
+            </p>
           )}
-          {groupByCategory(exercises, categories).map(({ category, exercises: group }) => (
+          {groupByCategory(pickable, categories).map(({ category, exercises: group }) => (
             <div key={category?.id ?? "none"}>
               {categories.length > 0 && <div style={s.sectionLabel}>{category?.name ?? "Uncategorized"}</div>}
               {group.map(ex => (

@@ -1,7 +1,7 @@
 // The exercise and routine data model, shared by the app's LLM import prompt
 // (below) and the MCP server's tool descriptions (mcp/apps/climbing.js), so
 // both describe the same rules.
-export const EXERCISE_GUIDANCE = `Exercise objects use one of four "type" values:
+export const EXERCISE_GUIDANCE = `Exercise objects use one of five "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -47,7 +47,16 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "weight": <number, kg>,
   "weightMode": "added" | "total"
 }
-Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.`;
+Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.
+
+5) "stretch" - a stretch held for a time, once, or once on each side when "twoSided" (e.g. a pigeon pose or a forearm flexor stretch). Stretches only go into stretch routines (see below):
+{
+  "id": "<unique string>",
+  "name": "<stretch name>",
+  "type": "stretch",
+  "holdSec": <integer, seconds to hold (per side when twoSided)>,
+  "twoSided": <true | false>
+}`;
 
 export const ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval"/"weightedInterval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
@@ -67,6 +76,16 @@ Do not use "targetSets" for "interval" or "weightedInterval" exercises - they on
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
 - "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise (or superset) in the routine. Use it for pauses between separate exercises, e.g. "5 exercises with 20s between each exercise" - give every step "restAfterSec": 20 (it is harmless to leave it on the very last step too, since it is simply never shown after the last card). For alternating sets of two or more exercises, use "supersetGroup" (below) instead. Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
+
+STRETCH ROUTINES - a routine with "kind": "stretch" holds only "stretch" exercises (and a routine without "kind" holds none). The app plays it full screen: each stretch's hold (both sides, with a side switch between, when twoSided), with a break before the next stretch. Its steps only take an optional "holdSec" override; the routine sets "switchSec" (seconds to switch sides, default 5) and "breakSec" (seconds between stretches, default 5):
+{
+  "id": "<unique string>",
+  "name": "<routine name>",
+  "kind": "stretch",
+  "switchSec": <integer or null>,
+  "breakSec": <integer or null>,
+  "steps": [ { "id": "<unique string>", "exerciseId": "<id of a stretch exercise>", "holdSec": <integer or null> }, ... ]
+}
 
 SUPERSETS - "supersetGroup" (optional, per routine step, default null) links consecutive steps into a superset that is performed in alternating rounds: one set of the first exercise, one set of the next, and so on, then a rest, then the next round (A1, B1, rest, A2, B2, rest, ...). Give every member step the same short string (e.g. "ss-1"); use a different string for each separate superset, and null for steps that aren't in one. Rules for supersets:
 - Any exercise type can be in a superset. For an "interval" member, one set is ONE work phase (e.g. one hang), started by the user each round - its own rest phase is skipped, and its "sets" is the number of rounds like any other member.
@@ -95,7 +114,7 @@ Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
 - Every "exerciseId" referenced by a routine step must either appear as an exercise in the "exercises" array of the same JSON, or be the id of one of the user's EXISTING exercises listed below.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
-- Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
+- Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Leave out "photo" on exercises; pictures are set in the app. Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
 - Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.`;
 
 // Lists the user's existing exercises so the LLM reuses them (by id) instead

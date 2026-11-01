@@ -1,4 +1,6 @@
-const CACHE_NAME = "climbing-tracker-v3";
+const CACHE_NAME = "climbing-tracker-v4";
+// Not "climbing-tracker-" prefixed, so activating a new version keeps it.
+const PHOTO_CACHE = "climbing-photos";
 const ASSETS = [
   // The site serves this page at the extensionless path in production
   // (Cloudflare's asset serving redirects the .html path away from it), so
@@ -39,6 +41,20 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
+    // Exercise photos never change under the same path (an uploaded one is
+    // a new file each time), so they're cache-first, in a cache of their own
+    // that outlives app updates: once seen, they show offline too.
+    if (url.pathname.startsWith("/climbing-tracker/stretches/") || url.pathname.startsWith("/api/storage/climbing-photos/")) {
+      event.respondWith(
+        caches.open(PHOTO_CACHE).then((cache) =>
+          cache.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          }))
+        )
+      );
+      return;
+    }
     // The API (data, files, live updates) and sign-in always go to the
     // network, uncached: an event stream would never finish caching.
     if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;

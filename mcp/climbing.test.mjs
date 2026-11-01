@@ -39,9 +39,9 @@ function fakeAppData(initial = {}) {
   return fake;
 }
 
-async function connect(initial) {
+async function connect(initial, deps = {}) {
   const appData = fakeAppData(initial);
-  const server = createMcpServer({ appData });
+  const server = createMcpServer({ appData, ...deps });
   const client = new Client({ name: "test", version: "1.0.0" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(a), client.connect(b)]);
@@ -408,4 +408,51 @@ test("categories: create, order, assign, and delete", async () => {
   assert.deepEqual(del.nowUncategorized, ["Repeaters"]);
   assert.equal(appData.rows.get(K.exercises).find(e => e.id === "ex-hang").categoryId, null);
   assert.equal((await call("climbing_save_exercise", { id: "ex-hang", categoryId: null })).updated.category, undefined);
+});
+
+test("stretches: from the library, in stretch routines, and logged", async () => {
+  const removed = [];
+  const { call, appData } = await connect(seed(), { removeClimbingPhoto: async p => removed.push(p) });
+  const overview = await call("climbing_get_overview");
+  const pigeon = overview.stretchLibrary.find(st => st.libraryId === "pigeon-stretch");
+  assert.equal(pigeon.twoSided, true);
+
+  const { created } = await call("climbing_save_exercise", { libraryId: "childs-pose", holdSec: 45 });
+  assert.equal(created.name, "Child's Pose");
+  assert.equal(created.type, "stretch");
+  assert.equal(created.target, "45s hold");
+  assert.deepEqual(created.photo, { library: "childs-pose" });
+  assert.match(created.notes, /^1\. /);
+  assert.match((await call("climbing_save_exercise", { libraryId: "nope" })).error, /No library stretch/);
+  assert.equal((await call("climbing_get_overview")).stretchLibrary.find(st => st.libraryId === "childs-pose").added, true);
+  const quads = (await call("climbing_save_exercise", { name: "Couch stretch", type: "stretch", twoSided: true })).created;
+  assert.equal(quads.target, "30s per side");
+  assert.match((await call("climbing_save_exercise", { id: "ex-push", holdSec: 30 })).error, /doesn't apply to reps/);
+
+  assert.match((await call("climbing_save_routine", { name: "Mixed", kind: "stretch", steps: [{ exerciseId: created.id }, { exerciseId: "ex-push" }] })).error, /only hold stretch/);
+  assert.match((await call("climbing_save_routine", { id: "r-1", steps: [{ exerciseId: created.id }] })).error, /go into stretch routines/);
+  assert.match((await call("climbing_save_routine", { id: "r-1", kind: "stretch" })).error, /only hold stretch/);
+  const r = (await call("climbing_save_routine", {
+    name: "Evening stretch", kind: "stretch", switchSec: 3,
+    steps: [{ exerciseId: created.id }, { exerciseId: quads.id, holdSec: 60 }],
+  })).created;
+  assert.equal(r.kind, "stretch");
+  assert.equal(r.switchSec, 3);
+  assert.equal(r.steps[1].target, "60s per side");
+  assert.deepEqual(appData.rows.get(K.routines).find(x => x.id === r.id).steps.map(st => st.holdSec), [null, 60]);
+  assert.equal(overview.routines.find(x => x.id === "r-1").kind, "workout");
+
+  await call("climbing_log_workout", { routineId: r.id, steps: [{ exerciseId: quads.id, sidesDone: 1 }, { exerciseId: created.id }] });
+  const [entry] = appData.rows.get(K.history);
+  assert.deepEqual(entry.steps.map(st => st.performed), [
+    { type: "stretch", holdSec: 45, twoSided: false, sidesDone: 1 },
+    { type: "stretch", holdSec: 60, twoSided: true, sidesDone: 1 },
+  ]);
+  assert.match((await call("climbing_log_workout", { steps: [{ exerciseId: created.id, sidesDone: 2 }] })).error, /at most 1/);
+
+  // A picture set to a library one replaces an uploaded one, whose file goes.
+  appData.rows.set(K.exercises, appData.rows.get(K.exercises).map(e => e.id === "ex-pull" ? { ...e, photo: { path: "u/1.webp" } } : e));
+  const pull = (await call("climbing_save_exercise", { id: "ex-pull", libraryId: null })).updated;
+  assert.equal(pull.photo, undefined);
+  assert.deepEqual(removed, ["u/1.webp"]);
 });

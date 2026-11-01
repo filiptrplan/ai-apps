@@ -73,6 +73,22 @@
       if (e.key === CACHE_KEY && current !== void 0) set(readCached());
     });
   }
+  function useSession() {
+    const { useState: useState22, useEffect: useEffect14 } = React;
+    const [session, setSession] = useState22(current);
+    useEffect14(() => {
+      let cancelled = false;
+      getSession().then((s2) => {
+        if (!cancelled) setSession(s2);
+      });
+      const off2 = onSessionChange(setSession);
+      return () => {
+        cancelled = true;
+        off2();
+      };
+    }, []);
+    return session;
+  }
 
   // shared/events.js
   var RETRY_MS = 3e4;
@@ -332,12 +348,17 @@
     { value: "reps", label: "Reps" },
     { value: "weighted", label: "Weighted" },
     { value: "interval", label: "Interval" },
-    { value: "weightedInterval", label: "Interval +kg" }
+    { value: "weightedInterval", label: "Interval +kg" },
+    { value: "stretch", label: "Stretch" }
   ];
   function isIntervalType(type) {
     return type === "interval" || type === "weightedInterval";
   }
+  function isStretchRoutine(routine) {
+    return (routine == null ? void 0 : routine.kind) === "stretch";
+  }
   function defaultFieldsForType(type) {
+    if (type === "stretch") return { holdSec: 30, twoSided: false };
     if (type === "weighted") return { sets: 3, reps: 5, weight: 10, weightMode: "added", restSec: 0 };
     if (type === "interval") return { workSec: 10, restSec: 5, sets: 6 };
     if (type === "weightedInterval") return { workSec: 10, restSec: 5, sets: 6, weight: 5, weightMode: "added" };
@@ -347,6 +368,7 @@
     return weightMode === "added" ? `BW +${weight}kg` : `${weight}kg`;
   }
   function formatTargetSummary(ex) {
+    if (ex.type === "stretch") return `${ex.holdSec}s ${ex.twoSided ? "per side" : "hold"}`;
     const restPart = !isIntervalType(ex.type) && ex.restSec > 0 ? ` \xB7 ${ex.restSec}s rest` : "";
     if (isIntervalType(ex.type)) {
       const weightPart = ex.type === "weightedInterval" ? ` @ ${formatWeightLabel(ex.weightMode, ex.weight)}` : "";
@@ -401,6 +423,7 @@
   function isStepComplete(exercise, log) {
     var _a, _b;
     if (!log) return false;
+    if (exercise.type === "stretch") return (log.sidesDone || 0) >= (exercise.twoSided ? 2 : 1);
     if (isIntervalType(exercise.type)) {
       const target = (_b = (_a = log.targetSets) != null ? _a : exercise.sets) != null ? _b : 1;
       return (log.completedSets || 0) >= target;
@@ -409,25 +432,29 @@
     return rows.length > 0 && rows.every((r) => r.done);
   }
   function buildPerformedFromLog(exercise, log) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     if (!log) return null;
+    if (exercise.type === "stretch") {
+      if (!log.sidesDone) return null;
+      return { type: "stretch", holdSec: (_a = log.holdSec) != null ? _a : exercise.holdSec, twoSided: !!exercise.twoSided, sidesDone: log.sidesDone };
+    }
     if (isIntervalType(exercise.type)) {
       if (!log.completedSets) return null;
       return {
         type: exercise.type,
-        workSec: (_a = log.workSec) != null ? _a : exercise.workSec,
-        restSec: (_b = log.restSec) != null ? _b : exercise.restSec,
-        targetSets: (_c = log.targetSets) != null ? _c : exercise.sets,
+        workSec: (_b = log.workSec) != null ? _b : exercise.workSec,
+        restSec: (_c = log.restSec) != null ? _c : exercise.restSec,
+        targetSets: (_d = log.targetSets) != null ? _d : exercise.sets,
         completedSets: log.completedSets,
         ...exercise.type === "weightedInterval" && {
-          weight: Number((_d = log.weight) != null ? _d : exercise.weight) || 0,
+          weight: Number((_e = log.weight) != null ? _e : exercise.weight) || 0,
           weightMode: exercise.weightMode
         }
       };
     }
     const doneRows = (log.rows || []).filter((r) => r.done);
     if (doneRows.length === 0) return null;
-    const rest = exercise.supersetGroup ? {} : { restSec: Number((_e = log.restSec) != null ? _e : exercise.restSec) || 0 };
+    const rest = exercise.supersetGroup ? {} : { restSec: Number((_f = log.restSec) != null ? _f : exercise.restSec) || 0 };
     if (exercise.type === "weighted") {
       return {
         type: "weighted",
@@ -449,6 +476,10 @@
   }
   function formatPerformedSummary(step) {
     const p = step.performed;
+    if (p.type === "stretch") {
+      if (!p.twoSided) return `${p.holdSec}s hold`;
+      return p.sidesDone >= 2 ? `${p.holdSec}s per side` : `${p.holdSec}s, one side only`;
+    }
     if (p.type === "weighted") {
       return `${p.sets.length} sets: ` + p.sets.map((s2) => `${s2.reps}\xD7${formatWeightLabel(p.weightMode, s2.weight)}`).join(", ");
     }
@@ -474,6 +505,7 @@
     var _a, _b, _c, _d, _e;
     const ex = exercises.find((e) => e.id === step.exerciseId);
     if (!ex) return null;
+    if (step.performed.type === "stretch") return null;
     let routine = null;
     let routineStep = null;
     if (entry.kind === "routine") {
@@ -554,14 +586,15 @@
     return parts.join(" \xB7 ");
   }
   function applyRoutineStep(ex, step) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
+    if (ex.type === "stretch") return { ...ex, holdSec: (_a = step.holdSec) != null ? _a : ex.holdSec, routineStepId: step.id };
     return {
       ...ex,
-      ...isIntervalType(ex.type) && { workSec: (_a = step.workSec) != null ? _a : ex.workSec },
-      sets: step.targetSets ? step.targetSets.length : (_b = step.sets) != null ? _b : ex.sets,
-      targetSets: (_c = step.targetSets) != null ? _c : null,
-      restSec: (_e = step.restSec) != null ? _e : (_d = ex.restSec) != null ? _d : 0,
-      restAfterSec: (_f = step.restAfterSec) != null ? _f : 0,
+      ...isIntervalType(ex.type) && { workSec: (_b = step.workSec) != null ? _b : ex.workSec },
+      sets: step.targetSets ? step.targetSets.length : (_c = step.sets) != null ? _c : ex.sets,
+      targetSets: (_d = step.targetSets) != null ? _d : null,
+      restSec: (_f = step.restSec) != null ? _f : (_e = ex.restSec) != null ? _e : 0,
+      restAfterSec: (_g = step.restAfterSec) != null ? _g : 0,
       routineStepId: step.id,
       supersetGroup: step.supersetGroup || null
     };
@@ -649,7 +682,7 @@
   }
 
   // climbing-tracker/llmGuidance.js
-  var EXERCISE_GUIDANCE = `Exercise objects use one of four "type" values:
+  var EXERCISE_GUIDANCE = `Exercise objects use one of five "type" values:
 
 1) "reps" - plain bodyweight reps, e.g. pull-ups, push-ups, core work:
 {
@@ -695,7 +728,16 @@ Use "added" when the weight is extra load on top of the climber's own bodyweight
   "weight": <number, kg>,
   "weightMode": "added" | "total"
 }
-Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.`;
+Use "added" when the weight hangs on the climber on top of bodyweight (the usual case for weighted hangs), "total" for a lifted weight like a block pulled off the floor. Everything said about "interval" exercises below also applies to "weightedInterval" ones.
+
+5) "stretch" - a stretch held for a time, once, or once on each side when "twoSided" (e.g. a pigeon pose or a forearm flexor stretch). Stretches only go into stretch routines (see below):
+{
+  "id": "<unique string>",
+  "name": "<stretch name>",
+  "type": "stretch",
+  "holdSec": <integer, seconds to hold (per side when twoSided)>,
+  "twoSided": <true | false>
+}`;
   var ROUTINE_GUIDANCE = `Routine objects group exercises into an ordered sequence of steps to perform together. Each step points at an exercise and can optionally override that exercise's "sets" and "restSec" (and, for "interval"/"weightedInterval" exercises, "workSec") just for this routine (leave them null to use the exercise's own defaults). The same exerciseId can appear in multiple steps, e.g. to do a couple of warm-up sets early in the routine and more later:
 {
   "id": "<unique string>",
@@ -714,6 +756,16 @@ Do not use "targetSets" for "interval" or "weightedInterval" exercises - they on
 IMPORTANT - there are TWO different kinds of rest, don't mix them up:
 - "restSec" (on the exercise or overridden on a step) fires ONLY between repeated sets of that SAME exercise within that SAME step, and ONLY when that step's "sets" is 2 or more. If a step has "sets": 1, its "restSec" is completely inert (for "interval" exercises, a rest phase only ever happens between work cycles of that SAME timer, so "sets": 1 means the rest phase never triggers either). Only set "restSec" above 0 when that same step also has "sets" of 2 or more.
 - "restAfterSec" (only settable per routine step, defaults to 0/null) is the rest countdown shown after this step is fully finished, before moving on to the NEXT exercise (or superset) in the routine. Use it for pauses between separate exercises, e.g. "5 exercises with 20s between each exercise" - give every step "restAfterSec": 20 (it is harmless to leave it on the very last step too, since it is simply never shown after the last card). For alternating sets of two or more exercises, use "supersetGroup" (below) instead. Do not set "restAfterSec" on a step and expect it to do anything other than pause AFTER that step completes and BEFORE the next one - it has no effect on rest within the step itself, that is still "restSec"'s job.
+
+STRETCH ROUTINES - a routine with "kind": "stretch" holds only "stretch" exercises (and a routine without "kind" holds none). The app plays it full screen: each stretch's hold (both sides, with a side switch between, when twoSided), with a break before the next stretch. Its steps only take an optional "holdSec" override; the routine sets "switchSec" (seconds to switch sides, default 5) and "breakSec" (seconds between stretches, default 5):
+{
+  "id": "<unique string>",
+  "name": "<routine name>",
+  "kind": "stretch",
+  "switchSec": <integer or null>,
+  "breakSec": <integer or null>,
+  "steps": [ { "id": "<unique string>", "exerciseId": "<id of a stretch exercise>", "holdSec": <integer or null> }, ... ]
+}
 
 SUPERSETS - "supersetGroup" (optional, per routine step, default null) links consecutive steps into a superset that is performed in alternating rounds: one set of the first exercise, one set of the next, and so on, then a rest, then the next round (A1, B1, rest, A2, B2, rest, ...). Give every member step the same short string (e.g. "ss-1"); use a different string for each separate superset, and null for steps that aren't in one. Rules for supersets:
 - Any exercise type can be in a superset. For an "interval" member, one set is ONE work phase (e.g. one hang), started by the user each round - its own rest phase is skipped, and its "sets" is the number of rounds like any other member.
@@ -741,7 +793,7 @@ Rules:
 - Every "id" must be unique within the file (e.g. "ex-dead-hangs-01").
 - Every "exerciseId" referenced by a routine step must either appear as an exercise in the "exercises" array of the same JSON, or be the id of one of the user's EXISTING exercises listed below.
 - Leave "exercises" or "routines" as an empty array (or omit the key) if you have nothing to add for it.
-- Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
+- Do not invent extra fields beyond the ones described above ("supersetGroup" is allowed on routine steps). Leave out "photo" on exercises; pictures are set in the app. Put the JSON in exactly one \`\`\`json code block and nothing else outside it.
 - Unless told otherwise, pick sensible default sets/reps/weights/durations/rests for an intermediate climber.`;
   function existingExercisesSection(exercises) {
     if (!exercises.length) {
@@ -760,6 +812,800 @@ ${existingExercisesSection(exercises || [])}
 
 Now generate the exercises and/or routines described by the user's request that follows this prompt.`;
   }
+
+  // climbing-tracker/stretchLibrary.js
+  var DEFAULT_HOLD_SEC = 30;
+  var LIBRARY_CREDIT = { text: "Exercise data by RepDB", url: "https://repdb.co" };
+  var STRETCH_LIBRARY = [
+    {
+      id: "kneeling-wrist-stretch",
+      name: "Kneeling Wrist Stretch",
+      muscles: ["forearm flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["kneeling-wrist-stretch-main.webp"],
+      instructions: "1. Kneel on all fours and place your palms flat on the floor.\n2. Turn your hands so the fingers point back toward your knees.\n3. Keep your palms down and rock your weight back gently.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your palms flat as you lean back.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "cow-face-pose",
+      name: "Cow Face Pose",
+      muscles: ["gluteus maximus", "gluteus medius", "posterior deltoid", "triceps brachii"],
+      twoSided: true,
+      equipment: null,
+      photos: ["cow-face-pose-main.webp"],
+      instructions: "1. Sit on the floor and cross one knee directly over the other so the knees stack in the midline.\n2. Walk the feet out towards the hips and settle both sit bones evenly on the floor.\n3. Reach the arm on the top-knee side up and bend it behind the head, then reach the other arm up the back to clasp.\n4. Hold the position for the prescribed time, keeping the chest open and the spine tall.\n5. Release and repeat with the other leg and arm on top.\n\n\u2022 Sit on a folded blanket if one sit bone lifts off the floor.\n\u2022 Hold a strap between the hands when the fingers do not meet; forcing the clasp rounds the back.\n\u2022 Keep the top elbow pointing up rather than letting it drift out to the side."
+    },
+    {
+      id: "cross-body-shoulder-stretch",
+      name: "Cross-Body Shoulder Stretch",
+      muscles: ["posterior deltoid", "rhomboids"],
+      twoSided: true,
+      equipment: null,
+      photos: ["cross-body-shoulder-stretch-main.webp"],
+      instructions: "1. Stand tall and bring one straight arm across your chest.\n2. Hook your other forearm under it.\n3. Gently pull the arm closer to your chest.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the stretching shoulder down, not shrugged.\n\u2022 Do not pull on the elbow joint itself."
+    },
+    {
+      id: "puppy-pose",
+      name: "Puppy Pose",
+      muscles: ["latissimus dorsi", "posterior deltoid", "erector spinae", "trapezius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["puppy-pose-main.webp"],
+      instructions: "1. Kneel on all fours with the hips over the knees and the hands under the shoulders.\n2. Walk the hands forward and lower the chest towards the floor, keeping the hips high.\n3. Rest the forehead or the chin on the mat and let the armpits soften downwards.\n4. Hold the position for the prescribed time, breathing into the upper back.\n5. Walk the hands back and sit onto the heels to come out.\n\n\u2022 Keep the hips stacked over the knees; sitting back turns this into child's pose.\n\u2022 Press the palms down and lift the elbows off the floor to keep the arms working.\n\u2022 Rest the forehead on a block if the chest does not reach comfortably."
+    },
+    {
+      id: "banded-rear-delt-stretch",
+      name: "Banded Rear Delt Stretch",
+      muscles: ["posterior deltoid", "rhomboids", "trapezius"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-rear-delt-stretch-main.webp"],
+      instructions: "1. Loop a band around one arm and hold the other end.\n2. Draw that arm horizontally across your chest.\n3. Use the band to deepen the pull gently.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the working shoulder relaxed and down.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "banded-shoulder-stretch",
+      name: "Banded Shoulder Stretch",
+      muscles: ["anterior deltoid", "pectoralis major"],
+      twoSided: false,
+      equipment: "resistance band",
+      photos: ["banded-shoulder-stretch-main.webp"],
+      instructions: "1. Hold a band behind your back, one hand high and one low.\n2. Keep light tension in the band.\n3. Open your chest and draw your shoulders gently back.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your ribs down and avoid arching your back.\n\u2022 Move your hands farther apart to ease the stretch."
+    },
+    {
+      id: "overhead-triceps-stretch",
+      name: "Overhead Triceps Stretch",
+      muscles: ["triceps brachii", "latissimus dorsi"],
+      twoSided: true,
+      equipment: null,
+      photos: ["overhead-triceps-stretch-main.webp"],
+      instructions: "1. Raise one arm overhead and bend the elbow.\n2. Let your hand drop down behind your head.\n3. Use the other hand to press the bent elbow back.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your head upright, do not push it forward.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "banded-triceps-stretch",
+      name: "Banded Triceps Stretch",
+      muscles: ["triceps brachii", "latissimus dorsi"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-triceps-stretch-main.webp"],
+      instructions: "1. Hold a band that runs down your back, top hand behind your head.\n2. Anchor the lower hand at your lower back.\n3. Reach the top hand down to feel the triceps lengthen.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your head upright and ribs down.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "doorway-chest-stretch",
+      name: "Doorway Chest Stretch",
+      muscles: ["pectoralis major", "anterior deltoid"],
+      twoSided: false,
+      equipment: null,
+      photos: ["doorway-chest-stretch-main.webp"],
+      instructions: "1. Stand tall and raise your arms into a goalpost position.\n2. Bend your elbows ninety degrees, forearms vertical.\n3. Draw your elbows back and squeeze your shoulder blades.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your ribs down and avoid arching your back.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "fish-pose",
+      name: "Fish Pose",
+      muscles: ["erector spinae", "pectoralis major", "anterior deltoid", "hip flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["fish-pose-main.webp"],
+      instructions: "1. Lie on your back with the legs straight and the arms alongside the body, palms down under the hips.\n2. Press the forearms into the floor and lift the chest towards the ceiling.\n3. Let the crown of the head rest lightly on the floor without putting weight through the neck.\n4. Hold the position for the prescribed time, breathing into the upper chest.\n5. Lift the head, then lower the back down.\n\n\u2022 Carry the weight in the forearms, not the head; the neck only guides the position.\n\u2022 Place a block lengthwise under the upper back if the floor version pinches.\n\u2022 Keep the legs active and the thighs rolling slightly inwards."
+    },
+    {
+      id: "banded-chest-stretch",
+      name: "Banded Chest Stretch",
+      muscles: ["pectoralis major", "anterior deltoid"],
+      twoSided: false,
+      equipment: "resistance band",
+      photos: ["banded-chest-stretch-main.webp"],
+      instructions: "1. Hold a band behind your back with both hands.\n2. Straighten your arms and draw them apart.\n3. Lift your chest and squeeze your shoulder blades.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your shoulders down away from your ears.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "bench-chest-stretch",
+      name: "Bench Chest Stretch",
+      muscles: ["pectoralis major", "anterior deltoid"],
+      twoSided: false,
+      equipment: "flat bench",
+      photos: ["bench-chest-stretch-main.webp"],
+      instructions: "1. Kneel with your back to a bench.\n2. Place both hands behind you on the edge of the bench.\n3. Sink your hips down to open the chest.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your shoulders down away from your ears.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "cat-stretch",
+      name: "Cat Stretch",
+      muscles: ["erector spinae", "rhomboids", "trapezius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["cat-stretch-main.webp"],
+      instructions: "1. Start on all fours, hands under shoulders and knees under hips.\n2. Round your spine up toward the ceiling.\n3. Tuck your chin toward your chest.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Push the floor away with your hands to spread the shoulder blades.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "childs-pose",
+      name: "Child's Pose",
+      muscles: ["erector spinae", "latissimus dorsi", "trapezius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["childs-pose-main.webp"],
+      instructions: "1. Kneel and sit your hips back toward your heels.\n2. Fold your torso forward over your thighs.\n3. Reach both arms out long on the floor in front.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Spread your knees wider to rest your chest lower.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "neck-side-stretch",
+      name: "Neck Side Stretch",
+      muscles: ["trapezius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["neck-side-stretch-main.webp"],
+      instructions: "1. Sit or stand tall with your shoulders relaxed.\n2. Tilt your head so one ear drops toward that shoulder.\n3. Rest that hand lightly over your head for gentle weight.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Let the weight of your hand do the work \u2014 do not pull hard.\n\u2022 Keep the opposite shoulder pressed down."
+    },
+    {
+      id: "plow-pose",
+      name: "Plow Pose",
+      muscles: ["erector spinae", "hamstrings", "gluteus maximus", "trapezius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["plow-pose-main.webp"],
+      instructions: "1. Lie on your back with the arms alongside the body, palms down.\n2. Lift both legs overhead and support the lower back with the hands.\n3. Lower the toes towards the floor behind the head, keeping the legs as straight as comfort allows.\n4. Hold the position for the prescribed time, breathing steadily and keeping the head still.\n5. Roll down one vertebra at a time with the hands supporting the back.\n\n\u2022 Never turn the head while you are in the pose; the neck is loaded and must stay neutral.\n\u2022 Rest the toes on a chair or a stack of cushions if the floor is out of reach.\n\u2022 Skip this pose entirely if you have any neck complaints."
+    },
+    {
+      id: "seated-spinal-twist",
+      name: "Seated Spinal Twist",
+      muscles: ["erector spinae", "obliques", "gluteus maximus"],
+      twoSided: true,
+      equipment: null,
+      photos: ["seated-spinal-twist-main.webp"],
+      instructions: "1. Sit with one leg straight and cross the other foot over it.\n2. Brace the opposite elbow against the outside of the bent knee.\n3. Rotate your torso toward the bent knee and look over your shoulder.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Sit tall and lengthen your spine before twisting.\n\u2022 Twist from the mid-back, not the lower back."
+    },
+    {
+      id: "supine-spinal-twist",
+      name: "Supine Spinal Twist",
+      muscles: ["erector spinae", "obliques", "gluteus maximus"],
+      twoSided: true,
+      equipment: null,
+      photos: ["supine-spinal-twist-main.webp"],
+      instructions: "1. Lie on your back and bend one knee toward your chest.\n2. Guide that knee across your body toward the floor.\n3. Stretch your arms out wide and turn your head away.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep both shoulders on the floor.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "thread-the-needle",
+      name: "Thread the Needle",
+      muscles: ["posterior deltoid", "trapezius", "erector spinae", "obliques"],
+      twoSided: true,
+      equipment: null,
+      photos: ["thread-the-needle-main.webp"],
+      instructions: "1. Start on all fours with the hands under the shoulders and the knees under the hips.\n2. Slide one arm underneath the body, palm facing up, until the shoulder and the side of the head rest on the mat.\n3. Keep the hips stacked over the knees and walk the top hand forward or wrap it behind the back.\n4. Hold the twist for the prescribed time, breathing into the upper back.\n5. Press the top hand into the floor to come up and repeat on the other side.\n\n\u2022 Keep the hips high over the knees; dropping them turns the rotation into a side bend.\n\u2022 Rest the head on a block if the shoulder cannot reach the floor comfortably.\n\u2022 Let the shoulder settle with the breath instead of pushing the twist deeper by force."
+    },
+    {
+      id: "banded-lat-stretch",
+      name: "Banded Lat Stretch",
+      muscles: ["latissimus dorsi", "posterior deltoid"],
+      twoSided: false,
+      equipment: "resistance band",
+      photos: ["banded-lat-stretch-main.webp"],
+      instructions: "1. Hold a band overhead with both hands under light tension.\n2. Hinge forward at the hips with your arms reaching ahead.\n3. Let your chest sink to lengthen the sides of your back.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your arms straight and shoulders relaxed.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "bench-childs-pose",
+      name: "Bench Child's Pose",
+      muscles: ["erector spinae", "latissimus dorsi"],
+      twoSided: false,
+      equipment: "flat bench",
+      photos: ["bench-childs-pose-main.webp"],
+      instructions: "1. Kneel on the floor in front of a bench.\n2. Extend both arms forward and rest them on the bench.\n3. Sit your hips back toward your heels and let the chest sink.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your arms straight and relax your neck.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "bench-lat-stretch",
+      name: "Bench Lat Stretch",
+      muscles: ["latissimus dorsi", "posterior deltoid"],
+      twoSided: false,
+      equipment: "flat bench",
+      photos: ["bench-lat-stretch-main.webp"],
+      instructions: "1. Kneel on the floor in front of a bench.\n2. Place both hands on top of the bench.\n3. Sit your hips back and let your chest sink down.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your arms straight and head between your arms.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "camel-pose",
+      name: "Camel Pose",
+      muscles: ["erector spinae", "hip flexors", "pectoralis major", "quadriceps"],
+      twoSided: false,
+      equipment: null,
+      photos: ["camel-pose-main.webp"],
+      instructions: "1. Kneel with the knees hip-width apart and the hips stacked over the knees.\n2. Place the hands on the back of the pelvis with the fingers pointing down and lift the chest.\n3. Press the hips forward and arch back, reaching for the heels if the position stays comfortable.\n4. Hold the pose for the prescribed time, keeping the neck in line with the spine.\n5. Bring the hands back to the pelvis and come up chest-first.\n\n\u2022 Keep the hips over the knees; letting them travel back turns the pose into a collapse.\n\u2022 Tuck the toes under and rest the hands on raised heels if the full reach is too deep.\n\u2022 Come out slowly: lifting the head first is what usually makes people dizzy."
+    },
+    {
+      id: "cobra-stretch",
+      name: "Cobra Stretch",
+      muscles: ["rectus abdominis", "hip flexors", "transverse abdominis"],
+      twoSided: false,
+      equipment: null,
+      photos: ["cobra-stretch-main.webp"],
+      instructions: "1. Lie face down with your hands under your shoulders.\n2. Press through your hands to lift your chest off the floor.\n3. Keep your hips and legs on the floor, shoulders relaxed.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your elbows slightly bent \u2014 do not force full extension.\n\u2022 Draw your shoulders down away from your ears."
+    },
+    {
+      id: "sphinx-pose",
+      name: "Sphinx Pose",
+      muscles: ["erector spinae", "hip flexors", "pectoralis major"],
+      twoSided: false,
+      equipment: null,
+      photos: ["sphinx-pose-main.webp"],
+      instructions: "1. Lie face down and place the forearms on the floor with the elbows directly under the shoulders.\n2. Press the forearms and the tops of the feet down and lift the chest.\n3. Draw the shoulders away from the ears and lengthen the back of the neck.\n4. Hold the position for the prescribed time, breathing into the front of the chest.\n5. Lower the chest to the floor and rest.\n\n\u2022 Slide the elbows slightly forward for a gentler bend, back for a deeper one.\n\u2022 Keep the glutes soft so the lower back does not clench.\n\u2022 Stop where the position feels like a stretch, not like a pinch."
+    },
+    {
+      id: "standing-side-bend",
+      name: "Standing Side Bend",
+      muscles: ["obliques", "latissimus dorsi", "quadratus lumborum"],
+      twoSided: true,
+      equipment: null,
+      photos: ["standing-side-bend-main.webp"],
+      instructions: "1. Stand with feet hip-width and reach both arms overhead.\n2. Clasp your hands and lengthen up tall.\n3. Bend smoothly to one side in a long curve.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep both feet planted and hips steady.\n\u2022 Reach up and over rather than just leaning down."
+    },
+    {
+      id: "upward-dog",
+      name: "Upward-Facing Dog",
+      muscles: ["erector spinae", "triceps brachii", "gluteus maximus", "pectoralis major"],
+      twoSided: false,
+      equipment: null,
+      photos: ["upward-dog-main.webp"],
+      instructions: "1. Lie face down with the hands beside the lower ribs and the tops of the feet on the floor.\n2. Press the hands down and straighten the arms, lifting the chest and then the thighs off the mat.\n3. Draw the shoulders back and down and keep the neck long.\n4. Hold the position for the prescribed time with only the hands and the tops of the feet on the floor.\n5. Bend the arms and lower down under control.\n\n\u2022 Keep the shoulders over the wrists rather than behind them.\n\u2022 Press the tops of the feet down; that is what lifts the thighs.\n\u2022 If the thighs cannot lift, stay in cobra instead of forcing the position."
+    },
+    {
+      id: "downward-dog",
+      name: "Downward-Facing Dog",
+      muscles: ["gastrocnemius", "hamstrings", "erector spinae", "gluteus maximus", "latissimus dorsi"],
+      twoSided: false,
+      equipment: null,
+      photos: ["downward-dog-main.webp"],
+      instructions: "1. Start on all fours with hands slightly ahead of your shoulders.\n2. Tuck your toes and lift your hips up and back.\n3. Straighten your legs and press your heels toward the floor.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Bend your knees if your lower back rounds.\n\u2022 Press the floor away to lengthen your spine."
+    },
+    {
+      id: "worlds-greatest-stretch",
+      name: "World's Greatest Stretch",
+      muscles: ["hamstrings", "hip flexors", "adductors", "gluteus maximus", "obliques"],
+      twoSided: true,
+      equipment: null,
+      photos: ["worlds-greatest-stretch-peak.webp", "worlds-greatest-stretch-start.webp"],
+      instructions: "1. Start in a push-up position with your hands under your shoulders and your body in a straight line.\n2. Step one foot forward, outside the same-side hand, into a deep lunge and keep the back leg straight.\n3. Keep the hand on the back-leg side planted under your shoulder and sink your hips toward the floor.\n4. Rotate your chest toward the front leg, lifting the arm on that side up until it points at the ceiling, and follow your hand with your eyes.\n5. Hold the open position for a breath, then lower your hand back to the floor.\n6. Step back to the push-up position and repeat on the other side, alternating sides for the planned repetitions.\n\n\u2022 Keep the back knee off the floor and the back leg active so the stretch runs through the front of the hip.\n\u2022 Rotate from the upper back rather than leaning sideways; the hips stay square and low throughout.\n\u2022 Move slowly and breathe out as you rotate; the stretch should feel open and controlled, never forced."
+    },
+    {
+      id: "90-90-hold",
+      name: "90/90 Hold",
+      muscles: ["hip flexors", "gluteus maximus", "gluteus medius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["90-90-hold-main.webp"],
+      instructions: "1. Sit on the floor and bend your front leg in front of you so your shin runs across your body and your knee is bent to about 90 degrees.\n2. Place your back leg out to the side with that knee also bent to about 90 degrees, shin pointing back.\n3. Put your hands on the floor beside your hips for support.\n4. Sit up tall, with your chest lifted and both sitting bones as close to the floor as you can manage.\n5. Hold the position, breathing slowly, feeling the stretch in the outer hip of the front leg and the front of the hip of the back leg.\n6. Hold for the planned time, then switch the legs and hold on the other side.\n\n\u2022 Keep the trunk upright; slumping takes the stretch out of the hips.\n\u2022 If the hips are tight, keep more weight on your hands or sit on a folded towel until you can sit taller.\n\u2022 Ease into the stretch and do not force the knees down; the position should feel strong, not painful."
+    },
+    {
+      id: "butterfly-stretch",
+      name: "Butterfly Stretch",
+      muscles: ["adductors", "hip flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["butterfly-stretch-main.webp"],
+      instructions: "1. Sit tall and press the soles of your feet together.\n2. Let your knees drop out toward the floor.\n3. Hold your feet and sit up tall.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Gently press the knees down with your elbows for more stretch.\n\u2022 Bring your heels closer to your body to increase intensity."
+    },
+    {
+      id: "deep-squat-hold",
+      name: "Deep Squat Hold",
+      muscles: ["gluteus maximus", "quadriceps", "adductors", "erector spinae", "hamstrings", "soleus"],
+      twoSided: false,
+      equipment: null,
+      photos: ["deep-squat-hold-main.webp"],
+      instructions: "1. Stand with the feet slightly wider than the shoulders and the toes turned out.\n2. Clasp the hands in front of the chest and sit the hips down between the heels.\n3. Lower until the hips are below the knees while the heels stay flat on the floor.\n4. Keep the chest up and press the elbows against the knees to push them out.\n5. Hold the position, breathing steadily, then stand up.\n\n\u2022 Keep the heels flat; if they lift, place a small plate or wedge under them.\n\u2022 Push the knees out in line with the toes and keep the spine long.\n\u2022 Build the hold time gradually, standing to reset between sets."
+    },
+    {
+      id: "frog-stretch",
+      name: "Frog Stretch",
+      muscles: ["adductors", "gluteus maximus", "hip flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["frog-stretch-main.webp"],
+      instructions: "1. Start on your hands and knees on the floor, with your wrists under your shoulders.\n2. Slide your knees out to the sides as far as is comfortable and turn your feet out, keeping your shins in line with your knees.\n3. Lower onto your forearms and keep your back straight, not rounded.\n4. Rock your hips back toward your heels until you feel a strong stretch along your inner thighs.\n5. Hold the position and breathe slowly, keeping your hips level.\n6. Come out by sliding the knees together and sitting back before you stand.\n\n\u2022 Put a folded towel or mat under your knees if the floor is hard.\n\u2022 Go only as wide as you can keep your hips level; letting the pelvis tilt takes the stretch out of the inner thighs.\n\u2022 Rock back slowly and ease out of the position if you feel any pinching at the front of the hips."
+    },
+    {
+      id: "garland-pose",
+      name: "Garland Pose",
+      muscles: ["adductors", "gluteus maximus", "quadriceps", "soleus"],
+      twoSided: false,
+      equipment: null,
+      photos: ["garland-pose-main.webp"],
+      instructions: "1. Stand with the feet a little wider than the hips and the toes turned slightly out.\n2. Squat down as low as the ankles allow, keeping the heels on the floor.\n3. Bring the palms together at the chest and press the elbows against the inner knees.\n4. Hold the position for the prescribed time with the chest lifted and the spine long.\n5. Press through the feet to stand back up.\n\n\u2022 Roll a towel under the heels if they lift; forcing them down rounds the lower back instead.\n\u2022 Widen the stance to make room for the pelvis rather than squeezing into a narrow squat.\n\u2022 Press the knees and elbows against each other lightly to keep the chest from collapsing."
+    },
+    {
+      id: "happy-baby",
+      name: "Happy Baby Pose",
+      muscles: ["adductors", "gluteus maximus", "erector spinae", "hamstrings"],
+      twoSided: false,
+      equipment: null,
+      photos: ["happy-baby-main.webp"],
+      instructions: "1. Lie on your back and draw both knees towards the chest.\n2. Take hold of the outside edges of the feet, or the shins if the feet are out of reach.\n3. Open the knees wider than the ribs and stack the ankles above the knees, soles facing up.\n4. Press the feet gently into the hands and hold for the prescribed time with the lower back on the floor.\n5. Release the feet and lower the legs.\n\n\u2022 Keep the tailbone heavy on the floor rather than rolling onto the upper back.\n\u2022 Hold the shins or use a strap around the feet if the grip forces the shoulders off the mat.\n\u2022 Rock gently side to side to massage the lower back if it feels tight."
+    },
+    {
+      id: "head-to-knee-pose",
+      name: "Head-to-Knee Pose",
+      muscles: ["erector spinae", "hamstrings", "adductors", "gluteus maximus"],
+      twoSided: true,
+      equipment: null,
+      photos: ["head-to-knee-pose-main.webp"],
+      instructions: "1. Sit with one leg straight in front of you and the other knee bent out to the side, that foot at the inner thigh.\n2. Turn the chest towards the straight leg so the navel lines up with the thigh.\n3. Hinge from the hips and reach forward along the straight leg with a long spine.\n4. Hold the fold for the prescribed time, breathing into the back of the leg.\n5. Come up with a flat back and repeat on the other side.\n\n\u2022 Sit on a folded blanket so the pelvis can tip forward instead of the back rounding.\n\u2022 Keep the toes of the straight leg pointing up rather than rolling out.\n\u2022 Use a strap around the foot when the hands do not reach it comfortably."
+    },
+    {
+      id: "hero-pose",
+      name: "Hero Pose",
+      muscles: ["quadriceps", "erector spinae", "hip flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["hero-pose-main.webp"],
+      instructions: "1. Kneel with the knees together and the feet slightly wider than the hips, tops of the feet flat.\n2. Sit the hips back and down between the heels, using a block or cushion if the floor is out of reach.\n3. Stack the ribs over the pelvis and rest the hands on the thighs.\n4. Hold the seat for the prescribed time, keeping the weight even on both sit bones.\n5. Come out by pressing into the hands and straightening one leg at a time.\n\n\u2022 Sit on a block whenever the knees complain; the height is a normal part of the pose.\n\u2022 Roll a towel under the ankles if the front of them feels strained.\n\u2022 Keep the feet pointing straight back rather than flaring out to the sides."
+    },
+    {
+      id: "knee-to-chest-stretch",
+      name: "Knee-to-Chest Stretch",
+      muscles: ["gluteus maximus", "erector spinae"],
+      twoSided: true,
+      equipment: null,
+      photos: ["knee-to-chest-stretch-main.webp"],
+      instructions: "1. Lie on your back with both legs straight.\n2. Pull one knee in and hug it to your chest with both hands.\n3. Keep the other leg relaxed on the floor.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your head and shoulders relaxed on the floor.\n\u2022 Relax and keep breathing throughout."
+    },
+    {
+      id: "kneeling-hip-flexor-stretch",
+      name: "Kneeling Hip Flexor Stretch",
+      muscles: ["hip flexors", "adductors", "quadriceps"],
+      twoSided: true,
+      equipment: null,
+      photos: ["kneeling-hip-flexor-stretch-main.webp"],
+      instructions: "1. Kneel on one knee with the other foot flat in front.\n2. Keep your torso upright and core gently braced.\n3. Press your hips forward until the front of the rear hip stretches.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Squeeze the glute of the kneeling leg to protect the lower back.\n\u2022 Avoid arching your lower back."
+    },
+    {
+      id: "lean-back-90-90-hold",
+      name: "Lean-Back 90/90 Hold",
+      muscles: ["hip flexors", "gluteus maximus", "gluteus medius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["lean-back-90-90-hold-main.webp"],
+      instructions: "1. Sit on the floor with your front leg bent in front of you to about 90 degrees and your back leg out to the side, also bent to about 90 degrees.\n2. Place your hands on the floor behind your hips, fingers pointing back or to the side.\n3. Lean your trunk back onto your hands, keeping your arms straight and your chest open.\n4. Let both knees settle toward the floor without forcing them.\n5. Hold the position, breathing slowly, feeling a mild stretch in the outer hip of the front leg and the front of the hip of the back leg.\n6. Hold for the planned time, then switch the legs and hold on the other side.\n\n\u2022 Use this version when the upright 90/90 is too intense; lean further back on your hands to ease the stretch.\n\u2022 Keep your shoulders down and away from your ears rather than hanging on your arms.\n\u2022 Move slowly into the position and keep it pain-free, especially at the knees."
+    },
+    {
+      id: "legs-up-the-wall",
+      name: "Legs-Up-the-Wall Pose",
+      muscles: ["hamstrings", "erector spinae"],
+      twoSided: false,
+      equipment: null,
+      photos: ["legs-up-the-wall-main.webp"],
+      instructions: "1. Sit sideways next to a wall with one hip touching it.\n2. Swing the legs up the wall as you lie back, so the hips end close to the base of the wall.\n3. Let the legs rest against the wall with the feet relaxed and the arms open at the sides.\n4. Stay for the prescribed time, breathing slowly.\n5. Bend the knees and roll to one side to come out.\n\n\u2022 Slide the hips a few centimetres away from the wall if the hamstrings feel pulled.\n\u2022 Place a folded blanket under the pelvis for a gentler, more supported version.\n\u2022 Keep the legs passive; this position is meant to cost no effort."
+    },
+    {
+      id: "lizard-stretch",
+      name: "Lizard Stretch",
+      muscles: ["adductors", "hip flexors", "gluteus maximus", "hamstrings"],
+      twoSided: true,
+      equipment: null,
+      photos: ["lizard-stretch-main.webp"],
+      instructions: "1. Step one foot forward into a deep lunge, foot placed wide.\n2. Lower both forearms toward the floor inside the front foot.\n3. Extend the back leg straight and let the hips sink.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Rest on your hands instead of forearms for an easier version.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "low-lunge",
+      name: "Low Lunge",
+      muscles: ["hip flexors", "quadriceps", "erector spinae", "gluteus maximus"],
+      twoSided: true,
+      equipment: null,
+      photos: ["low-lunge-main.webp"],
+      instructions: "1. From kneeling, step one foot forward so the knee stacks over the ankle.\n2. Lower the back knee to the floor and untuck that foot.\n3. Tuck the tailbone slightly and press the hips forward until you feel the front of the back thigh lengthen.\n4. Lift the chest, raise the arms if it feels good, and hold for the prescribed time.\n5. Step back and repeat on the other side.\n\n\u2022 Pad the back knee with a folded mat if the floor is hard.\n\u2022 Squeeze the back glute to deepen the stretch without arching the lower back.\n\u2022 Keep the front knee above the ankle rather than letting it slide forward."
+    },
+    {
+      id: "low-lunge-to-half-split",
+      name: "Low Lunge to Half Split",
+      muscles: ["hamstrings", "gastrocnemius", "hip flexors"],
+      twoSided: true,
+      equipment: null,
+      photos: ["low-lunge-to-half-split-peak.webp", "low-lunge-to-half-split-start.webp"],
+      instructions: "1. Start in a low lunge with the back knee on the floor and the front knee over the ankle.\n2. Press the hands into the floor or onto blocks either side of the front foot.\n3. Shift the hips back over the back knee and straighten the front leg, flexing that foot.\n4. Hold the half split briefly, then glide the hips forward into the low lunge again.\n5. Repeat for the desired number of repetitions and change sides.\n\n\u2022 Keep the back of the front leg long: bend the knee slightly rather than rounding the spine to reach.\n\u2022 Move the hips, not the front foot; the foot stays where it started.\n\u2022 Pad the back knee and use blocks under the hands if the floor is out of reach."
+    },
+    {
+      id: "lying-quad-stretch",
+      name: "Lying Quad Stretch",
+      muscles: ["quadriceps", "hip flexors"],
+      twoSided: true,
+      equipment: null,
+      photos: ["lying-quad-stretch-main.webp"],
+      instructions: "1. Lie on your side with your legs straight and your head resting on your lower arm.\n2. Bend your top knee and take hold of that foot or ankle with your top hand.\n3. Gently pull your heel toward your glute, keeping your knees close together.\n4. Tuck your pelvis slightly so your lower back does not arch.\n5. Hold the stretch for the planned time while breathing slowly.\n6. Release the foot, roll to the other side and repeat.\n\n\u2022 Keep the knees side by side; letting the top knee drift forward turns it into a hip stretch.\n\u2022 Do not pull the heel hard; ease into a stretch you feel in the front of the thigh, not in the knee.\n\u2022 If you cannot reach the foot, loop a towel or strap around the ankle and pull on that."
+    },
+    {
+      id: "pigeon-stretch",
+      name: "Pigeon Stretch",
+      muscles: ["gluteus maximus", "gluteus medius", "hip flexors"],
+      twoSided: true,
+      equipment: null,
+      photos: ["pigeon-stretch-main.webp"],
+      instructions: "1. From all fours, bring one knee forward and lay the shin across in front.\n2. Extend the other leg straight back, top of the foot down.\n3. Sink your hips toward the floor and keep them square.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Place a cushion under the hip if it does not reach the floor.\n\u2022 Walk your hands forward to deepen the stretch."
+    },
+    {
+      id: "pyramid-pose",
+      name: "Pyramid Pose",
+      muscles: ["hamstrings", "erector spinae", "gastrocnemius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["pyramid-pose-main.webp"],
+      instructions: "1. Step one foot back about a leg's length and turn the back foot out slightly.\n2. Square both hip points towards the front of the mat and keep both legs straight.\n3. Hinge from the hips and fold over the front leg, bringing the hands to the floor, blocks or the shin.\n4. Hold the fold for the prescribed time with the spine long rather than rounded.\n5. Press into the feet to come up and repeat on the other side.\n\n\u2022 Shorten the stance until both hips can face forward; length is worth less than square hips.\n\u2022 Use blocks under the hands so the chest can keep reaching towards the shin.\n\u2022 Micro-bend the front knee if the hamstring grips."
+    },
+    {
+      id: "reclined-butterfly",
+      name: "Reclined Butterfly",
+      muscles: ["adductors", "gluteus maximus", "hip flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: ["reclined-butterfly-main.webp"],
+      instructions: "1. Lie on your back with your knees bent and the soles of your feet flat on the floor.\n2. Bring the soles of your feet together and let both knees fall out to the sides.\n3. Rest your arms on the floor with your palms up, or place your hands on your belly.\n4. Keep your lower back resting on the floor and your shoulders relaxed.\n5. Breathe slowly and let your knees sink toward the floor for the planned time.\n6. Bring your knees together with your hands to finish.\n\n\u2022 Do not push the knees down with your hands; let gravity do the work so the inner thighs relax.\n\u2022 Slide your feet further from the hips to ease the stretch, or closer to deepen it.\n\u2022 Put a pillow or folded blanket under each knee if the stretch feels too strong."
+    },
+    {
+      id: "seated-forward-fold",
+      name: "Seated Forward Fold",
+      muscles: ["hamstrings", "erector spinae"],
+      twoSided: false,
+      equipment: null,
+      photos: ["seated-forward-fold-main.webp"],
+      instructions: "1. Sit on the floor with both legs straight out in front.\n2. Keep your back long and hinge forward from the hips.\n3. Reach your hands toward your feet.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Lead with your chest, not your head, to keep the back long.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "seated-straddle-stretch",
+      name: "Seated Straddle Stretch",
+      muscles: ["adductors", "hamstrings", "erector spinae"],
+      twoSided: false,
+      equipment: null,
+      photos: ["seated-straddle-stretch-main.webp"],
+      instructions: "1. Sit with your legs straight and spread wide in a V.\n2. Keep your back long and hinge forward from the hips.\n3. Walk your hands forward along the floor.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Keep your toes pointing up, not rolled in.\n\u2022 Ease into the stretch slowly \u2014 never bounce."
+    },
+    {
+      id: "standing-adductor-stretch",
+      name: "Standing Adductor Stretch",
+      muscles: ["adductors", "hamstrings"],
+      twoSided: true,
+      equipment: null,
+      photos: ["standing-adductor-stretch-main.webp"],
+      instructions: "1. Stand with your feet about twice shoulder-width apart and your toes pointing forward.\n2. Put your hands on the bent knee or in front of you for support.\n3. Bend one knee and shift your hips sideways over that leg, keeping the other leg straight.\n4. Keep your chest up and both feet flat on the floor.\n5. Sink down until you feel a stretch along the inner thigh of the straight leg and hold it.\n6. Shift to the other side and repeat.\n\n\u2022 Keep the straight leg's foot flat or lift only the toes slightly; letting the foot roll out takes the stretch away.\n\u2022 Use your hands on the bent thigh to support your weight and keep your torso tall.\n\u2022 Do not bounce; sink slowly and stay within a stretch that feels strong but comfortable."
+    },
+    {
+      id: "standing-forward-fold",
+      name: "Standing Forward Fold",
+      muscles: ["hamstrings", "erector spinae", "gastrocnemius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["standing-forward-fold-main.webp"],
+      instructions: "1. Stand tall with your feet hip-width apart and legs straight.\n2. Hinge at your hips and fold your torso down toward the floor.\n3. Let your hands and head hang toward your feet.\n4. Hold for 20 to 30 seconds, breathing steadily.\n\n\u2022 Bend your knees slightly if your hamstrings feel tight.\n\u2022 Ease into the stretch slowly \u2014 never bounce."
+    },
+    {
+      id: "standing-quad-stretch",
+      name: "Standing Quad Stretch",
+      muscles: ["quadriceps", "hip flexors"],
+      twoSided: true,
+      equipment: null,
+      photos: ["standing-quad-stretch-main.webp"],
+      instructions: "1. Stand on one leg, holding a wall for balance if needed.\n2. Bend the other knee and grab that ankle behind you.\n3. Pull the heel toward your glute, keeping knees together.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Tuck your pelvis under to deepen the stretch.\n\u2022 Keep your knees close together throughout."
+    },
+    {
+      id: "standing-split",
+      name: "Standing Split",
+      muscles: ["gluteus maximus", "hamstrings", "erector spinae", "quadriceps"],
+      twoSided: true,
+      equipment: null,
+      photos: ["standing-split-main.webp"],
+      instructions: "1. From a forward fold, place both hands on the floor or on blocks beside the standing foot.\n2. Shift the weight onto one leg and lift the other leg behind you.\n3. Keep the standing leg straight and the hips as level as the lift allows.\n4. Hold the position for the prescribed time, drawing the chest towards the standing shin.\n5. Lower the lifted foot down and repeat on the other side.\n\n\u2022 Level the hips first and accept a lower lift; an open hip turns this into a different pose.\n\u2022 Use blocks under the hands so the spine can stay long.\n\u2022 Hold the standing ankle with one hand only when the balance is already steady."
+    },
+    {
+      id: "triangle-pose",
+      name: "Triangle Pose",
+      muscles: ["hamstrings", "obliques", "adductors", "gluteus medius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["triangle-pose-main.webp"],
+      instructions: "1. Stand wide with the front foot turned out and the back foot angled slightly in.\n2. Keep both legs straight and reach the front hand forward as the hips shift back.\n3. Tilt sideways and bring the bottom hand to the shin, a block or the floor, top arm reaching up.\n4. Hold the position for the prescribed time, turning the chest towards the ceiling.\n5. Press into the feet to come up and repeat on the other side.\n\n\u2022 Reach out over the front leg before you tilt down; folding early collapses the pose.\n\u2022 Use a block under the bottom hand rather than dragging the chest towards the floor.\n\u2022 Keep both legs straight and the kneecaps lifted."
+    },
+    {
+      id: "wall-hamstring-stretch",
+      name: "Wall Hamstring Stretch",
+      muscles: ["hamstrings", "gastrocnemius"],
+      twoSided: true,
+      equipment: null,
+      photos: ["wall-hamstring-stretch-main.webp"],
+      instructions: "1. Lie on your back on the floor next to a wall or an open doorway, with your hips close to the wall.\n2. Raise one leg and rest the heel on the wall with the knee as straight as you can comfortably get it.\n3. Keep the other leg flat on the floor and your lower back relaxed.\n4. Shuffle your hips closer to the wall to increase the stretch, or move away to ease it.\n5. Breathe slowly and hold for the planned time while the hamstring relaxes.\n6. Lower the leg and repeat on the other side.\n\n\u2022 Keep your tailbone on the floor; lifting it off the floor takes the stretch out of the hamstring.\n\u2022 A slight bend in the knee is fine; straighten it only as far as feels comfortable.\n\u2022 Do not strain; the stretch should feel like a long pull, not sharp pain or tingling."
+    },
+    {
+      id: "wide-legged-forward-fold",
+      name: "Wide-Legged Forward Fold",
+      muscles: ["adductors", "hamstrings", "erector spinae", "gastrocnemius"],
+      twoSided: false,
+      equipment: null,
+      photos: ["wide-legged-forward-fold-main.webp"],
+      instructions: "1. Stand with the feet wide apart and the outer edges parallel.\n2. Place the hands on the hips, lift the chest and hinge forward from the hip joints.\n3. Bring the hands to the floor under the shoulders and let the head hang.\n4. Hold the fold for the prescribed time, shifting the weight slightly into the balls of the feet.\n5. Bring the hands back to the hips and come up with a flat back.\n\n\u2022 Micro-bend the knees so the fold comes from the hips rather than the lower back.\n\u2022 Keep the feet parallel; turning them out takes the stretch out of the inner thighs.\n\u2022 Rest the hands on blocks when the floor is out of reach."
+    },
+    {
+      id: "banded-adductor-stretch",
+      name: "Banded Adductor Stretch",
+      muscles: ["adductors", "hamstrings"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-adductor-stretch-main.webp"],
+      instructions: "1. Lie on your back with a band looped around one foot.\n2. Raise that leg and let it open out to the side.\n3. Hold the band to control how far the leg lowers.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your hips flat and both glutes on the floor.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "banded-figure-4-stretch",
+      name: "Banded Figure-4 Stretch",
+      muscles: ["gluteus maximus", "gluteus medius"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-figure-4-stretch-main.webp"],
+      instructions: "1. Lie on your back and cross one ankle over the opposite thigh.\n2. Loop a band around the supporting thigh.\n3. Pull both legs toward your chest with the band.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your head and shoulders relaxed on the floor.\n\u2022 Let the crossed knee fall open."
+    },
+    {
+      id: "banded-hamstring-stretch",
+      name: "Banded Hamstring Stretch",
+      muscles: ["hamstrings", "gastrocnemius"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-hamstring-stretch-main.webp"],
+      instructions: "1. Lie on your back and loop a band around one foot.\n2. Raise that leg straight up, holding the band in both hands.\n3. Gently pull the band to draw the leg toward you.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the raised leg as straight as you can.\n\u2022 Keep the other leg flat on the floor."
+    },
+    {
+      id: "banded-it-band-stretch",
+      name: "Banded IT-Band Stretch",
+      muscles: ["abductors", "gluteus maximus", "gluteus medius"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-it-band-stretch-main.webp"],
+      instructions: "1. Lie on your back with a band around one raised foot.\n2. Hold the band with the opposite hand.\n3. Draw the straight leg across your body toward the floor.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep both shoulders down on the floor.\n\u2022 Stop when you feel a stretch along the outer thigh."
+    },
+    {
+      id: "bench-adductor-stretch",
+      name: "Bench Adductor Stretch",
+      muscles: ["adductors", "hamstrings"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-adductor-stretch-main.webp"],
+      instructions: "1. Stand side-on to a bench.\n2. Rest one straight leg up on the bench out to the side.\n3. Keep your torso upright and shift gently toward the bench.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep both legs straight.\n\u2022 Keep the standing foot pointing forward."
+    },
+    {
+      id: "bench-bulgarian-split-stretch",
+      name: "Bench Bulgarian Split Stretch",
+      muscles: ["hip flexors", "quadriceps", "gluteus maximus"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-bulgarian-split-stretch-main.webp"],
+      instructions: "1. Rest the top of your rear foot on a bench behind you.\n2. Set the front foot flat and bend that knee.\n3. Sink your hips straight down.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Hold a wall for balance if needed.\n\u2022 Keep your torso upright."
+    },
+    {
+      id: "bench-couch-stretch",
+      name: "Bench Couch Stretch",
+      muscles: ["hip flexors", "quadriceps"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-couch-stretch-main.webp"],
+      instructions: "1. Kneel with your rear shin against the front of a bench.\n2. Place the front foot flat on the floor.\n3. Bring your torso upright until the front of the thigh stretches.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Squeeze the rear glute to protect your lower back.\n\u2022 Pad the rear knee on a cushion for comfort."
+    },
+    {
+      id: "bench-figure-4-glute-stretch",
+      name: "Bench Figure-4 Glute Stretch",
+      muscles: ["gluteus maximus", "gluteus medius"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-figure-4-glute-stretch-main.webp"],
+      instructions: "1. Sit on the end of a bench.\n2. Cross one ankle over the opposite knee.\n3. Keep your back flat and hinge forward over the crossed leg.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Let the crossed knee fall open.\n\u2022 Hinge from the hips, keeping the chest open."
+    },
+    {
+      id: "bench-hamstring-stretch",
+      name: "Bench Hamstring Stretch",
+      muscles: ["hamstrings", "erector spinae"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-hamstring-stretch-main.webp"],
+      instructions: "1. Place one heel on a bench with that leg straight.\n2. Stand tall on the supporting leg.\n3. Hinge forward from the hips over the raised leg.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your back flat as you fold forward.\n\u2022 Keep the raised leg straight, toes up."
+    },
+    {
+      id: "standing-calf-stretch",
+      name: "Standing Calf Stretch",
+      muscles: ["gastrocnemius", "soleus"],
+      twoSided: true,
+      equipment: null,
+      photos: ["standing-calf-stretch-main.webp"],
+      instructions: "1. Step one foot back into a staggered stance.\n2. Keep the back leg straight and the heel pressed down.\n3. Bend the front knee and lean your weight forward.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the rear heel flat and toes pointing forward.\n\u2022 Bend the rear knee slightly to target the lower calf."
+    },
+    {
+      id: "banded-ankle-stretch",
+      name: "Banded Ankle Stretch",
+      muscles: ["gastrocnemius", "soleus"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-ankle-stretch-main.webp"],
+      instructions: "1. Sit with one leg extended and a band around the forefoot.\n2. Hold the band in both hands.\n3. Pull so the toes draw back toward your shin.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the leg straight and relaxed.\n\u2022 Stretch to mild tension, never to pain."
+    },
+    {
+      id: "banded-calf-stretch",
+      name: "Banded Calf Stretch",
+      muscles: ["gastrocnemius", "soleus"],
+      twoSided: true,
+      equipment: "resistance band",
+      photos: ["banded-calf-stretch-main.webp"],
+      instructions: "1. Lie on your back and loop a band around the ball of one foot.\n2. Raise the leg and keep it fairly straight.\n3. Pull the band so your toes draw back toward your shin.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep the pull steady, not jerky.\n\u2022 Keep the knee softly straight."
+    },
+    {
+      id: "bench-ankle-stretch",
+      name: "Bench Ankle Stretch",
+      muscles: ["gastrocnemius", "soleus"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-ankle-stretch-main.webp"],
+      instructions: "1. Place one whole foot flat on top of a bench.\n2. Keep your torso upright.\n3. Drive that knee forward over your toes.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Keep your heel down on the bench.\n\u2022 Move slowly and keep the foot flat."
+    },
+    {
+      id: "bench-calf-stretch",
+      name: "Bench Calf Stretch",
+      muscles: ["gastrocnemius", "soleus"],
+      twoSided: true,
+      equipment: "flat bench",
+      photos: ["bench-calf-stretch-main.webp"],
+      instructions: "1. Place the ball of one foot on the edge of a bench.\n2. Keep that knee straight.\n3. Let your heel drop down below the toes.\n4. Hold for 20 to 30 seconds, breathing steadily.\n5. Switch sides and repeat.\n\n\u2022 Hold the bench or a wall for balance.\n\u2022 Keep the movement slow and controlled."
+    },
+    {
+      id: "wrist-flexor-stretch",
+      name: "Wrist Flexor Stretch",
+      muscles: ["forearm flexors"],
+      twoSided: true,
+      equipment: null,
+      photos: [],
+      instructions: "Hold one arm straight out in front of you, palm up. With the other hand, gently pull the fingers down and back toward you until you feel a stretch along the inside of the forearm. Keep the elbow straight."
+    },
+    {
+      id: "wrist-extensor-stretch",
+      name: "Wrist Extensor Stretch",
+      muscles: ["forearm extensors"],
+      twoSided: true,
+      equipment: null,
+      photos: [],
+      instructions: "Hold one arm straight out in front of you, palm down. Bend the wrist so the fingers point at the floor and gently press the back of the hand toward you with the other hand until you feel a stretch along the top of the forearm."
+    },
+    {
+      id: "prayer-stretch",
+      name: "Prayer Stretch",
+      muscles: ["forearm flexors"],
+      twoSided: false,
+      equipment: null,
+      photos: [],
+      instructions: "Press your palms together in front of your chest, fingers pointing up. Keeping the palms together, slowly lower your hands toward your waist until you feel a stretch in the wrists and forearms."
+    }
+  ];
+  function findLibraryStretch(id) {
+    return STRETCH_LIBRARY.find((s2) => s2.id === id) || null;
+  }
+  function libraryPhotoUrls(id) {
+    var _a;
+    return (((_a = findLibraryStretch(id)) == null ? void 0 : _a.photos) || []).map((file) => `./climbing-tracker/stretches/${file}`);
+  }
+  function stretchExerciseFromLibrary(stretch) {
+    return {
+      name: stretch.name,
+      type: "stretch",
+      holdSec: DEFAULT_HOLD_SEC,
+      twoSided: stretch.twoSided,
+      notes: stretch.instructions,
+      photo: { library: stretch.id }
+    };
+  }
+  function searchLibrary(query2) {
+    const q = query2.trim().toLowerCase();
+    if (!q) return STRETCH_LIBRARY;
+    return STRETCH_LIBRARY.filter((s2) => s2.name.toLowerCase().includes(q) || s2.muscles.some((m) => m.includes(q)) || (s2.equipment || "").includes(q));
+  }
+
+  // shared/photos.js
+  var PHOTO_MAX_SIDE = 1280;
+  var PHOTO_QUALITY = 0.8;
+  var newId = () => globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  function drawScaled(file, maxSide) {
+    return new Promise((resolve, reject) => {
+      const src = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(src);
+        resolve(canvas);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(src);
+        reject(new Error("Couldn't read that image."));
+      };
+      img.src = src;
+    });
+  }
+  var toBlob = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+  async function compressPhoto(file) {
+    const canvas = await drawScaled(file, PHOTO_MAX_SIDE);
+    let blob = await toBlob(canvas, "image/webp", PHOTO_QUALITY);
+    if (!blob || blob.type !== "image/webp") blob = await toBlob(canvas, "image/jpeg", PHOTO_QUALITY);
+    if (!blob) throw new Error("Couldn't compress that image.");
+    return { blob, preview: URL.createObjectURL(blob) };
+  }
+  var photoUrl = (bucket, path) => `/api/storage/${bucket}/${path}`;
+  async function uploadPhoto(bucket, session, blob) {
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    const path = `${session.user.id}/${Date.now()}-${newId()}.${ext}`;
+    try {
+      await apiFetch(photoUrl(bucket, path), { method: "PUT", body: blob, headers: { "Content-Type": blob.type } });
+    } catch (err) {
+      throw new Error(`Photo upload failed: ${err.message}`);
+    }
+    return path;
+  }
+  async function removePhoto(bucket, path) {
+    if (!path) return;
+    await apiFetch(photoUrl(bucket, path), { method: "DELETE" }).catch(() => {
+    });
+  }
+
+  // climbing-tracker/photos.js
+  var BUCKET = "climbing-photos";
+  var uploadPhoto2 = (session, blob) => uploadPhoto(BUCKET, session, blob);
+  var removePhoto2 = (path) => removePhoto(BUCKET, path);
+  function exercisePhotoUrls(exercise, session) {
+    const photo = exercise == null ? void 0 : exercise.photo;
+    if (!photo) return [];
+    if (photo.library) return libraryPhotoUrls(photo.library);
+    if (photo.path && session) return [photoUrl(BUCKET, photo.path)];
+    return [];
+  }
+
+  // climbing-tracker/sounds.js
+  var audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function beep(freq, duration, volume = 0.2, type = "sine", delay = 0) {
+    try {
+      const ctx = getAudioCtx();
+      const t0 = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(volume, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(1e-3, t0 + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.02);
+    } catch {
+    }
+  }
+  var sounds = {
+    countdown: () => beep(880, 0.1, 0.18, "sine"),
+    workStart: () => beep(660, 0.18, 0.22, "square"),
+    restStart: () => beep(440, 0.18, 0.22, "sine"),
+    finish: () => {
+      beep(523, 0.15, 0.22, "sine", 0);
+      beep(659, 0.15, 0.22, "sine", 0.15);
+      beep(784, 0.3, 0.24, "sine", 0.3);
+    }
+  };
 
   // climbing-tracker/styles.js
   var C = {
@@ -1509,6 +2355,135 @@ Now generate the exercises and/or routines described by the user's request that 
     timerDigits: { fontSize: 60, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
     timerSub: { marginTop: 8, fontSize: 14, color: C.muted, fontVariantNumeric: "tabular-nums" },
     controls: { display: "flex", gap: 10 },
+    // Exercise pictures: thumbnails and the full-screen viewer.
+    thumb: {
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 0,
+      borderRadius: 10,
+      overflow: "hidden",
+      border: `1px solid ${C.border}`,
+      background: C.surface2,
+      cursor: "pointer"
+    },
+    thumbImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+    viewer: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 120,
+      display: "flex",
+      flexDirection: "column",
+      background: "rgba(8,8,10,0.97)",
+      animation: "ct-fade .18s ease-out"
+    },
+    viewerHeader: { display: "flex", alignItems: "center", gap: 8, padding: `calc(${SAFE_TOP} + 8px) 8px 8px 20px` },
+    viewerTitle: { flex: 1, minWidth: 0, fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+    viewerBody: {
+      flex: 1,
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      width: "100%",
+      maxWidth: 720,
+      margin: "0 auto",
+      padding: `8px 16px calc(24px + ${SAFE_BOTTOM})`
+    },
+    viewerImgBtn: { display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "pointer" },
+    viewerImg: { display: "block", width: "100%", maxHeight: "60dvh", objectFit: "contain", borderRadius: 14 },
+    viewerDots: { display: "flex", justifyContent: "center", gap: 6, marginTop: 12 },
+    viewerDot: { width: 7, height: 7, borderRadius: 4, background: C.border },
+    viewerDotActive: { background: C.accent },
+    viewerNotes: { marginTop: 18, fontSize: 15, lineHeight: 1.55, color: "#C8C8CE", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+    // Stretch player: full screen, picture in a frame whose border is the countdown.
+    player: {
+      minHeight: "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      padding: `calc(${SAFE_TOP} + 6px) 16px calc(20px + ${SAFE_BOTTOM})`
+    },
+    playerTop: { display: "flex", alignItems: "center", gap: 8, marginLeft: -8 },
+    playerTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      fontWeight: 600,
+      textAlign: "center",
+      color: C.muted,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    playerCount: { minWidth: 40, textAlign: "right", fontSize: 15, fontWeight: 700, color: C.muted, fontVariantNumeric: "tabular-nums" },
+    playerProgress: { height: 4, borderRadius: 2, background: C.surface2, margin: "8px 0 0", overflow: "hidden" },
+    playerProgressFill: { height: "100%", background: C.accent, borderRadius: 2, transition: "width .25s linear" },
+    playerMain: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 0" },
+    playerDigits: { fontSize: 72, fontWeight: 300, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", lineHeight: 1 },
+    playerName: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      maxWidth: "100%",
+      marginTop: 14,
+      padding: "4px 8px",
+      background: "none",
+      border: "none",
+      color: C.text,
+      fontSize: 22,
+      fontWeight: 700,
+      letterSpacing: "-0.01em",
+      cursor: "pointer"
+    },
+    playerSub: { marginTop: 4, fontSize: 15, color: C.muted, fontVariantNumeric: "tabular-nums" },
+    playerControls: { display: "flex", alignItems: "center", justifyContent: "center", gap: 14 },
+    playerBtn: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: `1px solid ${C.border}`,
+      background: C.surface2,
+      color: C.text,
+      cursor: "pointer"
+    },
+    playerBtnMain: { width: 78, height: 78, borderRadius: 39, border: "none", background: C.accent, color: C.accentInk },
+    playerDone: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
+    playerDoneTitle: { fontSize: 32, fontWeight: 700, marginTop: 12 },
+    playerDoneSub: { fontSize: 15, color: C.muted, marginTop: 6, lineHeight: 1.5 },
+    // Square, and short enough to leave room for the clock and controls.
+    frame: { position: "relative", width: "min(100%, 46dvh)", maxWidth: 420, aspectRatio: "1 / 1" },
+    frameInner: {
+      position: "absolute",
+      inset: "4.5%",
+      padding: 0,
+      border: "none",
+      borderRadius: "4%",
+      overflow: "hidden",
+      background: C.surface,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    frameImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+    framePlaceholder: { display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: C.dim, fontSize: 15, fontWeight: 600, padding: 16 },
+    frameLabel: {
+      position: "absolute",
+      top: 10,
+      left: 10,
+      padding: "4px 10px",
+      borderRadius: 8,
+      background: "rgba(14,14,16,0.82)",
+      color: C.green,
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: "0.12em",
+      textTransform: "uppercase"
+    },
+    frameRing: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" },
     // Week plan
     dayCard: {
       display: "flex",
@@ -1617,6 +2592,7 @@ Now generate the exercises and/or routines described by the user's request that 
     main: { flex: 1, minWidth: 0, marginLeft: SIDEBAR_WIDTH },
     // Full-screen pages without the sidebar (active workout).
     focus: { maxWidth: CONTENT_MAX, margin: "0 auto" },
+    player: { maxWidth: 640, margin: "0 auto" },
     sidebar: {
       position: "fixed",
       top: 0,
@@ -1728,6 +2704,11 @@ Now generate the exercises and/or routines described by the user's request that 
     play: ({ size = 20 }) => /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2z", fill: "currentColor" })),
     pause: ({ size = 20 }) => /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("rect", { x: "6.5", y: "5", width: "4", height: "14", rx: "1", fill: "currentColor" }), /* @__PURE__ */ React.createElement("rect", { x: "13.5", y: "5", width: "4", height: "14", rx: "1", fill: "currentColor" })),
     skip: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6 6l9 6-9 6V6zM18 6v12" })),
+    skipBack: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M18 6l-9 6 9 6V6zM6 6v12" })),
+    stretch: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "4.5", r: "1.8" }), /* @__PURE__ */ React.createElement("path", { d: "M5 9.5l7 1.5 7-1.5M12 11v4.5M12 15.5l-4 5M12 15.5l4 5" })),
+    image: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("rect", { x: "3.5", y: "5", width: "17", height: "14", rx: "2" }), /* @__PURE__ */ React.createElement("circle", { cx: "9", cy: "10", r: "1.6" }), /* @__PURE__ */ React.createElement("path", { d: "M20.5 15.5l-5-5L6 19" })),
+    info: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "8.5" }), /* @__PURE__ */ React.createElement("path", { d: "M12 11v5M12 8h.01" })),
+    library: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 4.5v15M9.5 4.5v15M14 5l4.5 14.2" })),
     plus: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12h14" })),
     minus: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M5 12h14" })),
     x: (p) => /* @__PURE__ */ React.createElement(Svg, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M6 6l12 12M18 6L6 18" })),
@@ -1770,7 +2751,102 @@ Now generate the exercises and/or routines described by the user's request that 
     ), suffix && /* @__PURE__ */ React.createElement("span", { style: s.stepperSuffix }, suffix)), /* @__PURE__ */ React.createElement("button", { style: s.stepperBtn, onClick: () => bump(1), "aria-label": `Increase ${label}` }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }))));
   }
 
+  // climbing-tracker/components/Layout.jsx
+  var { useEffect: useEffect2, useState: useState2 } = React;
+  function useIsDesktop() {
+    const [matches, setMatches] = useState2(() => window.matchMedia(DESKTOP_QUERY).matches);
+    useEffect2(() => {
+      const mq = window.matchMedia(DESKTOP_QUERY);
+      const onChange = () => setMatches(mq.matches);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }, []);
+    return matches;
+  }
+  function Header({ title, subtitle, left, right }) {
+    const desktop = useIsDesktop();
+    const compact = left !== void 0;
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.header, ...desktop && d.header } }, compact && /* @__PURE__ */ React.createElement("div", { style: s.headerSide }, left), /* @__PURE__ */ React.createElement("div", { style: compact ? s.headerTitleSmall : { ...s.headerTitle, ...desktop && d.headerTitle } }, title, subtitle && /* @__PURE__ */ React.createElement("div", { style: s.headerSub }, subtitle)), compact ? /* @__PURE__ */ React.createElement("div", { style: { ...s.headerSide, justifyContent: "flex-end" } }, right) : right);
+  }
+  function TabBar({ tabs, active, onChange }) {
+    return /* @__PURE__ */ React.createElement("nav", { style: s.tabBar }, tabs.map((t) => {
+      const TabIcon = Icon[t.icon];
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.id,
+          style: { ...s.tab, ...active === t.id ? s.tabActive : {} },
+          onClick: () => onChange(t.id),
+          "aria-current": active === t.id ? "page" : void 0
+        },
+        /* @__PURE__ */ React.createElement(TabIcon, { size: 24 }),
+        t.label
+      );
+    }));
+  }
+  function Sidebar({ tabs, active, onChange, footer }) {
+    return /* @__PURE__ */ React.createElement("nav", { style: d.sidebar }, /* @__PURE__ */ React.createElement("div", { style: d.brand }, /* @__PURE__ */ React.createElement("img", { src: "./climbing-tracker/icon.svg", alt: "", width: 32, height: 32, style: { borderRadius: 8 } }), "Climbing"), tabs.map((t) => {
+      const TabIcon = Icon[t.icon];
+      const isActive = active === t.id;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.id,
+          style: { ...d.navItem, ...isActive ? d.navItemActive : {} },
+          onClick: () => onChange(t.id),
+          "aria-current": isActive ? "page" : void 0
+        },
+        /* @__PURE__ */ React.createElement(TabIcon, { size: 20 }),
+        t.label
+      );
+    }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), footer);
+  }
+  function Sheet({ title, onClose, children }) {
+    const desktop = useIsDesktop();
+    useEffect2(() => {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }, []);
+    useEffect2(() => {
+      const onKey = (e) => {
+        if (e.key === "Escape") onClose();
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, [onClose]);
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.overlay, ...desktop && d.overlay }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { style: { ...s.sheet, ...desktop && d.sheet }, onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", "aria-label": title }, !desktop && /* @__PURE__ */ React.createElement("div", { style: s.sheetHandle }), /* @__PURE__ */ React.createElement("div", { style: s.sheetHeader }, /* @__PURE__ */ React.createElement("span", { style: s.sheetTitle }, title), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: onClose, "aria-label": "Close" }, /* @__PURE__ */ React.createElement(Icon.x, null))), /* @__PURE__ */ React.createElement("div", { style: { ...s.sheetBody, ...desktop && d.sheetBody } }, children)));
+  }
+  function EmptyState({ icon, title, text, action }) {
+    const EmptyIcon = Icon[icon];
+    return /* @__PURE__ */ React.createElement("div", { style: s.empty }, /* @__PURE__ */ React.createElement("div", { style: s.emptyIcon }, /* @__PURE__ */ React.createElement(EmptyIcon, { size: 28 })), /* @__PURE__ */ React.createElement("div", { style: s.emptyTitle }, title), /* @__PURE__ */ React.createElement("div", { style: s.emptyText }, text), action);
+  }
+
+  // climbing-tracker/components/StretchLibraryPicker.jsx
+  var { useState: useState3 } = React;
+  function StretchLibraryPicker({ title = "Stretch library", addedIds = /* @__PURE__ */ new Set(), onPick, onClose }) {
+    const [query2, setQuery] = useState3("");
+    const results = searchLibrary(query2);
+    return /* @__PURE__ */ React.createElement(Sheet, { title, onClose }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        style: { ...s.input, marginBottom: 6 },
+        placeholder: "Search, e.g. hip flexors or band",
+        value: query2,
+        onChange: (e) => setQuery(e.target.value),
+        "aria-label": "Search stretches"
+      }
+    ), results.length === 0 && /* @__PURE__ */ React.createElement("p", { style: { ...s.hint, marginTop: 16 } }, 'No stretch matches "', query2, '".'), results.map((stretch) => {
+      const photo = libraryPhotoUrls(stretch.id)[0];
+      const added = addedIds.has(stretch.id);
+      return /* @__PURE__ */ React.createElement("button", { key: stretch.id, style: s.pickerItem, onClick: () => onPick(stretch) }, /* @__PURE__ */ React.createElement("span", { style: { ...s.thumb, width: 52, height: 52, cursor: "inherit" } }, photo ? /* @__PURE__ */ React.createElement("img", { src: photo, alt: "", loading: "lazy", style: s.thumbImg }) : /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.stretch, { size: 22 }))), /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 600 } }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, stretch.name)), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, stretch.muscles.join(", "), stretch.twoSided ? " \xB7 both sides" : "", stretch.equipment ? ` \xB7 ${stretch.equipment}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: added ? C.green : C.accent } }, added ? /* @__PURE__ */ React.createElement(Icon.check, { size: 22 }) : /* @__PURE__ */ React.createElement(Icon.plus, { size: 22 })));
+    }), /* @__PURE__ */ React.createElement("p", { style: { ...s.hint, marginTop: 16, marginBottom: 0, textAlign: "center" } }, /* @__PURE__ */ React.createElement("a", { href: LIBRARY_CREDIT.url, target: "_blank", rel: "noopener nofollow", style: { color: C.muted } }, LIBRARY_CREDIT.text)));
+  }
+
   // climbing-tracker/components/ExerciseForm.jsx
+  var { useState: useState4 } = React;
   function Segmented({ options, value, onChange }) {
     return /* @__PURE__ */ React.createElement("div", { style: s.segmented }, options.map((o) => /* @__PURE__ */ React.createElement(
       "button",
@@ -1783,7 +2859,38 @@ Now generate the exercises and/or routines described by the user's request that 
     )));
   }
   var WEIGHT_MODES = [{ value: "added", label: "Bodyweight + kg" }, { value: "total", label: "Total weight" }];
-  function ExerciseForm({ draft, categories = [], onChange, onSave, onDelete }) {
+  var SIDES = [{ value: false, label: "One side" }, { value: true, label: "Both sides" }];
+  function PictureField({ draft, set: set2 }) {
+    var _a;
+    const session = useSession();
+    const [libraryOpen, setLibraryOpen] = useState4(false);
+    const [error, setError] = useState4("");
+    const url = ((_a = draft.photoUpload) == null ? void 0 : _a.preview) || exercisePhotoUrls(draft, session)[0];
+    const hasPhoto = !!(draft.photoUpload || draft.photo);
+    async function pick(e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      setError("");
+      try {
+        set2({ photoUpload: await compressPhoto(file) });
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+    return /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Picture"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.thumb, width: 96, height: 72, cursor: "default" } }, url ? /* @__PURE__ */ React.createElement("img", { src: url, alt: "", style: s.thumbImg }) : /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.image, { size: 26 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall }, onClick: () => setLibraryOpen(true) }, /* @__PURE__ */ React.createElement(Icon.library, { size: 16 }), " Library"), /* @__PURE__ */ React.createElement("label", { style: { ...s.btnSecondary, ...s.btnSmall, ...!session && { opacity: 0.5, cursor: "default" } } }, /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: pick, disabled: !session, style: { display: "none" } }), /* @__PURE__ */ React.createElement(Icon.image, { size: 16 }), " Upload"), hasPhoto && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnSmall, padding: "0 8px" }, onClick: () => set2({ photo: null, photoUpload: null }) }, "Remove")), session === null && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.muted } }, "Sign in to upload your own photos."))), error && /* @__PURE__ */ React.createElement("div", { style: { ...s.error, margin: "8px 0 0" } }, error), libraryOpen && /* @__PURE__ */ React.createElement(
+      StretchLibraryPicker,
+      {
+        title: "Picture from the library",
+        onPick: (stretch) => {
+          set2({ photo: { library: stretch.id }, photoUpload: null });
+          setLibraryOpen(false);
+        },
+        onClose: () => setLibraryOpen(false)
+      }
+    ));
+  }
+  function ExerciseForm({ draft, categories = [], saving = false, saveError = "", onChange, onSave, onDelete }) {
     const set2 = (patch) => onChange({ ...draft, ...patch });
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Name"), /* @__PURE__ */ React.createElement(
       "input",
@@ -1820,14 +2927,14 @@ Now generate the exercises and/or routines described by the user's request that 
         value: draft.weightMode,
         onChange: (weightMode) => set2({ weightMode })
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set2({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set2({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set2({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set2({ restSec: v }), min: 0, inc: 15, suffix: "s" }))), (draft.type === "interval" || draft.type === "weightedInterval") && /* @__PURE__ */ React.createElement(React.Fragment, null, draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set2({ sets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Reps", value: draft.reps, onChange: (v) => set2({ reps: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set2({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set2({ restSec: v }), min: 0, inc: 15, suffix: "s" }))), draft.type === "stretch" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(Segmented, { options: SIDES, value: !!draft.twoSided, onChange: (twoSided) => set2({ twoSided }) })), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: draft.twoSided ? "Hold per side" : "Hold", value: draft.holdSec, onChange: (v) => set2({ holdSec: v }), min: 1, inc: 5, suffix: "s" }))), (draft.type === "interval" || draft.type === "weightedInterval") && /* @__PURE__ */ React.createElement(React.Fragment, null, draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(
       Segmented,
       {
         options: WEIGHT_MODES,
         value: draft.weightMode,
         onChange: (weightMode) => set2({ weightMode })
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set2({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set2({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set2({ sets: v }), min: 1 }), draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set2({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }))), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Notes"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: draft.workSec, onChange: (v) => set2({ workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: draft.restSec, onChange: (v) => set2({ restSec: v }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: draft.sets, onChange: (v) => set2({ sets: v }), min: 1 }), draft.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: draft.weight, onChange: (v) => set2({ weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" }))), /* @__PURE__ */ React.createElement(PictureField, { draft, set: set2 }), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Notes"), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         style: s.notesArea,
@@ -1836,15 +2943,15 @@ Now generate the exercises and/or routines described by the user's request that 
         onChange: (e) => set2({ notes: e.target.value }),
         rows: 3
       }
-    )), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, onClick: onSave, disabled: !draft.name.trim() }, "Save exercise"), onDelete && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 8 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete exercise"));
+    )), saveError && /* @__PURE__ */ React.createElement("div", { style: s.error }, saveError), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, onClick: onSave, disabled: !draft.name.trim() || saving }, saving ? "Saving\u2026" : "Save exercise"), onDelete && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...s.btnBlock, marginTop: 8 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete exercise"));
   }
 
   // climbing-tracker/components/useDrain.js
-  var { useState: useState2, useEffect: useEffect2, useRef: useRef2 } = React;
+  var { useState: useState5, useEffect: useEffect3, useRef: useRef2 } = React;
   function useDrain(from, to, ms, running) {
-    const [shown, setShown] = useState2({ value: from, ms: 0 });
+    const [shown, setShown] = useState5({ value: from, ms: 0 });
     const primedRef = useRef2(false);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!running) {
         primedRef.current = false;
         setShown({ value: from, ms: 0 });
@@ -1873,12 +2980,12 @@ Now generate the exercises and/or routines described by the user's request that 
   // climbing-tracker/components/RestBar.jsx
   var { createContext, useContext } = React;
   var RestDockContext = createContext(null);
-  function RestBar({ label, timeLeft, remainingMs, total, paused, onTogglePause, onSkip, tone = "green" }) {
+  function RestBar({ label, timeLeft, remainingMs: remainingMs2, total, paused, onTogglePause, onSkip, tone = "green" }) {
     const dock = useContext(RestDockContext);
     const color = tone === "green" ? C.green : C.accent;
     const soft = tone === "green" ? "rgba(76,195,138,0.18)" : "rgba(232,176,75,0.18)";
     const pctOf = (sec) => total > 0 ? Math.max(0, Math.min(100, sec / total * 100)) : 0;
-    const exactSec = remainingMs != null ? remainingMs / 1e3 : timeLeft;
+    const exactSec = remainingMs2 != null ? remainingMs2 / 1e3 : timeLeft;
     const drain = useDrain(pctOf(exactSec), pctOf(timeLeft - 1), Math.round((exactSec - (timeLeft - 1)) * 1e3), !paused);
     const bar = /* @__PURE__ */ React.createElement("div", { style: {
       ...s.restBar,
@@ -1887,45 +2994,6 @@ Now generate the exercises and/or routines described by the user's request that 
     } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.restBarFill, width: `${drain.value}%`, background: soft, transition: drain.ms ? `width ${drain.ms}ms linear` : "none" } }), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarLabel, color } }, paused ? "Paused" : label), /* @__PURE__ */ React.createElement("span", { style: { ...s.restBarTime, color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onTogglePause, "aria-label": paused ? "Resume rest" : "Pause rest" }, paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 18 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.restBarBtn, color }, onClick: onSkip, "aria-label": "Skip rest" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 18 })));
     return dock ? ReactDOM.createPortal(bar, dock) : bar;
   }
-
-  // climbing-tracker/sounds.js
-  var audioCtx = null;
-  function getAudioCtx() {
-    if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AC();
-    }
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    return audioCtx;
-  }
-  function beep(freq, duration, volume = 0.2, type = "sine", delay = 0) {
-    try {
-      const ctx = getAudioCtx();
-      const t0 = ctx.currentTime + delay;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, t0);
-      gain.gain.linearRampToValueAtTime(volume, t0 + 0.01);
-      gain.gain.exponentialRampToValueAtTime(1e-3, t0 + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t0);
-      osc.stop(t0 + duration + 0.02);
-    } catch {
-    }
-  }
-  var sounds = {
-    countdown: () => beep(880, 0.1, 0.18, "sine"),
-    workStart: () => beep(660, 0.18, 0.22, "square"),
-    restStart: () => beep(440, 0.18, 0.22, "sine"),
-    finish: () => {
-      beep(523, 0.15, 0.22, "sine", 0);
-      beep(659, 0.15, 0.22, "sine", 0.15);
-      beep(784, 0.3, 0.24, "sine", 0.3);
-    }
-  };
 
   // climbing-tracker/restAlert.js
   var OVER_TAG = "climbing-tracker-rest";
@@ -1999,8 +3067,8 @@ Now generate the exercises and/or routines described by the user's request that 
     }
     if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
   }
-  function trackRest(id, { endsAt = 0, remainingMs = 0, paused = false, label = "" }) {
-    rests.set(id, { endsAt, remainingMs, paused, label });
+  function trackRest(id, { endsAt = 0, remainingMs: remainingMs2 = 0, paused = false, label = "" }) {
+    rests.set(id, { endsAt, remainingMs: remainingMs2, paused, label });
     lastShown = "";
     syncTicker();
     updateCountdown();
@@ -2035,9 +3103,9 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useRestTimer.js
-  var { useState: useState3, useEffect: useEffect3, useRef: useRef3 } = React;
+  var { useState: useState6, useEffect: useEffect4, useRef: useRef3 } = React;
   function useRestTimer({ saved, onSave } = {}) {
-    const [rest, setRest] = useState3(null);
+    const [rest, setRest] = useState6(null);
     const endsAtRef = useRef3(0);
     const remainingMsRef = useRef3(0);
     const tickRef = useRef3(null);
@@ -2111,7 +3179,7 @@ Now generate the exercises and/or routines described by the user's request that 
       setRest(null);
       save(null);
     };
-    const togglePause = () => {
+    const togglePause2 = () => {
       if (!rest) return;
       if (rest.paused) {
         run(remainingMsRef.current);
@@ -2125,7 +3193,7 @@ Now generate the exercises and/or routines described by the user's request that 
         save(true);
       }
     };
-    useEffect3(() => {
+    useEffect4(() => {
       if (!saved || !(saved.total > 0)) return;
       noticeRef.current = saved.notice || "";
       overTitleRef.current = saved.overTitle;
@@ -2146,15 +3214,15 @@ Now generate the exercises and/or routines described by the user's request that 
         setRest({ ...base, paused: false });
       }
     }, []);
-    useEffect3(() => () => {
+    useEffect4(() => () => {
       clearTimers();
       untrackRest(idRef.current);
     }, []);
-    return { rest, start, stop, togglePause };
+    return { rest, start, stop, togglePause: togglePause2 };
   }
 
   // climbing-tracker/components/SetsCard.jsx
-  var { useState: useState4, useEffect: useEffect4 } = React;
+  var { useState: useState7, useEffect: useEffect5 } = React;
   function SetValueInput({ value, onChange, suffix, decimal, dim, label }) {
     return /* @__PURE__ */ React.createElement("div", { style: { ...s.setInputWrap, ...dim ? s.setDone : {} } }, /* @__PURE__ */ React.createElement(
       "input",
@@ -2173,7 +3241,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SetsCard({ exercise, initialLog, onChange }) {
     const targetSets = exercise.sets || 1;
-    const [restInput, setRestInput] = useState4(() => {
+    const [restInput, setRestInput] = useState7(() => {
       var _a;
       return (_a = initialLog == null ? void 0 : initialLog.restSec) != null ? _a : exercise.restSec || 0;
     });
@@ -2184,14 +3252,14 @@ Now generate the exercises and/or routines described by the user's request that 
       const t = exercise.targetSets && exercise.targetSets[i];
       return { reps: t ? t.reps : exercise.reps || 0, weight: t ? (_b = (_a = t.weight) != null ? _a : exercise.weight) != null ? _b : 0 : exercise.weight || 0, done: false };
     };
-    const [rows, setRows] = useState4(() => {
+    const [rows, setRows] = useState7(() => {
       var _a;
       return ((_a = initialLog == null ? void 0 : initialLog.rows) == null ? void 0 : _a.length) ? initialLog.rows : Array.from({ length: targetSets }, (_2, i) => makeRow(i));
     });
-    const [savedRest, setSavedRest] = useState4(() => (initialLog == null ? void 0 : initialLog.rest) || null);
+    const [savedRest, setSavedRest] = useState7(() => (initialLog == null ? void 0 : initialLog.rest) || null);
     const restTimer = useRestTimer({ saved: initialLog == null ? void 0 : initialLog.rest, onSave: setSavedRest });
     const restRowIndex = restTimer.rest ? restTimer.rest.row : null;
-    useEffect4(() => {
+    useEffect5(() => {
       onChange({ rows, restSec, rest: savedRest });
     }, [rows, restSec, savedRest]);
     const startRest = (row) => restTimer.start(restSec, { row, notice: `Next set: ${exercise.name}` });
@@ -2253,11 +3321,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/IntervalCard.jsx
-  var { useState: useState5, useEffect: useEffect5, useRef: useRef4 } = React;
+  var { useState: useState8, useEffect: useEffect6, useRef: useRef4 } = React;
   var PREP_SEC = 5;
   var RUNNING = ["prep", "work", "rest"];
   function IntervalCard({ exercise, initialLog, superset, onChange }) {
-    const [init] = useState5(() => {
+    const [init] = useState8(() => {
       var _a, _b, _c, _d;
       const cfg = {
         workSec: (_a = initialLog == null ? void 0 : initialLog.workSec) != null ? _a : exercise.workSec,
@@ -2273,18 +3341,18 @@ Now generate the exercises and/or routines described by the user's request that 
       const phase2 = completed2 === 0 ? "idle" : completed2 >= cfg.totalSets ? "done" : "next";
       return { cfg, timer: { completed: completed2, phase: phase2, set: phase2 === "next" ? completed2 + 1 : 1, endsAt: 0, remainingMs: 0, paused: false } };
     });
-    const [workSec, setWorkSec] = useState5(init.cfg.workSec);
-    const [restSec, setRestSec] = useState5(init.cfg.restSec);
-    const [totalSets, setTotalSets] = useState5(init.cfg.totalSets);
-    const [weight, setWeight] = useState5(init.cfg.weight);
+    const [workSec, setWorkSec] = useState8(init.cfg.workSec);
+    const [restSec, setRestSec] = useState8(init.cfg.restSec);
+    const [totalSets, setTotalSets] = useState8(init.cfg.totalSets);
+    const [weight, setWeight] = useState8(init.cfg.weight);
     const weighted = exercise.type === "weightedInterval";
     const timerRef = useRef4(init.timer);
     const configRef = useRef4(init.cfg);
     const intervalRef = useRef4(null);
     const lastSecRef = useRef4(0);
-    const [, setFrame] = useState5(0);
+    const [, setFrame] = useState8(0);
     const rerender = () => setFrame((f) => f + 1);
-    useEffect5(() => {
+    useEffect6(() => {
       configRef.current = { workSec, restSec, totalSets, weight };
       if (timerRef.current.phase === "idle") report();
     }, [workSec, restSec, totalSets, weight]);
@@ -2313,12 +3381,12 @@ Now generate the exercises and/or routines described by the user's request that 
       clearTick();
       intervalRef.current = setInterval(tick, 250);
     };
-    const enter = (phase2, at) => {
+    const enter2 = (phase2, at) => {
       const t2 = timerRef.current;
       t2.phase = phase2;
       t2.endsAt = at + durationMs(phase2);
     };
-    const advance = (now, silent) => {
+    const advance2 = (now, silent) => {
       const t2 = timerRef.current;
       let changed = false;
       while (RUNNING.includes(t2.phase) && !t2.paused && t2.endsAt <= now) {
@@ -2326,7 +3394,7 @@ Now generate the exercises and/or routines described by the user's request that 
         const live = !silent && now - at < 1500;
         changed = true;
         if (t2.phase === "prep") {
-          enter("work", at);
+          enter2("work", at);
           if (live) sounds.workStart();
         } else if (t2.phase === "work") {
           t2.completed += 1;
@@ -2338,12 +3406,12 @@ Now generate the exercises and/or routines described by the user's request that 
             t2.phase = "next";
             if (live) sounds.restStart();
           } else {
-            enter("rest", at);
+            enter2("rest", at);
             if (live) sounds.restStart();
           }
         } else {
           t2.set += 1;
-          enter("work", at);
+          enter2("work", at);
           if (live) sounds.workStart();
         }
       }
@@ -2352,7 +3420,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const tick = () => {
       const now = Date.now();
-      if (advance(now, false)) {
+      if (advance2(now, false)) {
         report();
         rerender();
       }
@@ -2364,16 +3432,16 @@ Now generate the exercises and/or routines described by the user's request that 
       if (sec <= 3 && sec >= 1) sounds.countdown();
       rerender();
     };
-    useEffect5(() => {
+    useEffect6(() => {
       const t2 = timerRef.current;
       if (!RUNNING.includes(t2.phase)) return;
-      if (advance(Date.now(), true)) {
+      if (advance2(Date.now(), true)) {
         report({ restored: true });
         rerender();
       }
       if (RUNNING.includes(t2.phase) && !t2.paused) startTick();
     }, []);
-    useEffect5(() => {
+    useEffect6(() => {
       const onVisible = () => {
         if (document.visibilityState === "visible" && intervalRef.current) tick();
       };
@@ -2390,7 +3458,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const beginWork = () => {
       getAudioCtx();
       timerRef.current.paused = false;
-      enter("prep", Date.now());
+      enter2("prep", Date.now());
       startTick();
       report();
       rerender();
@@ -2406,7 +3474,7 @@ Now generate the exercises and/or routines described by the user's request that 
       report();
       rerender();
     };
-    const togglePause = () => {
+    const togglePause2 = () => {
       const t2 = timerRef.current;
       if (t2.paused) {
         t2.endsAt = Date.now() + t2.remainingMs;
@@ -2427,28 +3495,28 @@ Now generate the exercises and/or routines described by the user's request that 
       const wasPrep = t2.phase === "prep";
       t2.paused = false;
       t2.endsAt = now;
-      advance(now, true);
+      advance2(now, true);
       if (wasPrep) sounds.workStart();
       if (RUNNING.includes(t2.phase)) startTick();
       report();
       rerender();
     };
-    useEffect5(() => () => clearTick(), []);
+    useEffect6(() => () => clearTick(), []);
     const t = timerRef.current;
     const phase = t.phase;
     const currentSet = t.set;
     const paused = t.paused;
     const isRunning = RUNNING.includes(phase);
-    const remainingMs = isRunning ? Math.max(0, paused ? t.remainingMs : t.endsAt - Date.now()) : 0;
-    const timeLeft = isRunning ? Math.ceil(remainingMs / 1e3) : workSec;
+    const remainingMs2 = isRunning ? Math.max(0, paused ? t.remainingMs : t.endsAt - Date.now()) : 0;
+    const timeLeft = isRunning ? Math.ceil(remainingMs2 / 1e3) : workSec;
     const running = isRunning;
     const phaseColor = phase === "prep" ? C.text : phase === "work" ? C.accent : phase === "rest" ? C.green : phase === "done" ? C.green : C.muted;
     const phaseBg = phase === "work" ? "rgba(232,176,75,0.07)" : phase === "rest" ? "rgba(76,195,138,0.07)" : "transparent";
     const completed = phase === "done" ? Math.min(t.completed, totalSets) : t.completed;
     const phaseTotal = phase === "prep" ? PREP_SEC : phase === "rest" ? restSec : workSec;
-    const fraction = running ? phaseTotal > 0 ? remainingMs / 1e3 / phaseTotal : 0 : phase === "done" ? 0 : 1;
+    const fraction = running ? phaseTotal > 0 ? remainingMs2 / 1e3 / phaseTotal : 0 : phase === "done" ? 0 : 1;
     const nextFraction = running && phaseTotal > 0 ? (timeLeft - 1) / phaseTotal : fraction;
-    const drainMs = running ? Math.max(0, Math.round(remainingMs - (timeLeft - 1) * 1e3)) : 0;
+    const drainMs = running ? Math.max(0, Math.round(remainingMs2 - (timeLeft - 1) * 1e3)) : 0;
     return /* @__PURE__ */ React.createElement("div", null, phase === "idle" && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: workSec, onChange: setWorkSec, min: 1, suffix: "s" }), !superset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: restSec, onChange: setRestSec, min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: totalSets, onChange: setTotalSets, min: 1 }), weighted && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: weight, onChange: setWeight, min: 0, step: 0.5, inc: 2.5, suffix: "kg" })), /* @__PURE__ */ React.createElement("div", { style: { ...s.timer, background: phaseBg } }, /* @__PURE__ */ React.createElement("div", { style: s.timerRing }, /* @__PURE__ */ React.createElement(
       Ring,
       {
@@ -2459,7 +3527,7 @@ Now generate the exercises and/or routines described by the user's request that 
         ms: drainMs,
         animate: running && !paused
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
+    ), /* @__PURE__ */ React.createElement("div", { style: s.timerCenter }, phase === "idle" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "READY"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, totalSets, " \xD7 ", workSec, "s", superset ? "" : ` / ${restSec}s`, weighted ? ` @ ${formatWeightLabel(exercise.weightMode, weight)}` : "")), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: paused ? C.muted : phaseColor } }, paused ? "PAUSED" : phase === "prep" ? "GET READY" : phase.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.timerDigits, color: phaseColor } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.muted } }, "NEXT SET"), /* @__PURE__ */ React.createElement("div", { style: s.timerDigits }, formatTime(workSec || 0)), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, "Set ", currentSet, " of ", totalSets)), phase === "done" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.green, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 44 })), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color: C.green } }, "DONE"), /* @__PURE__ */ React.createElement("div", { style: s.timerSub }, completed, " / ", totalSets, " sets"))))), /* @__PURE__ */ React.createElement("div", { style: s.controls }, phase === "idle" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 56, fontSize: 18 }, onClick: start }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start"), running && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...paused ? s.btnPrimary : s.btnSecondary, flex: 2, minHeight: 56 }, onClick: togglePause2 }, paused ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Resume") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.pause, { size: 20 }), " Pause")), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: skip, "aria-label": "Skip phase" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 22 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "next" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 3, minHeight: 56, fontSize: 18 }, onClick: beginWork }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }), " Start set ", currentSet), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 56, padding: 0 }, onClick: finishNow, "aria-label": "Finish exercise now" }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 22 }))), phase === "done" && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: restart }, /* @__PURE__ */ React.createElement(Icon.restart, { size: 18 }), " Restart")));
   }
   function Ring({ fraction, nextFraction, ms, color, animate }) {
     const drain = useDrain(fraction, nextFraction, ms, animate);
@@ -2482,9 +3550,9 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseNotes.jsx
-  var { useState: useState6 } = React;
+  var { useState: useState9 } = React;
   function ExerciseNotes({ notes, onSave }) {
-    const [draft, setDraft] = useState6(null);
+    const [draft, setDraft] = useState9(null);
     if (draft !== null) {
       const commit = () => {
         const text = draft.trim();
@@ -2507,8 +3575,50 @@ Now generate the exercises and/or routines described by the user's request that 
     return notes ? /* @__PURE__ */ React.createElement("button", { style: s.notes, onClick: () => setDraft(notes), "aria-label": "Edit notes" }, notes) : /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: -14 }, onClick: () => setDraft("") }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 16 }), " Add note");
   }
 
+  // climbing-tracker/components/ExercisePhoto.jsx
+  var { useState: useState10, useEffect: useEffect7 } = React;
+  function useExercisePhotos(exercise) {
+    const session = useSession();
+    return exercisePhotoUrls(exercise, session);
+  }
+  function PhotoThumb({ exercise, size = 48, onOpen }) {
+    const urls = useExercisePhotos(exercise);
+    const [failed, setFailed] = useState10(false);
+    useEffect7(() => setFailed(false), [urls[0]]);
+    if (urls.length === 0 || failed) return null;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        style: { ...s.thumb, width: size, height: size },
+        onClick: (e) => {
+          e.stopPropagation();
+          onOpen();
+        },
+        "aria-label": `Show picture of ${exercise.name}`
+      },
+      /* @__PURE__ */ React.createElement("img", { src: urls[0], alt: "", loading: "lazy", style: s.thumbImg, onError: () => setFailed(true) })
+    );
+  }
+  function PhotoViewer({ exercise, onClose }) {
+    const urls = useExercisePhotos(exercise);
+    const [i, setI] = useState10(0);
+    useEffect7(() => {
+      const onKey = (e) => {
+        if (e.key === "Escape") onClose();
+      };
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.addEventListener("keydown", onKey);
+      return () => {
+        document.body.style.overflow = prev;
+        document.removeEventListener("keydown", onKey);
+      };
+    }, [onClose]);
+    return /* @__PURE__ */ React.createElement("div", { style: s.viewer, role: "dialog", "aria-modal": "true", "aria-label": exercise.name }, /* @__PURE__ */ React.createElement("div", { style: s.viewerHeader }, /* @__PURE__ */ React.createElement("span", { style: s.viewerTitle }, exercise.name), /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.text }, onClick: onClose, "aria-label": "Close" }, /* @__PURE__ */ React.createElement(Icon.x, null))), /* @__PURE__ */ React.createElement("div", { style: s.viewerBody }, urls.length > 0 ? /* @__PURE__ */ React.createElement("button", { style: s.viewerImgBtn, onClick: () => setI((i + 1) % urls.length), "aria-label": urls.length > 1 ? "Show the other picture" : void 0 }, /* @__PURE__ */ React.createElement("img", { src: urls[i], alt: "", style: s.viewerImg })) : /* @__PURE__ */ React.createElement("div", { style: { ...s.hint, textAlign: "center", padding: "40px 0" } }, "No picture yet. Add one with Edit."), urls.length > 1 && /* @__PURE__ */ React.createElement("div", { style: s.viewerDots }, urls.map((_2, k) => /* @__PURE__ */ React.createElement("span", { key: k, style: { ...s.viewerDot, ...k === i && s.viewerDotActive } }))), exercise.notes && /* @__PURE__ */ React.createElement("div", { style: s.viewerNotes }, exercise.notes)));
+  }
+
   // climbing-tracker/components/ExerciseCard.jsx
-  var { useState: useState7 } = React;
+  var { useState: useState11 } = React;
   function progressOf(exercise, log) {
     var _a, _b;
     if (isIntervalType(exercise.type)) {
@@ -2518,91 +3628,19 @@ Now generate the exercises and/or routines described by the user's request that 
     return { done: rows.filter((r) => r.done).length, total: rows.length || exercise.sets || 1 };
   }
   function ExerciseCard({ exercise, initialLog, notes, position, total, label, onChange, onMove, onNotesChange }) {
-    const [collapsed, setCollapsed] = useState7(false);
-    const [progress, setProgress] = useState7(() => progressOf(exercise, initialLog));
+    const [collapsed, setCollapsed] = useState11(false);
+    const [viewing, setViewing] = useState11(false);
+    const [progress, setProgress] = useState11(() => progressOf(exercise, initialLog));
     const complete = progress.total > 0 && progress.done >= progress.total;
     const handleChange = (log, meta) => {
       setProgress(progressOf(exercise, log));
       onChange(log, meta);
     };
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, initialLog, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, initialLog, onChange: handleChange })));
-  }
-
-  // climbing-tracker/components/Layout.jsx
-  var { useEffect: useEffect6, useState: useState8 } = React;
-  function useIsDesktop() {
-    const [matches, setMatches] = useState8(() => window.matchMedia(DESKTOP_QUERY).matches);
-    useEffect6(() => {
-      const mq = window.matchMedia(DESKTOP_QUERY);
-      const onChange = () => setMatches(mq.matches);
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    }, []);
-    return matches;
-  }
-  function Header({ title, subtitle, left, right }) {
-    const desktop = useIsDesktop();
-    const compact = left !== void 0;
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.header, ...desktop && d.header } }, compact && /* @__PURE__ */ React.createElement("div", { style: s.headerSide }, left), /* @__PURE__ */ React.createElement("div", { style: compact ? s.headerTitleSmall : { ...s.headerTitle, ...desktop && d.headerTitle } }, title, subtitle && /* @__PURE__ */ React.createElement("div", { style: s.headerSub }, subtitle)), compact ? /* @__PURE__ */ React.createElement("div", { style: { ...s.headerSide, justifyContent: "flex-end" } }, right) : right);
-  }
-  function TabBar({ tabs, active, onChange }) {
-    return /* @__PURE__ */ React.createElement("nav", { style: s.tabBar }, tabs.map((t) => {
-      const TabIcon = Icon[t.icon];
-      return /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: t.id,
-          style: { ...s.tab, ...active === t.id ? s.tabActive : {} },
-          onClick: () => onChange(t.id),
-          "aria-current": active === t.id ? "page" : void 0
-        },
-        /* @__PURE__ */ React.createElement(TabIcon, { size: 24 }),
-        t.label
-      );
-    }));
-  }
-  function Sidebar({ tabs, active, onChange, footer }) {
-    return /* @__PURE__ */ React.createElement("nav", { style: d.sidebar }, /* @__PURE__ */ React.createElement("div", { style: d.brand }, /* @__PURE__ */ React.createElement("img", { src: "./climbing-tracker/icon.svg", alt: "", width: 32, height: 32, style: { borderRadius: 8 } }), "Climbing"), tabs.map((t) => {
-      const TabIcon = Icon[t.icon];
-      const isActive = active === t.id;
-      return /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: t.id,
-          style: { ...d.navItem, ...isActive ? d.navItemActive : {} },
-          onClick: () => onChange(t.id),
-          "aria-current": isActive ? "page" : void 0
-        },
-        /* @__PURE__ */ React.createElement(TabIcon, { size: 20 }),
-        t.label
-      );
-    }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), footer);
-  }
-  function Sheet({ title, onClose, children }) {
-    const desktop = useIsDesktop();
-    useEffect6(() => {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }, []);
-    useEffect6(() => {
-      const onKey = (e) => {
-        if (e.key === "Escape") onClose();
-      };
-      document.addEventListener("keydown", onKey);
-      return () => document.removeEventListener("keydown", onKey);
-    }, [onClose]);
-    return /* @__PURE__ */ React.createElement("div", { style: { ...s.overlay, ...desktop && d.overlay }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { style: { ...s.sheet, ...desktop && d.sheet }, onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", "aria-label": title }, !desktop && /* @__PURE__ */ React.createElement("div", { style: s.sheetHandle }), /* @__PURE__ */ React.createElement("div", { style: s.sheetHeader }, /* @__PURE__ */ React.createElement("span", { style: s.sheetTitle }, title), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: onClose, "aria-label": "Close" }, /* @__PURE__ */ React.createElement(Icon.x, null))), /* @__PURE__ */ React.createElement("div", { style: { ...s.sheetBody, ...desktop && d.sheetBody } }, children)));
-  }
-  function EmptyState({ icon, title, text, action }) {
-    const EmptyIcon = Icon[icon];
-    return /* @__PURE__ */ React.createElement("div", { style: s.empty }, /* @__PURE__ */ React.createElement("div", { style: s.emptyIcon }, /* @__PURE__ */ React.createElement(EmptyIcon, { size: 28 })), /* @__PURE__ */ React.createElement("div", { style: s.emptyTitle }, title), /* @__PURE__ */ React.createElement("div", { style: s.emptyText }, text), action);
+    return /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCard, ...complete ? s.exerciseCardDone : {} } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardHeader }, /* @__PURE__ */ React.createElement("button", { style: s.exerciseCardHeaderMain, onClick: () => setCollapsed(!collapsed), "aria-expanded": !collapsed }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, (label || total > 1) && /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label || position + 1), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, exercise.name)), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardTarget }, formatTargetSummary(exercise))), /* @__PURE__ */ React.createElement(PhotoThumb, { exercise, size: 40, onOpen: () => setViewing(true) }), /* @__PURE__ */ React.createElement("span", { style: { ...s.progressPill, ...complete ? s.progressPillDone : {} } }, complete ? /* @__PURE__ */ React.createElement(Icon.check, { size: 16 }) : `${progress.done}/${progress.total}`), total > 1 && !collapsed && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(-1), disabled: position === 0, "aria-label": "Move up" }, /* @__PURE__ */ React.createElement(Icon.up, { size: 20 })), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onMove(1), disabled: position === total - 1, "aria-label": "Move down" }, /* @__PURE__ */ React.createElement(Icon.down, { size: 20 }))), collapsed && /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => setCollapsed(false), "aria-label": "Expand" }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: collapsed ? s.hidden : s.exerciseCardBody }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes, onSave: onNotesChange }), isIntervalType(exercise.type) ? /* @__PURE__ */ React.createElement(IntervalCard, { exercise, initialLog, superset: !!exercise.supersetGroup, onChange: handleChange }) : /* @__PURE__ */ React.createElement(SetsCard, { exercise, initialLog, onChange: handleChange })), viewing && /* @__PURE__ */ React.createElement(PhotoViewer, { exercise: { ...exercise, notes }, onClose: () => setViewing(false) }));
   }
 
   // climbing-tracker/components/NotificationPrompt.jsx
-  var { useState: useState9, useEffect: useEffect7 } = React;
+  var { useState: useState12, useEffect: useEffect8 } = React;
   var DISMISS_KEY = "climbing-tracker:notif-prompt-dismissed";
   function readDismissed() {
     try {
@@ -2615,8 +3653,8 @@ Now generate the exercises and/or routines described by the user's request that 
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
   }
   function useNotificationState() {
-    const [state, setState] = useState9(notificationState);
-    useEffect7(() => {
+    const [state, setState] = useState12(notificationState);
+    useEffect8(() => {
       var _a;
       const refresh = () => setState(notificationState());
       document.addEventListener("visibilitychange", refresh);
@@ -2635,7 +3673,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function NotificationPrompt({ style }) {
     const [state, setState] = useNotificationState();
-    const [dismissed, setDismissed] = useState9(readDismissed);
+    const [dismissed, setDismissed] = useState12(readDismissed);
     const kind = state === "unsupported" ? isIOS() && !isInstalled() ? "install" : null : state === "granted" ? null : state;
     if (!kind || dismissed === kind) return null;
     const dismiss = () => {
@@ -2655,28 +3693,20 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/TimerSheet.jsx
-  var { useState: useState10 } = React;
+  var { useState: useState13 } = React;
   var PRESETS = [30, 60, 120, 180, 300];
   var presetLabel = (sec) => sec < 60 ? `${sec}s` : `${sec / 60} min`;
   function TimerSheet({ initialSec = 60, onStart, onClose }) {
-    const [min2, setMin] = useState10(Math.floor(initialSec / 60));
-    const [sec, setSec] = useState10(initialSec % 60);
+    const [min2, setMin] = useState13(Math.floor(initialSec / 60));
+    const [sec, setSec] = useState13(initialSec % 60);
     const total = (Number(min2) || 0) * 60 + (Number(sec) || 0);
     return /* @__PURE__ */ React.createElement(Sheet, { title: "Start a timer", onClose }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 } }, PRESETS.map((p) => /* @__PURE__ */ React.createElement("button", { key: p, style: { ...s.btnSecondary, ...s.btnSmall }, onClick: () => onStart(p) }, presetLabel(p)))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Minutes", value: min2, onChange: setMin }), /* @__PURE__ */ React.createElement(NumberField, { label: "Seconds", value: sec, onChange: setSec, inc: 15 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock }, disabled: total <= 0, onClick: () => onStart(total) }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start"));
   }
 
-  // climbing-tracker/components/SessionPage.jsx
-  var { useState: useState11, useEffect: useEffect8, useRef: useRef5 } = React;
-  function ElapsedTime({ since }) {
-    const [now, setNow] = useState11(Date.now());
-    useEffect8(() => {
-      const id = setInterval(() => setNow(Date.now()), 1e3);
-      return () => clearInterval(id);
-    }, []);
-    return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
-  }
+  // climbing-tracker/components/useWakeLock.js
+  var { useEffect: useEffect9 } = React;
   function useWakeLock() {
-    useEffect8(() => {
+    useEffect9(() => {
       if (!("wakeLock" in navigator)) return;
       let lock = null;
       let active = true;
@@ -2703,9 +3733,20 @@ Now generate the exercises and/or routines described by the user's request that 
       };
     }, []);
   }
+
+  // climbing-tracker/components/SessionPage.jsx
+  var { useState: useState14, useEffect: useEffect10, useRef: useRef5 } = React;
+  function ElapsedTime({ since }) {
+    const [now, setNow] = useState14(Date.now());
+    useEffect10(() => {
+      const id = setInterval(() => setNow(Date.now()), 1e3);
+      return () => clearInterval(id);
+    }, []);
+    return formatTime(Math.max(0, Math.floor((now - since) / 1e3)));
+  }
   var SCROLL_KEY = "climbing-tracker-session-scroll";
   function useRestoredScroll(sessionId) {
-    useEffect8(() => {
+    useEffect10(() => {
       try {
         const saved = JSON.parse(localStorage.getItem(SCROLL_KEY));
         if (saved && saved.id === sessionId && saved.y > 0) requestAnimationFrame(() => window.scrollTo(0, saved.y));
@@ -2724,28 +3765,28 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, initialTimer, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onTimerChange, onFinish, onNotesChange }) {
     var _a, _b;
-    const [order, setOrder] = useState11(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
+    const [order, setOrder] = useState14(() => initialOrder || groupSteps(session.exercises.map((_2, i) => i), (i) => session.exercises[i].supersetGroup || null));
     const doneCountOf = (ex, log) => isIntervalType(ex.type) ? (log == null ? void 0 : log.completedSets) || 0 : ((log == null ? void 0 : log.rows) || []).filter((r) => r.done).length;
     const completedRef = useRef5(session.exercises.map((ex, i) => !!initialLogs[i] && isStepComplete(ex, initialLogs[i])));
     const doneCountRef = useRef5(session.exercises.map((ex, i) => doneCountOf(ex, initialLogs[i])));
     const firstOrderRef = useRef5(true);
-    useEffect8(() => {
+    useEffect10(() => {
       if (firstOrderRef.current) {
         firstOrderRef.current = false;
         return;
       }
       onOrderChange && onOrderChange(order);
     }, [order]);
-    const [cardExercises] = useState11(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
+    const [cardExercises] = useState14(() => session.exercises.map((ex) => ex.supersetGroup && !isIntervalType(ex.type) ? { ...ex, restSec: 0 } : ex));
     const interRestTimer = useRestTimer({ saved: initialInterRest, onSave: onInterRestChange });
     const interRest = interRestTimer.rest;
     const customTimer = useRestTimer({ saved: initialTimer, onSave: onTimerChange });
-    const [timerSheetOpen, setTimerSheetOpen] = useState11(false);
+    const [timerSheetOpen, setTimerSheetOpen] = useState14(false);
     const startCustomTimer = (sec) => {
       setTimerSheetOpen(false);
       customTimer.start(sec, { label: "Timer", notice: `${formatTime(sec)} timer`, overTitle: "Timer done" });
     };
-    const [restDock, setRestDock] = useState11(null);
+    const [restDock, setRestDock] = useState14(null);
     const desktop = useIsDesktop();
     useWakeLock();
     useRestoredScroll(session.id);
@@ -2845,6 +3886,251 @@ Now generate the exercises and/or routines described by the user's request that 
     ), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onFinish }, /* @__PURE__ */ React.createElement(Icon.flag, { size: 20 }), " Finish workout")));
   }
 
+  // climbing-tracker/stretchPlayer.js
+  var READY_SEC = 5;
+  var DEFAULT_SWITCH_SEC = 5;
+  var DEFAULT_BREAK_SEC = 5;
+  var RESTART_AFTER_MS = 3e3;
+  function buildTimeline(stretches, routine = {}) {
+    var _a, _b;
+    const switchSec = (_a = routine.switchSec) != null ? _a : DEFAULT_SWITCH_SEC;
+    const breakSec = (_b = routine.breakSec) != null ? _b : DEFAULT_BREAK_SEC;
+    const phases = [{ kind: "ready", step: 0, side: 1, sec: READY_SEC }];
+    stretches.forEach((ex, step) => {
+      const holdSec = Math.max(1, Number(ex.holdSec) || 0);
+      phases.push({ kind: "hold", step, side: 1, sec: holdSec });
+      if (ex.twoSided) {
+        if (switchSec > 0) phases.push({ kind: "switch", step, side: 2, sec: switchSec });
+        phases.push({ kind: "hold", step, side: 2, sec: holdSec });
+      }
+      if (step < stretches.length - 1 && breakSec > 0) phases.push({ kind: "break", step: step + 1, side: 1, sec: breakSec });
+    });
+    return phases;
+  }
+  function startState(phases, now) {
+    return enter({ done: [], paused: false, finished: false }, phases, 0, now);
+  }
+  function enter(state, phases, index, at) {
+    if (index >= phases.length) return { ...state, index: phases.length, finished: true, paused: false, endsAt: 0, durationMs: 0, remainingMs: 0 };
+    const durationMs = phases[index].sec * 1e3;
+    return { ...state, index, finished: false, durationMs, endsAt: at + durationMs, remainingMs: durationMs };
+  }
+  var countHold = (state, index) => state.done.includes(index) ? state : { ...state, done: [...state.done, index] };
+  function remainingMs(state, now) {
+    if (state.finished) return 0;
+    return Math.max(0, state.paused ? state.remainingMs : state.endsAt - now);
+  }
+  function advance(state, phases, now) {
+    const entered = [];
+    let next = state;
+    while (!next.finished && !next.paused && next.endsAt <= now) {
+      if (phases[next.index].kind === "hold") next = countHold(next, next.index);
+      const at = next.endsAt;
+      next = enter(next, phases, next.index + 1, at);
+      entered.push({ index: next.index, at });
+    }
+    return { state: next, entered };
+  }
+  function togglePause(state, now) {
+    if (state.finished) return state;
+    return state.paused ? { ...state, paused: false, endsAt: now + state.remainingMs } : { ...state, paused: true, remainingMs: remainingMs(state, now) };
+  }
+  function extend(state, ms, now) {
+    if (state.finished) return state;
+    return {
+      ...state,
+      durationMs: state.durationMs + ms,
+      ...state.paused ? { remainingMs: state.remainingMs + ms } : { endsAt: Math.max(state.endsAt, now) + ms }
+    };
+  }
+  function leave(state, phases, now) {
+    if (state.finished || phases[state.index].kind !== "hold") return state;
+    const held = state.durationMs - remainingMs(state, now);
+    return held >= state.durationMs / 2 ? countHold(state, state.index) : state;
+  }
+  function jump(state, phases, index, now) {
+    const next = enter(leave(state, phases, now), phases, index, now);
+    return next.finished || !state.paused ? { ...next, paused: false } : { ...next, paused: true };
+  }
+  function skipForward(state, phases, now) {
+    if (state.finished) return state;
+    let i = state.index + 1;
+    while (i < phases.length && phases[i].kind !== "hold") i++;
+    return jump(state, phases, i, now);
+  }
+  function skipBack(state, phases, now) {
+    const current2 = state.finished ? phases.length : state.index;
+    const held = state.finished ? 0 : state.durationMs - remainingMs(state, now);
+    const onHold = !state.finished && phases[current2].kind === "hold";
+    let i = current2 - 1;
+    while (i >= 0 && phases[i].kind !== "hold") i--;
+    if (onHold && (held >= RESTART_AFTER_MS || i < 0)) i = current2;
+    if (i < 0) return state;
+    const done = state.done.filter((k) => k < i);
+    return { ...enter({ ...state, done }, phases, i, now), paused: state.paused && !state.finished };
+  }
+  function progressFraction(state, phases, now) {
+    if (state.finished) return 1;
+    const total = phases.reduce((sum2, p) => sum2 + p.sec * 1e3, 0);
+    const before = phases.slice(0, state.index).reduce((sum2, p) => sum2 + p.sec * 1e3, 0);
+    const inPhase = Math.min(phases[state.index].sec * 1e3, state.durationMs - remainingMs(state, now));
+    return total > 0 ? Math.min(1, (before + inPhase) / total) : 1;
+  }
+  function completedSteps(state, phases) {
+    const counts = /* @__PURE__ */ new Map();
+    state.done.forEach((i) => counts.set(phases[i].step, (counts.get(phases[i].step) || 0) + 1));
+    return [...counts].sort((a, b) => a[0] - b[0]).map(([step, sidesDone]) => ({ step, sidesDone }));
+  }
+
+  // climbing-tracker/components/StretchPlayer.jsx
+  var { useState: useState15, useEffect: useEffect11, useRef: useRef6 } = React;
+  var PHASE_LABEL = { ready: "Get ready", hold: "Hold", switch: "Switch sides", break: "Break" };
+  var EXTEND_MS = 10 * 1e3;
+  function StretchPlayer({ session, initialState, onStateChange, onFinish, onDiscard }) {
+    const desktop = useIsDesktop();
+    const [phases] = useState15(() => buildTimeline(session.exercises, session.timing));
+    const [state, setState] = useState15(() => {
+      const restored = initialState && initialState.index != null ? initialState : startState(phases, Date.now());
+      return advance(restored, phases, Date.now()).state;
+    });
+    const [closing, setClosing] = useState15(null);
+    const [viewing, setViewing] = useState15(null);
+    const [, setFrame] = useState15(0);
+    const stateRef = useRef6(state);
+    const lastSecRef = useRef6(null);
+    useWakeLock();
+    const onStateChangeRef = useRef6(onStateChange);
+    onStateChangeRef.current = onStateChange;
+    const commit = (next) => {
+      stateRef.current = next;
+      setState(next);
+      onStateChangeRef.current(next);
+    };
+    useEffect11(() => {
+      onStateChange(state);
+    }, []);
+    useEffect11(() => {
+      const tick = () => {
+        const now2 = Date.now();
+        const current2 = stateRef.current;
+        const { state: next, entered } = advance(current2, phases, now2);
+        if (next !== current2) {
+          const live = entered.filter((e) => now2 - e.at < 1500);
+          if (live.length > 0) {
+            const last = live[live.length - 1];
+            if (next.finished) sounds.finish();
+            else if (phases[last.index].kind === "hold") sounds.workStart();
+            else sounds.restStart();
+          }
+          commit(next);
+          return;
+        }
+        if (next.finished || next.paused) return;
+        const sec = Math.ceil((next.endsAt - now2) / 1e3);
+        if (sec !== lastSecRef.current) {
+          lastSecRef.current = sec;
+          if (sec <= 3 && sec >= 1) sounds.countdown();
+          setFrame((f) => f + 1);
+        }
+      };
+      const id = setInterval(tick, 250);
+      const onVisible = () => {
+        if (document.visibilityState === "visible") tick();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        clearInterval(id);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
+    }, []);
+    const act = (fn) => () => {
+      getAudioCtx();
+      commit(fn(stateRef.current, Date.now()));
+    };
+    const pauseToggle = act(togglePause);
+    const back = act((st, now2) => skipBack(st, phases, now2));
+    const forward = act((st, now2) => skipForward(st, phases, now2));
+    const plusTen = act((st, now2) => extend(st, EXTEND_MS, now2));
+    const done = completedSteps(state, phases);
+    const total = session.exercises.length;
+    const finish = () => onFinish(done.map((x) => ({ index: x.step, sidesDone: x.sidesDone })));
+    const requestClose = () => {
+      if (done.length === 0 && !state.finished) return onDiscard();
+      const wasPaused = stateRef.current.paused;
+      if (!wasPaused && !state.finished) commit(togglePause(stateRef.current, Date.now()));
+      setClosing({ wasPaused });
+    };
+    const keepGoing = () => {
+      if (!closing.wasPaused && stateRef.current.paused) commit(togglePause(stateRef.current, Date.now()));
+      setClosing(null);
+    };
+    const now = Date.now();
+    const phase = state.finished ? null : phases[state.index];
+    const exercise = session.exercises[phase ? phase.step : total - 1];
+    const left = remainingMs(state, now);
+    const timeLeft = Math.ceil(left / 1e3);
+    const durationMs = state.durationMs || 1;
+    const fraction = left / durationMs;
+    const nextFraction = Math.max(0, (timeLeft - 1) * 1e3 / durationMs);
+    const drainMs = Math.max(0, Math.round(left - (timeLeft - 1) * 1e3));
+    const running = !!phase && !state.paused;
+    const holding = (phase == null ? void 0 : phase.kind) === "hold";
+    const color = state.paused ? C.muted : holding ? C.accent : C.green;
+    const upNext = phase && (phase.kind === "ready" || phase.kind === "break");
+    const shell = { ...s.player, ...desktop && d.player };
+    if (state.finished) {
+      const sides = done.reduce((sum2, x) => sum2 + x.sidesDone, 0);
+      return /* @__PURE__ */ React.createElement("div", { style: shell }, /* @__PURE__ */ React.createElement("div", { style: s.playerDone }, /* @__PURE__ */ React.createElement("div", { style: { color: C.green } }, /* @__PURE__ */ React.createElement(Icon.check, { size: 64 })), /* @__PURE__ */ React.createElement("div", { style: s.playerDoneTitle }, "Done"), /* @__PURE__ */ React.createElement("div", { style: s.playerDoneSub }, formatDuration(Math.round((Date.now() - session.startedAt) / 1e3)), " \xB7 ", done.length, " of ", total, " stretch", total === 1 ? "" : "es", sides > done.length ? ` \xB7 ${sides} holds` : ""), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, width: "100%", maxWidth: 360, marginTop: 28 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, minHeight: 54 }, onClick: back }, /* @__PURE__ */ React.createElement(Icon.skipBack, { size: 20 }), " Back"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 2, minHeight: 54 }, onClick: done.length > 0 ? finish : onDiscard }, done.length > 0 ? "Save & close" : "Close"))));
+    }
+    return /* @__PURE__ */ React.createElement("div", { style: shell }, /* @__PURE__ */ React.createElement("div", { style: s.playerTop }, /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.text }, onClick: requestClose, "aria-label": "Close" }, /* @__PURE__ */ React.createElement(Icon.x, null)), /* @__PURE__ */ React.createElement("div", { style: s.playerTitle }, session.refName), /* @__PURE__ */ React.createElement("div", { style: s.playerCount }, phase.step + 1, " / ", total)), /* @__PURE__ */ React.createElement("div", { style: s.playerProgress }, /* @__PURE__ */ React.createElement("div", { style: { ...s.playerProgressFill, width: `${progressFraction(state, phases, now) * 100}%` } })), /* @__PURE__ */ React.createElement("div", { style: s.playerMain }, /* @__PURE__ */ React.createElement(
+      FramedPicture,
+      {
+        key: `${state.index}`,
+        exercise,
+        label: upNext ? "Up next" : null,
+        color,
+        fraction,
+        nextFraction,
+        ms: drainMs,
+        animate: running
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.phaseLabel, color, marginTop: 22 } }, state.paused ? "PAUSED" : PHASE_LABEL[phase.kind].toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { ...s.playerDigits, color: holding ? C.text : color } }, formatTime(timeLeft)), /* @__PURE__ */ React.createElement("button", { style: s.playerName, onClick: () => setViewing(exercise) }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, exercise.name), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, display: "flex", flexShrink: 0 } }, /* @__PURE__ */ React.createElement(Icon.info, { size: 18 }))), /* @__PURE__ */ React.createElement("div", { style: s.playerSub }, upNext ? formatTargetSummary(exercise) : exercise.twoSided ? `Side ${phase.side} of 2` : "\xA0")), /* @__PURE__ */ React.createElement("div", { style: s.playerControls }, /* @__PURE__ */ React.createElement("button", { style: s.playerBtn, onClick: back, "aria-label": "Previous" }, /* @__PURE__ */ React.createElement(Icon.skipBack, { size: 24 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.playerBtn, ...s.playerBtnMain }, onClick: pauseToggle, "aria-label": state.paused ? "Resume" : "Pause" }, state.paused ? /* @__PURE__ */ React.createElement(Icon.play, { size: 30 }) : /* @__PURE__ */ React.createElement(Icon.pause, { size: 30 })), /* @__PURE__ */ React.createElement("button", { style: s.playerBtn, onClick: forward, "aria-label": "Next" }, /* @__PURE__ */ React.createElement(Icon.skip, { size: 24 })), /* @__PURE__ */ React.createElement("button", { style: { ...s.playerBtn, fontSize: 15, fontWeight: 700 }, onClick: plusTen, "aria-label": "Add 10 seconds" }, "+10s")), closing && /* @__PURE__ */ React.createElement("div", { style: s.overlay, onClick: keepGoing }, /* @__PURE__ */ React.createElement("div", { style: { ...s.sheet, padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))" }, onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", "aria-label": "Stop stretching?" }, /* @__PURE__ */ React.createElement("div", { style: { ...s.sheetTitle, marginBottom: 8 } }, "Stop stretching?"), /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, done.length > 0 ? `You've done ${done.length} of ${total} stretch${total === 1 ? "" : "es"}. Log what's done to your history?` : "Nothing is done yet, so there's nothing to log."), done.length > 0 && /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, marginBottom: 10 }, onClick: finish }, "Log ", done.length, " of ", total), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1, color: C.danger }, onClick: onDiscard }, "Discard"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: keepGoing }, "Keep going")))), viewing && /* @__PURE__ */ React.createElement(PhotoViewer, { exercise: viewing, onClose: () => setViewing(null) }));
+  }
+  var FRAME_INSET = 1.5;
+  var FRAME_RADIUS = 7;
+  var FRAME_PATH = (() => {
+    const a = FRAME_INSET, b = 100 - FRAME_INSET, r = FRAME_RADIUS;
+    return `M 50 ${a} H ${b - r} A ${r} ${r} 0 0 1 ${b} ${a + r} V ${b - r} A ${r} ${r} 0 0 1 ${b - r} ${b} H ${a + r} A ${r} ${r} 0 0 1 ${a} ${b - r} V ${a + r} A ${r} ${r} 0 0 1 ${a + r} ${a} Z`;
+  })();
+  function FramedPicture({ exercise, label, color, fraction, nextFraction, ms, animate }) {
+    const urls = useExercisePhotos(exercise);
+    const [photo, setPhoto] = useState15(0);
+    const drain = useDrain(fraction, nextFraction, ms, animate);
+    const value = Math.max(0, Math.min(1, drain.value));
+    return /* @__PURE__ */ React.createElement("div", { style: s.frame }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        style: s.frameInner,
+        onClick: () => urls.length > 1 && setPhoto((photo + 1) % urls.length),
+        "aria-label": urls.length > 1 ? "Show the other picture" : exercise.name
+      },
+      urls.length > 0 ? /* @__PURE__ */ React.createElement("img", { src: urls[photo], alt: "", style: s.frameImg }) : /* @__PURE__ */ React.createElement("span", { style: s.framePlaceholder }, /* @__PURE__ */ React.createElement(Icon.stretch, { size: 56 }), /* @__PURE__ */ React.createElement("span", null, exercise.name)),
+      label && /* @__PURE__ */ React.createElement("span", { style: s.frameLabel }, label)
+    ), /* @__PURE__ */ React.createElement("svg", { style: s.frameRing, viewBox: "0 0 100 100", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: FRAME_PATH, fill: "none", stroke: C.surface2, strokeWidth: FRAME_INSET * 2 }), /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: FRAME_PATH,
+        fill: "none",
+        stroke: color,
+        strokeWidth: FRAME_INSET * 2,
+        pathLength: "100",
+        strokeDasharray: "100 100",
+        strokeDashoffset: -100 * (1 - value),
+        style: { transition: drain.ms ? `stroke-dashoffset ${drain.ms}ms linear` : "none" }
+      }
+    )));
+  }
+
   // climbing-tracker/components/SetTargetsEditor.jsx
   function SetTargetsEditor({ sets, isWeighted, onChange }) {
     const updateRow = (i, patch) => onChange(sets.map((row, idx) => idx === i ? { ...row, ...patch } : row));
@@ -2871,11 +4157,11 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/useDragReorder.js
-  var { useRef: useRef6, useState: useState12 } = React;
+  var { useRef: useRef7, useState: useState16 } = React;
   var EDGE = 80;
   function useDragReorder(onDrop) {
-    const drag = useRef6(null);
-    const [draggingList, setDraggingList] = useState12(null);
+    const drag = useRef7(null);
+    const [draggingList, setDraggingList] = useState16(null);
     const siblings = (listId) => [...document.querySelectorAll(`[data-drag-list="${listId}"]`)];
     const layout = (st) => {
       const { els, rects, from, pointerY, startY } = st;
@@ -2962,11 +4248,15 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/RoutineEditPage.jsx
-  var { useState: useState13 } = React;
+  var { useState: useState17 } = React;
   var toStepValue = (v) => v === "" ? null : Math.round(v);
-  function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
+  function RoutineEditPage({ routine, exercises, categories = [], onBack, onStart, onDelete, onRename, onUpdate, onAddStep, onUpdateStep, onRemoveStep, onMoveStep, onToggleLink }) {
+    var _a, _b;
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState13(false);
+    const stretching = isStretchRoutine(routine);
+    const [pickerOpen, setPickerOpen] = useState17(false);
+    const [viewing, setViewing] = useState17(null);
+    const pickable = exercises.filter((e) => e.type === "stretch" === stretching);
     const resolved = routine.steps.map((step) => ({ step, exercise: exercises.find((e) => e.id === step.exerciseId) })).filter((x) => x.exercise).map((x, i) => ({ ...x, i }));
     const blocks = groupSteps(resolved, (x) => x.step.supersetGroup || null);
     const { handleProps, draggingList } = useDragReorder((listId, from, to) => {
@@ -2975,8 +4265,8 @@ Now generate the exercises and/or routines described by the user's request that 
     });
     const grip = (listId, index, name) => /* @__PURE__ */ React.createElement("button", { ...handleProps(listId, index), style: { ...s.dragHandle, ...handleProps(listId, index).style }, "aria-label": `Reorder ${name}` }, /* @__PURE__ */ React.createElement(Icon.grip, { size: 20 }));
     const restFields = (step, ex, restLabel) => {
-      var _a, _b, _c;
-      return /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: restLabel, value: (_b = step.restSec) != null ? _b : (_a = ex.restSec) != null ? _a : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_c = step.restAfterSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }));
+      var _a2, _b2, _c;
+      return /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: restLabel, value: (_b2 = step.restSec) != null ? _b2 : (_a2 = ex.restSec) != null ? _a2 : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_c = step.restAfterSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" }));
     };
     const linkChip = (i, linked, label) => /* @__PURE__ */ React.createElement(
       "button",
@@ -2991,8 +4281,8 @@ Now generate the exercises and/or routines described by the user's request that 
       label
     );
     const renderCard = ({ step, exercise: ex, i }, label, listId, index, inSuperset) => {
-      var _a, _b, _c, _d, _e;
-      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, isIntervalType(ex.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: (_a = step.workSec) != null ? _a : ex.workSec, onChange: (v) => onUpdateStep(step.id, { workSec: toStepValue(v) }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_b = step.sets) != null ? _b : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_d = step.restSec) != null ? _d : (_c = ex.restSec) != null ? _c : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_e = step.restAfterSec) != null ? _e : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      var _a2, _b2, _c, _d, _e, _f;
+      return /* @__PURE__ */ React.createElement("div", { key: step.id, "data-drag-list": listId, style: s.exerciseCard }, /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeader, paddingLeft: 6 } }, grip(listId, index, ex.name), /* @__PURE__ */ React.createElement("div", { style: { ...s.exerciseCardHeaderMain, cursor: "default", paddingLeft: 2 } }, /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardName }, /* @__PURE__ */ React.createElement("span", { style: s.stepNumber }, label), /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, ex.name))), /* @__PURE__ */ React.createElement(PhotoThumb, { exercise: ex, size: 40, onOpen: () => setViewing(ex) }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => onRemoveStep(i), "aria-label": `Remove ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.x, { size: 20 }))), /* @__PURE__ */ React.createElement("div", { style: s.exerciseCardBody }, ex.type === "stretch" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: ex.twoSided ? "Hold per side" : "Hold", value: (_a2 = step.holdSec) != null ? _a2 : ex.holdSec, onChange: (v) => onUpdateStep(step.id, { holdSec: toStepValue(v) }), min: 1, inc: 5, suffix: "s" })) : isIntervalType(ex.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: (_b2 = step.workSec) != null ? _b2 : ex.workSec, onChange: (v) => onUpdateStep(step.id, { workSec: toStepValue(v) }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Sets", value: (_c = step.sets) != null ? _c : ex.sets, onChange: (v) => onUpdateStep(step.id, { sets: toStepValue(v) }), min: 1 }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: (_e = step.restSec) != null ? _e : (_d = ex.restSec) != null ? _d : 0, onChange: (v) => onUpdateStep(step.id, { restSec: toStepValue(v) }), min: 0, suffix: "s" }), !inSuperset && /* @__PURE__ */ React.createElement(NumberField, { label: "Rest after", value: (_f = step.restAfterSec) != null ? _f : 0, onChange: (v) => onUpdateStep(step.id, { restAfterSec: toStepValue(v) }), min: 0, inc: 15, suffix: "s" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         SetTargetsEditor,
         {
           sets: resolveStepTargetSets(step, ex),
@@ -3004,7 +4294,7 @@ Now generate the exercises and/or routines described by the user's request that 
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       Header,
       {
-        title: "Edit routine",
+        title: stretching ? "Edit stretches" : "Edit routine",
         left: /* @__PURE__ */ React.createElement("button", { style: s.textBtn, onClick: onBack }, /* @__PURE__ */ React.createElement(Icon.back, { size: 20 }), " Routines"),
         right: null
       }
@@ -3018,19 +4308,19 @@ Now generate the exercises and/or routines described by the user's request that 
         placeholder: "Routine name",
         autoFocus: !routine.name
       }
-    ), blocks.map((block, b) => {
-      var _a, _b;
+    ), stretching && /* @__PURE__ */ React.createElement("div", { style: s.fieldGrid }, /* @__PURE__ */ React.createElement(NumberField, { label: "Side switch", value: (_a = routine.switchSec) != null ? _a : DEFAULT_SWITCH_SEC, onChange: (v) => onUpdate({ switchSec: toStepValue(v) }), min: 0, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Break", value: (_b = routine.breakSec) != null ? _b : DEFAULT_BREAK_SEC, onChange: (v) => onUpdate({ breakSec: toStepValue(v) }), min: 0, suffix: "s" })), blocks.map((block, b) => {
+      var _a2, _b2;
       const first = block[0], last = block[block.length - 1];
-      const nextFirst = (_a = blocks[b + 1]) == null ? void 0 : _a[0];
-      const joinsSuperset = block.length > 1 || ((_b = blocks[b + 1]) == null ? void 0 : _b.length) > 1;
-      const after = nextFirst ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset") : null;
+      const nextFirst = (_a2 = blocks[b + 1]) == null ? void 0 : _a2[0];
+      const joinsSuperset = block.length > 1 || ((_b2 = blocks[b + 1]) == null ? void 0 : _b2.length) > 1;
+      const after = nextFirst && !stretching ? linkChip(last.i, false, joinsSuperset ? "Add to superset" : "Make superset") : null;
       if (block.length === 1) {
         return /* @__PURE__ */ React.createElement(React.Fragment, { key: first.step.id }, renderCard(first, b + 1, "top", b, false), nextFirst && after);
       }
       return /* @__PURE__ */ React.createElement(React.Fragment, { key: `ss-${first.step.id}` }, /* @__PURE__ */ React.createElement("div", { "data-drag-list": "top", style: { ...s.supersetBlock, background: C.bg } }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHeader }, grip("top", b, `superset ${b + 1}`), /* @__PURE__ */ React.createElement("div", { style: { ...s.supersetLabel, margin: 0, flex: 1 } }, /* @__PURE__ */ React.createElement(Icon.link, { size: 14 }), " Superset ", b + 1, " \xB7 alternate sets")), block.map((x, k) => /* @__PURE__ */ React.createElement(React.Fragment, { key: x.step.id }, renderCard(x, `${b + 1}${String.fromCharCode(65 + k)}`, first.step.id, k, true), k < block.length - 1 && linkChip(x.i, true, "Unlink"))), /* @__PURE__ */ React.createElement("div", { style: s.supersetFooter }, /* @__PURE__ */ React.createElement("div", { style: s.supersetHint }, "No rest between exercises. Rest after each full round:"), restFields(last.step, last.exercise, "Rest / round"))), nextFirst && after);
-    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start routine")), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "Add exercise", onClose: () => setPickerOpen(false) }, exercises.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, "No exercises yet \u2014 create some in the Exercises tab first."), groupByCategory(exercises, categories).map(({ category, exercises: group }) => {
-      var _a, _b;
-      return /* @__PURE__ */ React.createElement("div", { key: (_a = category == null ? void 0 : category.id) != null ? _a : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b = category == null ? void 0 : category.name) != null ? _b : "Uncategorized"), group.map((ex) => /* @__PURE__ */ React.createElement(
+    }), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDashed, marginTop: resolved.length ? 12 : 0 }, onClick: () => setPickerOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " ", stretching ? "Add stretch" : "Add exercise"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnDangerText, ...desktop ? {} : s.btnBlock, marginTop: 28 }, onClick: onDelete }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }), " Delete routine")), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart, disabled: resolved.length === 0 }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " ", stretching ? "Play" : "Start routine")), viewing && /* @__PURE__ */ React.createElement(PhotoViewer, { exercise: viewing, onClose: () => setViewing(null) }), pickerOpen && /* @__PURE__ */ React.createElement(Sheet, { title: stretching ? "Add stretch" : "Add exercise", onClose: () => setPickerOpen(false) }, pickable.length === 0 && /* @__PURE__ */ React.createElement("p", { style: s.sheetMessage }, stretching ? "No stretches yet. Add some from the stretch library in the Exercises tab first." : "No exercises yet \u2014 create some in the Exercises tab first."), groupByCategory(pickable, categories).map(({ category, exercises: group }) => {
+      var _a2, _b2;
+      return /* @__PURE__ */ React.createElement("div", { key: (_a2 = category == null ? void 0 : category.id) != null ? _a2 : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b2 = category == null ? void 0 : category.name) != null ? _b2 : "Uncategorized"), group.map((ex) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: ex.id,
@@ -3047,10 +4337,10 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/DayEditPage.jsx
-  var { useState: useState14 } = React;
+  var { useState: useState18 } = React;
   function DayEditPage({ label, day, routines, onBack, onDelete, onChange, onMoveItem }) {
     const desktop = useIsDesktop();
-    const [pickerOpen, setPickerOpen] = useState14(false);
+    const [pickerOpen, setPickerOpen] = useState18(false);
     const { handleProps } = useDragReorder((_2, from, to) => onMoveItem(from, to));
     const setItems = (items) => onChange({ items });
     const addRoutine = (routineId) => setItems([...day.items, { id: uid(), routineId }]);
@@ -3136,6 +4426,15 @@ Now generate the exercises and/or routines described by the user's request that 
   var sum = (values) => values.reduce((a, b) => a + b, 0);
   var round1 = (v) => Math.round(v * 10) / 10;
   function metricsFor(exercise, bodyweight) {
+    if (exercise.type === "stretch") {
+      return [{
+        id: "holdSec",
+        label: "Hold",
+        value: (x) => Math.max(...x.performed.map((p) => p.holdSec)),
+        format: (v) => `${v}s`,
+        axis: (v) => `${v}s`
+      }];
+    }
     if (exercise.type === "weighted") {
       const withBw = exercise.weightMode === "added" && bodyweight > 0;
       const bwOf = (x) => {
@@ -4895,7 +6194,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const align = ifNull(opts.align, 1);
     const ascDesc = ifNull(opts.ascDesc, false);
     const alignGaps = ifNull(opts.alignGaps, 0);
-    const extend = ifNull(opts.extend, false);
+    const extend2 = ifNull(opts.extend, false);
     return (u, seriesIdx, idx0, idx1) => {
       return orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
         [idx0, idx1] = nonNullIdxs(dataY, idx0, idx1);
@@ -4911,7 +6210,7 @@ Now generate the exercises and/or routines described by the user's request that 
         let firstXPos = pixelForX(dataX[dir == 1 ? idx0 : idx1]);
         let prevXPos = firstXPos;
         let firstXPosExt = firstXPos;
-        if (extend && align == -1) {
+        if (extend2 && align == -1) {
           firstXPosExt = left;
           lineTo(stroke, firstXPosExt, prevYPos);
         }
@@ -4931,7 +6230,7 @@ Now generate the exercises and/or routines described by the user's request that 
           prevXPos = x1;
         }
         let prevXPosExt = prevXPos;
-        if (extend && align == 1) {
+        if (extend2 && align == 1) {
           prevXPosExt = left + width;
           lineTo(stroke, prevXPosExt, prevYPos);
         }
@@ -7561,14 +8860,14 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/LineChart.jsx
-  var { useEffect: useEffect9, useRef: useRef7 } = React;
+  var { useEffect: useEffect12, useRef: useRef8 } = React;
   var HEIGHT2 = 220;
   var FONT = "12px -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif";
   function LineChart({ times, values, formatAxis, onCursor }) {
-    const ref = useRef7(null);
-    const onCursorRef = useRef7(onCursor);
+    const ref = useRef8(null);
+    const onCursorRef = useRef8(onCursor);
     onCursorRef.current = onCursor;
-    useEffect9(() => {
+    useEffect12(() => {
       const el = ref.current;
       const axis = {
         stroke: C.muted,
@@ -7617,13 +8916,15 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/ExerciseStatsPage.jsx
-  var { useState: useState15, useMemo } = React;
+  var { useState: useState19, useMemo } = React;
   var shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   function ExerciseStatsPage({ exercise, history, bodyweight, backLabel, onBack, onEdit, onStart, onNotesChange }) {
     const desktop = useIsDesktop();
-    const [range, setRange] = useState15("all");
-    const [metricId, setMetricId] = useState15(null);
-    const [cursorIdx, setCursorIdx] = useState15(null);
+    const [range, setRange] = useState19("all");
+    const [metricId, setMetricId] = useState19(null);
+    const [cursorIdx, setCursorIdx] = useState19(null);
+    const [viewing, setViewing] = useState19(false);
+    const photos = useExercisePhotos(exercise);
     const allSessions = useMemo(() => collectExerciseSessions(history, exercise), [history, exercise]);
     const sessions = useMemo(() => filterByRange(allSessions, range), [allSessions, range]);
     const metrics = useMemo(() => metricsFor(exercise, bodyweight), [exercise, bodyweight]);
@@ -7641,7 +8942,7 @@ Now generate the exercises and/or routines described by the user's request that 
         left: /* @__PURE__ */ React.createElement("button", { style: s.textBtn, onClick: onBack }, /* @__PURE__ */ React.createElement(Icon.back, { size: 20 }), " ", backLabel),
         right: /* @__PURE__ */ React.createElement("button", { style: s.textBtn, onClick: onEdit }, "Edit")
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && d.pageWithBottomBar } }, /* @__PURE__ */ React.createElement("div", { style: desktop ? { maxWidth: 560 } : void 0 }, /* @__PURE__ */ React.createElement(ExerciseNotes, { notes: exercise.notes, onSave: onNotesChange })), allSessions.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "chart", title: "No sessions logged yet", text: "Finish a workout with this exercise to start tracking progress." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.segmented, marginBottom: 14, ...desktop && { maxWidth: 360 } } }, RANGES.map((r) => /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { style: { ...s.pageWithBottomBar, ...desktop && d.pageWithBottomBar } }, /* @__PURE__ */ React.createElement("div", { style: desktop ? { maxWidth: 560 } : void 0 }, photos.length > 0 && /* @__PURE__ */ React.createElement("button", { style: { ...s.viewerImgBtn, marginBottom: 12 }, onClick: () => setViewing(true), "aria-label": `Show picture of ${exercise.name}` }, /* @__PURE__ */ React.createElement("img", { src: photos[0], alt: "", style: { ...s.viewerImg, width: "auto", maxWidth: "100%", height: 220, objectFit: "cover" } })), /* @__PURE__ */ React.createElement(ExerciseNotes, { notes: exercise.notes, onSave: onNotesChange })), allSessions.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "chart", title: "No sessions logged yet", text: "Finish a workout with this exercise to start tracking progress." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.segmented, marginBottom: 14, ...desktop && { maxWidth: 360 } } }, RANGES.map((r) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: r.value,
@@ -7662,7 +8963,7 @@ Now generate the exercises and/or routines described by the user's request that 
           setCursorIdx(null);
         }
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: s.chartReadout }, /* @__PURE__ */ React.createElement("span", { style: s.chartReadoutValue }, metric.format(values[readoutIdx])), /* @__PURE__ */ React.createElement("span", { style: s.chartReadoutDate }, shortDate(sessions[readoutIdx].date))), sessions.length < 2 ? /* @__PURE__ */ React.createElement("div", { style: { ...s.hint, marginBottom: 0 } }, "Log another session to see a trend.") : /* @__PURE__ */ React.createElement(LineChart, { times, values, formatAxis: metric.axis, onCursor: setCursorIdx })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, "Sessions"), [...sessions].reverse().map((x) => /* @__PURE__ */ React.createElement("div", { key: x.entryId, style: { ...s.historyCard, padding: "12px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.rowTitle, fontSize: 15 } }, shortDate(x.date), x.refName && /* @__PURE__ */ React.createElement("span", { style: s.badge }, x.refName)), x.performed.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.historyStepValue, fontSize: 14, marginTop: 4 } }, formatPerformedSummary({ performed: p })))))))))), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " Start exercise")));
+    )), /* @__PURE__ */ React.createElement("div", { style: s.chartReadout }, /* @__PURE__ */ React.createElement("span", { style: s.chartReadoutValue }, metric.format(values[readoutIdx])), /* @__PURE__ */ React.createElement("span", { style: s.chartReadoutDate }, shortDate(sessions[readoutIdx].date))), sessions.length < 2 ? /* @__PURE__ */ React.createElement("div", { style: { ...s.hint, marginBottom: 0 } }, "Log another session to see a trend.") : /* @__PURE__ */ React.createElement(LineChart, { times, values, formatAxis: metric.axis, onCursor: setCursorIdx })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, "Sessions"), [...sessions].reverse().map((x) => /* @__PURE__ */ React.createElement("div", { key: x.entryId, style: { ...s.historyCard, padding: "12px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { ...s.rowTitle, fontSize: 15 } }, shortDate(x.date), x.refName && /* @__PURE__ */ React.createElement("span", { style: s.badge }, x.refName)), x.performed.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.historyStepValue, fontSize: 14, marginTop: 4 } }, formatPerformedSummary({ performed: p })))))))))), /* @__PURE__ */ React.createElement("div", { style: { ...s.bottomBar, ...desktop && d.bottomBar } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, ...s.btnBlock, minHeight: 54, ...desktop && d.bottomBarBtn }, onClick: onStart }, /* @__PURE__ */ React.createElement(Icon.play, { size: 18 }), " ", exercise.type === "stretch" ? "Play" : "Start exercise")), viewing && /* @__PURE__ */ React.createElement(PhotoViewer, { exercise, onClose: () => setViewing(false) }));
   }
 
   // climbing-tracker/components/ConfirmModal.jsx
@@ -7675,7 +8976,7 @@ Now generate the exercises and/or routines described by the user's request that 
   }
 
   // climbing-tracker/components/HistoryEditForm.jsx
-  var { useState: useState16 } = React;
+  var { useState: useState20 } = React;
   function toLocalInput(iso) {
     const d2 = new Date(iso);
     const pad = (n) => String(n).padStart(2, "0");
@@ -7683,9 +8984,9 @@ Now generate the exercises and/or routines described by the user's request that 
   }
   var num = (v) => Number(v) || 0;
   function HistoryEditForm({ entry, onSave, onCancel }) {
-    const [date, setDate] = useState16(() => toLocalInput(entry.date));
-    const [durationMin, setDurationMin] = useState16(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
-    const [steps, setSteps] = useState16(() => entry.steps.map((step) => ({
+    const [date, setDate] = useState20(() => toLocalInput(entry.date));
+    const [durationMin, setDurationMin] = useState20(() => entry.durationSec != null ? Math.round(entry.durationSec / 60) : "");
+    const [steps, setSteps] = useState20(() => entry.steps.map((step) => ({
       ...step,
       performed: { ...step.performed, ...step.performed.sets && { sets: step.performed.sets.map((x) => ({ ...x })) } }
     })));
@@ -7700,6 +9001,9 @@ Now generate the exercises and/or routines described by the user's request that 
     const save = () => {
       const cleaned = steps.map((st) => {
         const p = st.performed;
+        if (p.type === "stretch") {
+          return { ...st, performed: { ...p, holdSec: num(p.holdSec), sidesDone: Math.max(1, Math.min(p.twoSided ? 2 : 1, num(p.sidesDone))) } };
+        }
         if (isIntervalType(p.type)) {
           return { ...st, performed: {
             ...p,
@@ -7725,12 +9029,12 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Date"), /* @__PURE__ */ React.createElement("input", { style: { ...s.input, colorScheme: "dark" }, type: "datetime-local", value: date, onChange: (e) => setDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(NumberField, { label: "Duration", value: durationMin, onChange: setDurationMin, min: 0, suffix: "min" })), steps.map((st, i) => {
       const p = st.performed;
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.card, padding: 14, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" } }, st.exerciseName), steps.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.danger }, onClick: () => removeStep(i), "aria-label": `Remove ${st.exerciseName}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }))), isIntervalType(p.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets done", value: p.completedSets, onChange: (v) => updatePerformed(i, { completedSets: v }), min: 0 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Target sets", value: p.targetSets, onChange: (v) => updatePerformed(i, { targetSets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: p.workSec, onChange: (v) => updatePerformed(i, { workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: p.restSec, onChange: (v) => updatePerformed(i, { restSec: v }), min: 0, suffix: "s" }), p.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: p.weight, onChange: (v) => updatePerformed(i, { weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.sets.map((set2, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, j + 1), /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.reps, onChange: (v) => updateSet(i, j, { reps: v }), suffix: "reps", label: `${st.exerciseName} set ${j + 1} reps` }), p.type === "weighted" && /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.weight, onChange: (v) => updateSet(i, j, { weight: v }), suffix: "kg", decimal: true, label: `${st.exerciseName} set ${j + 1} weight` }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeSet(i, j), disabled: p.sets.length <= 1, "aria-label": `Remove set ${j + 1}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock }, onClick: () => addSet(i) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set")));
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.card, padding: 14, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" } }, st.exerciseName), steps.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.danger }, onClick: () => removeStep(i), "aria-label": `Remove ${st.exerciseName}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }))), p.type === "stretch" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Hold", value: p.holdSec, onChange: (v) => updatePerformed(i, { holdSec: v }), min: 1, suffix: "s" }), p.twoSided && /* @__PURE__ */ React.createElement(NumberField, { label: "Sides done", value: p.sidesDone, onChange: (v) => updatePerformed(i, { sidesDone: v }), min: 1 })) : isIntervalType(p.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets done", value: p.completedSets, onChange: (v) => updatePerformed(i, { completedSets: v }), min: 0 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Target sets", value: p.targetSets, onChange: (v) => updatePerformed(i, { targetSets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: p.workSec, onChange: (v) => updatePerformed(i, { workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: p.restSec, onChange: (v) => updatePerformed(i, { restSec: v }), min: 0, suffix: "s" }), p.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: p.weight, onChange: (v) => updatePerformed(i, { weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.sets.map((set2, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, j + 1), /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.reps, onChange: (v) => updateSet(i, j, { reps: v }), suffix: "reps", label: `${st.exerciseName} set ${j + 1} reps` }), p.type === "weighted" && /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.weight, onChange: (v) => updateSet(i, j, { weight: v }), suffix: "kg", decimal: true, label: `${st.exerciseName} set ${j + 1} weight` }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeSet(i, j), disabled: p.sets.length <= 1, "aria-label": `Remove set ${j + 1}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock }, onClick: () => addSet(i) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set")));
     }), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: save }, "Save")));
   }
 
   // climbing-tracker/App.jsx
-  var { useState: useState17, useEffect: useEffect10, useRef: useRef8 } = React;
+  var { useState: useState21, useEffect: useEffect13, useRef: useRef9 } = React;
   var roundRests = ({ restSec, restAfterSec }) => ({ restSec, restAfterSec });
   var ACTIVE_SESSION_KEY = "climbing-tracker-active-session";
   function readActiveSession() {
@@ -7758,7 +9062,7 @@ Now generate the exercises and/or routines described by the user's request that 
   function ClimbingTrackerApp() {
     var _a;
     const desktop = useIsDesktop();
-    const [tab, setTab] = useState17("Plan");
+    const [tab, setTab] = useState21("Plan");
     const [exercises, setExercises] = useStorage(STORAGE_KEYS.exercises, []);
     const [routines, setRoutines] = useStorage(STORAGE_KEYS.routines, []);
     const [history, setHistory] = useStorage(STORAGE_KEYS.history, []);
@@ -7766,29 +9070,52 @@ Now generate the exercises and/or routines described by the user's request that 
     const [plan, setPlan] = useStorage(STORAGE_KEYS.plan, null);
     const [categories, setCategories] = useStorage(STORAGE_KEYS.categories, []);
     const bodyweight = settings.bodyweight > 0 ? settings.bodyweight : null;
-    const [restored] = useState17(readActiveSession);
-    const [activeSession, setActiveSessionState] = useState17(() => (restored == null ? void 0 : restored.session) || null);
-    const [confirm, setConfirm] = useState17(null);
+    const [restored] = useState21(readActiveSession);
+    const [activeSession, setActiveSessionState] = useState21(() => (restored == null ? void 0 : restored.session) || null);
+    const [confirm, setConfirm] = useState21(null);
     const requestConfirm = (title, message, onConfirm, confirmLabel, tone) => {
       setConfirm({ title, message, onConfirm, confirmLabel, tone });
     };
-    const [formOpen, setFormOpen] = useState17(false);
-    const [editingId, setEditingId] = useState17(null);
-    const [draft, setDraft] = useState17({ name: "", type: "reps", ...defaultFieldsForType("reps") });
+    const [formOpen, setFormOpen] = useState21(false);
+    const [editingId, setEditingId] = useState21(null);
+    const [draft, setDraft] = useState21({ name: "", type: "reps", ...defaultFieldsForType("reps") });
     const openNewExercise = () => {
       setDraft({ name: "", type: "reps", ...defaultFieldsForType("reps") });
       setEditingId(null);
+      setExerciseSaveError("");
       setFormOpen(true);
     };
     const openEditExercise = (ex) => {
       setDraft({ ...ex });
       setEditingId(ex.id);
+      setExerciseSaveError("");
       setFormOpen(true);
     };
-    const saveExercise = () => {
-      if (!draft.name.trim()) return;
-      const ex = { ...draft, notes: (draft.notes || "").trim() };
+    const session = useSession();
+    const [savingExercise, setSavingExercise] = useState21(false);
+    const [exerciseSaveError, setExerciseSaveError] = useState21("");
+    const saveExercise = async () => {
+      var _a2;
+      if (!draft.name.trim() || savingExercise) return;
+      const { photoUpload, ...rest } = draft;
+      let photo = rest.photo || null;
+      if (photoUpload) {
+        setSavingExercise(true);
+        setExerciseSaveError("");
+        try {
+          photo = { path: await uploadPhoto2(session, photoUpload.blob) };
+        } catch (err) {
+          setExerciseSaveError(err.message);
+          return;
+        } finally {
+          setSavingExercise(false);
+        }
+      }
+      const ex = { ...rest, photo, notes: (draft.notes || "").trim() };
+      if (!photo) delete ex.photo;
       if (editingId) {
+        const old = (_a2 = exercises.find((e) => e.id === editingId)) == null ? void 0 : _a2.photo;
+        if ((old == null ? void 0 : old.path) && old.path !== (photo == null ? void 0 : photo.path)) removePhoto2(old.path);
         setExercises(exercises.map((e) => e.id === editingId ? { ...ex, id: editingId } : e));
       } else {
         setExercises([...exercises, { ...ex, id: uid() }]);
@@ -7796,9 +9123,21 @@ Now generate the exercises and/or routines described by the user's request that 
       setFormOpen(false);
     };
     const deleteExercise = (id) => {
+      var _a2;
+      const photo = (_a2 = exercises.find((e) => e.id === id)) == null ? void 0 : _a2.photo;
+      if (photo == null ? void 0 : photo.path) removePhoto2(photo.path);
       setExercises(exercises.filter((e) => e.id !== id));
       setRoutines(routines.map((r) => ({ ...r, steps: r.steps.filter((step) => step.exerciseId !== id) })));
     };
+    const [libraryOpen, setLibraryOpen] = useState21(false);
+    const addFromLibrary = (stretch) => {
+      if (exercises.some((e) => {
+        var _a2;
+        return ((_a2 = e.photo) == null ? void 0 : _a2.library) === stretch.id;
+      })) return;
+      setExercises([...exercises, { ...stretchExerciseFromLibrary(stretch), id: uid() }]);
+    };
+    const [viewingPhoto, setViewingPhoto] = useState21(null);
     const addCategory = (name) => {
       const trimmed = name.trim();
       if (!trimmed || categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) return false;
@@ -7815,17 +9154,17 @@ Now generate the exercises and/or routines described by the user's request that 
       if (count === 0) return deleteCategory(c.id);
       requestConfirm("Delete category?", `"${c.name}" will be removed. Its ${count} exercise${count === 1 ? "" : "s"} become${count === 1 ? "s" : ""} uncategorized.`, () => deleteCategory(c.id));
     };
-    const [newCategory, setNewCategory] = useState17("");
+    const [newCategory, setNewCategory] = useState21("");
     const submitNewCategory = () => {
       if (addCategory(newCategory)) setNewCategory("");
     };
-    const [editingRoutineId, setEditingRoutineId] = useState17(null);
-    const [statsExerciseId, setStatsExerciseId] = useState17(null);
+    const [editingRoutineId, setEditingRoutineId] = useState21(null);
+    const [statsExerciseId, setStatsExerciseId] = useState21(null);
     const openStats = (id) => {
       setStatsExerciseId(id);
       window.scrollTo(0, 0);
     };
-    useEffect10(() => {
+    useEffect13(() => {
       if (routines.some((r) => !Array.isArray(r.steps))) {
         setRoutines(routines.map((r) => Array.isArray(r.steps) ? r : {
           id: r.id,
@@ -7834,11 +9173,14 @@ Now generate the exercises and/or routines described by the user's request that 
         }));
       }
     }, []);
-    const createRoutine = () => {
-      const r = { id: uid(), name: "", steps: [] };
+    const [routineKindOpen, setRoutineKindOpen] = useState21(false);
+    const createRoutine = (kind) => {
+      const r = kind === "stretch" ? { id: uid(), name: "", kind, steps: [] } : { id: uid(), name: "", steps: [] };
       setRoutines([...routines, r]);
+      setRoutineKindOpen(false);
       setEditingRoutineId(r.id);
     };
+    const updateRoutine = (id, patch) => setRoutines(routines.map((r) => r.id === id ? { ...r, ...patch } : r));
     const closeRoutineEditor = () => {
       const r = routines.find((x) => x.id === editingRoutineId);
       if (r && !r.name.trim() && r.steps.length === 0) deleteRoutine(r.id);
@@ -7848,8 +9190,8 @@ Now generate the exercises and/or routines described by the user's request that 
       setRoutines(routines.filter((r) => r.id !== id));
       setPlan((p) => p && removeRoutineFromPlan(p, id));
     };
-    const [editingDayId, setEditingDayId] = useState17(null);
-    const [postSessionDayId, setPostSessionDayId] = useState17(null);
+    const [editingDayId, setEditingDayId] = useState21(null);
+    const [postSessionDayId, setPostSessionDayId] = useState21(null);
     const updatePlanDays = (mutate) => setPlan((p) => {
       const base = p || emptyPlan();
       return { ...base, days: mutate(base.days) };
@@ -7889,7 +9231,8 @@ Now generate the exercises and/or routines described by the user's request that 
     const renameRoutine = (id, name) => setRoutines(routines.map((r) => r.id === id ? { ...r, name } : r));
     const addStepToRoutine = (routineId, exerciseId) => {
       if (!exerciseId) return;
-      const step = { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
+      const stretching = isStretchRoutine(routines.find((r) => r.id === routineId));
+      const step = stretching ? { id: uid(), exerciseId, holdSec: null } : { id: uid(), exerciseId, sets: null, workSec: null, restSec: null, restAfterSec: null, targetSets: null };
       setRoutines(routines.map((r) => r.id === routineId ? { ...r, steps: [...r.steps, step] } : r));
     };
     const updateRoutineStepById = (routineId, stepId, patch) => {
@@ -7946,33 +9289,51 @@ Now generate the exercises and/or routines described by the user's request that 
         return { ...r, steps: normalizeSupersets(blocks.flat()) };
       }));
     };
-    const sessionLogsRef = useRef8((restored == null ? void 0 : restored.logs) || []);
-    const sessionOrderRef = useRef8((restored == null ? void 0 : restored.order) || null);
-    const sessionInterRestRef = useRef8((restored == null ? void 0 : restored.interRest) || null);
-    const sessionTimerRef = useRef8((restored == null ? void 0 : restored.timer) || null);
-    const persistSession = (session = activeSession) => writeActiveSession(session && {
-      session,
+    const sessionLogsRef = useRef9((restored == null ? void 0 : restored.logs) || []);
+    const sessionOrderRef = useRef9((restored == null ? void 0 : restored.order) || null);
+    const sessionInterRestRef = useRef9((restored == null ? void 0 : restored.interRest) || null);
+    const sessionTimerRef = useRef9((restored == null ? void 0 : restored.timer) || null);
+    const sessionPlayerRef = useRef9((restored == null ? void 0 : restored.player) || null);
+    const persistSession = (current2 = activeSession) => writeActiveSession(current2 && {
+      session: current2,
       logs: sessionLogsRef.current,
       order: sessionOrderRef.current,
       interRest: sessionInterRestRef.current,
-      timer: sessionTimerRef.current
+      timer: sessionTimerRef.current,
+      player: sessionPlayerRef.current
     });
-    const setActiveSession = (session) => {
+    const setActiveSession = (current2) => {
       sessionInterRestRef.current = null;
       sessionTimerRef.current = null;
-      if (!session) {
+      sessionPlayerRef.current = null;
+      if (!current2) {
         sessionLogsRef.current = [];
         sessionOrderRef.current = null;
       }
-      setActiveSessionState(session);
-      persistSession(session);
+      setActiveSessionState(current2);
+      persistSession(current2);
+    };
+    const startStretches = (base, stretches, timing) => {
+      if (stretches.length === 0) return;
+      getAudioCtx();
+      sessionLogsRef.current = [];
+      sessionOrderRef.current = null;
+      setActiveSession({ id: uid(), ...base, mode: "stretch", exercises: stretches, timing, startedAt: Date.now() });
     };
     const startExercise = (ex) => {
+      if (ex.type === "stretch") return startStretches({ kind: "exercise", refId: ex.id, refName: ex.name }, [ex], {});
       sessionLogsRef.current = [null];
       sessionOrderRef.current = null;
       setActiveSession({ id: uid(), kind: "exercise", refId: ex.id, refName: ex.name, exercises: [ex], startedAt: Date.now() });
     };
     const startRoutine = (r) => {
+      if (isStretchRoutine(r)) {
+        const stretches = r.steps.map((step) => {
+          const ex = exercises.find((e) => e.id === step.exerciseId);
+          return ex && ex.type === "stretch" ? applyRoutineStep(ex, step) : null;
+        }).filter(Boolean);
+        return startStretches({ kind: "routine", refId: r.id, refName: r.name || "Untitled routine" }, stretches, { switchSec: r.switchSec, breakSec: r.breakSec });
+      }
       const exs = normalizeSupersets(r.steps).map((step) => {
         const ex = exercises.find((e) => e.id === step.exerciseId);
         return ex ? applyRoutineStep(ex, step) : null;
@@ -8019,6 +9380,21 @@ Now generate the exercises and/or routines described by the user's request that 
         if (performed && performed.weightMode === "added" && bodyweight) performed = { ...performed, bodyweight };
         if (performed) results.push({ exerciseId: ex.id, exerciseName: ex.name, performed, routineStepId: ex.routineStepId });
       });
+      logSession(current2, results);
+    };
+    const finishStretches = (done) => {
+      const current2 = activeSession;
+      const results = done.map(({ index, sidesDone }) => {
+        const ex = current2.exercises[index];
+        return { exerciseId: ex.id, exerciseName: ex.name, performed: buildPerformedFromLog(ex, { sidesDone }), routineStepId: ex.routineStepId };
+      });
+      logSession(current2, results);
+    };
+    const handlePlayerChange = (player) => {
+      sessionPlayerRef.current = player;
+      persistSession();
+    };
+    const logSession = (current2, results) => {
       if (results.length > 0) {
         const entry = {
           id: uid(),
@@ -8042,10 +9418,10 @@ Now generate the exercises and/or routines described by the user's request that 
       const message = left === 0 ? "Everything's done. Save this workout to your history?" : `${left} of ${exs.length} exercise${exs.length === 1 ? " has" : "s have"} sets left. Save what you've logged so far?`;
       requestConfirm("Finish workout?", message, finishSession, "Finish", "primary");
     };
-    const [postSessionDrifts, setPostSessionDrifts] = useState17([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState17(null);
+    const [postSessionDrifts, setPostSessionDrifts] = useState21([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState21(null);
     const deleteHistoryEntry = (id) => setHistory(history.filter((h) => h.id !== id));
-    const [editingHistoryId, setEditingHistoryId] = useState17(null);
+    const [editingHistoryId, setEditingHistoryId] = useState21(null);
     const saveHistoryEntry = (entry) => {
       setHistory(history.map((h) => h.id === entry.id ? entry : h).sort((a, b) => new Date(b.date) - new Date(a.date)));
       setEditingHistoryId(null);
@@ -8085,13 +9461,13 @@ Now generate the exercises and/or routines described by the user's request that 
       postSessionDrifts.forEach(applyDrift);
       setPostSessionDrifts([]);
     };
-    const fileInputRef = useRef8(null);
-    const [transferMode, setTransferMode] = useState17(null);
-    const [transferScope, setTransferScope] = useState17("all");
-    const [transferText, setTransferText] = useState17("");
-    const [copied, setCopied] = useState17(false);
-    const [importError, setImportError] = useState17("");
-    const [llmCopied, setLlmCopied] = useState17(false);
+    const fileInputRef = useRef9(null);
+    const [transferMode, setTransferMode] = useState21(null);
+    const [transferScope, setTransferScope] = useState21("all");
+    const [transferText, setTransferText] = useState21("");
+    const [copied, setCopied] = useState21(false);
+    const [importError, setImportError] = useState21("");
+    const [llmCopied, setLlmCopied] = useState21(false);
     const openExport = (scope) => {
       const payload = scope === "all" ? { exercises, routines, history, settings, plan, categories } : { exercises, routines, categories };
       setTransferText(JSON.stringify(payload, null, 2));
@@ -8195,6 +9571,19 @@ Now generate the exercises and/or routines described by the user's request that 
       }
     };
     const rootStyle = { ...s.root, ...desktop && d.root };
+    if ((activeSession == null ? void 0 : activeSession.mode) === "stretch") {
+      return /* @__PURE__ */ React.createElement("div", { style: rootStyle }, /* @__PURE__ */ React.createElement(
+        StretchPlayer,
+        {
+          key: activeSession.id,
+          session: activeSession,
+          initialState: sessionPlayerRef.current,
+          onStateChange: handlePlayerChange,
+          onFinish: finishStretches,
+          onDiscard: cancelSession
+        }
+      ));
+    }
     if (activeSession) {
       return /* @__PURE__ */ React.createElement("div", { style: rootStyle }, /* @__PURE__ */ React.createElement("div", { style: desktop ? d.focus : void 0 }, /* @__PURE__ */ React.createElement(
         SessionPage,
@@ -8288,6 +9677,7 @@ Now generate the exercises and/or routines described by the user's request that 
           }
         ),
         onRename: (name) => renameRoutine(editingRoutine.id, name),
+        onUpdate: (patch) => updateRoutine(editingRoutine.id, patch),
         onAddStep: (exerciseId) => addStepToRoutine(editingRoutine.id, exerciseId),
         onUpdateStep: (stepId, patch) => updateRoutineStepById(editingRoutine.id, stepId, patch),
         onRemoveStep: (idx) => removeFromRoutine(editingRoutine.id, idx),
@@ -8306,43 +9696,54 @@ Now generate the exercises and/or routines described by the user's request that 
         onStart: () => startExercise(statsExercise),
         onNotesChange: (notes) => updateExerciseTemplate(statsExercise.id, { notes })
       }
-    ) : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "Exercises" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Exercises", right: exercises.length > 0 && addButton(openNewExercise, "New exercise") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, exercises.length === 0 ? /* @__PURE__ */ React.createElement(
+    ) : /* @__PURE__ */ React.createElement(React.Fragment, null, tab === "Exercises" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      Header,
+      {
+        title: "Exercises",
+        right: exercises.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.accent }, onClick: () => setLibraryOpen(true), "aria-label": "Add from the stretch library" }, /* @__PURE__ */ React.createElement(Icon.stretch, { size: 24 })), addButton(openNewExercise, "New exercise"))
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, exercises.length === 0 ? /* @__PURE__ */ React.createElement(
       EmptyState,
       {
         icon: "exercises",
         title: "No exercises yet",
-        text: "Add hangs, pull-ups, core work \u2014 anything you want to track.",
-        action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: openNewExercise }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New exercise")
+        text: "Add hangs, pull-ups, core work \u2014 anything you want to track. Or pick stretches from the library.",
+        action: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: openNewExercise }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New exercise"), /* @__PURE__ */ React.createElement("button", { style: s.btnSecondary, onClick: () => setLibraryOpen(true) }, /* @__PURE__ */ React.createElement(Icon.stretch, { size: 20 }), " Stretch library"))
       }
     ) : groupByCategory(exercises, categories).map(({ category, exercises: group }) => {
       var _a2, _b;
-      return /* @__PURE__ */ React.createElement("div", { key: (_a2 = category == null ? void 0 : category.id) != null ? _a2 : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b = category == null ? void 0 : category.name) != null ? _b : "Uncategorized"), /* @__PURE__ */ React.createElement("div", { style: { ...listStyle, marginBottom: 16 } }, group.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => openStats(ex.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("button", { style: s.playBtn, onClick: () => startExercise(ex), "aria-label": `Start ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }))))));
-    }))), tab === "Routines" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Routines", right: routines.length > 0 && addButton(createRoutine, "New routine") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, routines.length === 0 ? /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: (_a2 = category == null ? void 0 : category.id) != null ? _a2 : "none" }, categories.length > 0 && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, (_b = category == null ? void 0 : category.name) != null ? _b : "Uncategorized"), /* @__PURE__ */ React.createElement("div", { style: { ...listStyle, marginBottom: 16 } }, group.map((ex) => /* @__PURE__ */ React.createElement("div", { key: ex.id, style: s.row }, exercisePhotoUrls(ex, session).length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: 8, display: "flex" } }, /* @__PURE__ */ React.createElement(PhotoThumb, { exercise: ex, onOpen: () => setViewingPhoto(ex) })), /* @__PURE__ */ React.createElement("button", { style: { ...s.rowMain, ...exercisePhotoUrls(ex, session).length > 0 && { paddingLeft: 0 } }, onClick: () => openStats(ex.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, ex.name), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatTargetSummary(ex))), /* @__PURE__ */ React.createElement("button", { style: s.playBtn, onClick: () => startExercise(ex), "aria-label": `Start ${ex.name}` }, /* @__PURE__ */ React.createElement(Icon.play, { size: 20 }))))));
+    }))), tab === "Routines" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Routines", right: routines.length > 0 && addButton(() => setRoutineKindOpen(true), "New routine") }), /* @__PURE__ */ React.createElement("div", { style: pageStyle }, routines.length === 0 ? /* @__PURE__ */ React.createElement(
       EmptyState,
       {
         icon: "routines",
         title: "No routines yet",
-        text: "Chain exercises into a session with per-set targets and rests.",
-        action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: createRoutine }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New routine")
+        text: "Chain exercises into a session with per-set targets and rests, or stretches into a guided, timed sequence.",
+        action: /* @__PURE__ */ React.createElement("button", { style: s.btnPrimary, onClick: () => setRoutineKindOpen(true) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 20 }), " New routine")
       }
-    ) : /* @__PURE__ */ React.createElement("div", { style: listStyle }, routines.map((r) => {
-      const nameOf = (step) => {
-        var _a2;
-        return (_a2 = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a2.name;
-      };
-      const names = r.steps.map(nameOf).filter(Boolean);
-      const blocks = groupSteps(r.steps.filter(nameOf), (step) => step.supersetGroup || null).map((block) => block.map(nameOf).join(" + "));
-      return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => setEditingRoutineId(r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, r.name || "Untitled routine"), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, names.length === 0 ? "No exercises" : `${names.length} \xB7 ${blocks.join(", ")}`)), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          style: s.playBtn,
-          onClick: () => startRoutine(r),
-          disabled: names.length === 0,
-          "aria-label": `Start ${r.name || "routine"}`
-        },
-        /* @__PURE__ */ React.createElement(Icon.play, { size: 20 })
-      ));
-    })))), tab === "Plan" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Plan", right: (plan == null ? void 0 : plan.days.length) > 0 && addButton(createDay, "New day") }), /* @__PURE__ */ React.createElement("div", { style: { ...pageStyle, ...desktop && d.pageNarrow } }, !plan || plan.days.length === 0 ? /* @__PURE__ */ React.createElement(
+    ) : [false, true].map((stretching) => {
+      const group = routines.filter((r) => isStretchRoutine(r) === stretching);
+      if (group.length === 0) return null;
+      const sectioned = routines.some((r) => isStretchRoutine(r));
+      return /* @__PURE__ */ React.createElement("div", { key: stretching ? "stretch" : "workout", style: { marginBottom: 16 } }, sectioned && /* @__PURE__ */ React.createElement("div", { style: s.sectionLabel }, stretching ? "Stretching" : "Workouts"), /* @__PURE__ */ React.createElement("div", { style: listStyle }, group.map((r) => {
+        const nameOf = (step) => {
+          var _a2;
+          return (_a2 = exercises.find((e) => e.id === step.exerciseId)) == null ? void 0 : _a2.name;
+        };
+        const names = r.steps.map(nameOf).filter(Boolean);
+        const blocks = groupSteps(r.steps.filter(nameOf), (step) => step.supersetGroup || null).map((block) => block.map(nameOf).join(" + "));
+        return /* @__PURE__ */ React.createElement("div", { key: r.id, style: s.row }, /* @__PURE__ */ React.createElement("button", { style: s.rowMain, onClick: () => setEditingRoutineId(r.id) }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, r.name || "Untitled routine"), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, names.length === 0 ? "No exercises" : `${names.length} \xB7 ${blocks.join(", ")}`)), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            style: s.playBtn,
+            onClick: () => startRoutine(r),
+            disabled: names.length === 0,
+            "aria-label": `Start ${r.name || "routine"}`
+          },
+          /* @__PURE__ */ React.createElement(Icon.play, { size: 20 })
+        ));
+      })));
+    }))), tab === "Plan" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "Plan", right: (plan == null ? void 0 : plan.days.length) > 0 && addButton(createDay, "New day") }), /* @__PURE__ */ React.createElement("div", { style: { ...pageStyle, ...desktop && d.pageNarrow } }, !plan || plan.days.length === 0 ? /* @__PURE__ */ React.createElement(
       EmptyState,
       {
         icon: "plan",
@@ -8395,7 +9796,7 @@ Now generate the exercises and/or routines described by the user's request that 
     )))), tab === "History" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Header, { title: "History" }), /* @__PURE__ */ React.createElement("div", { style: { ...pageStyle, ...desktop && d.pageNarrow } }, history.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "history", title: "Nothing logged yet", text: "Finished workouts show up here." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { ...s.stats, ...desktop && d.stats } }, /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, sessionsThisWeek), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Last 7 days")), desktop && /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, sessionsThisMonth), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Last 30 days")), /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, history.length), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Total sessions")), desktop && /* @__PURE__ */ React.createElement("div", { style: s.stat }, /* @__PURE__ */ React.createElement("div", { style: s.statValue }, formatDuration(totalTrainingSec)), /* @__PURE__ */ React.createElement("div", { style: s.statLabel }, "Total time"))), history.map((h) => {
       const expanded = expandedHistoryId === h.id;
       const drifts = h.steps.map((step) => ({ step, drift: computeTemplateDrift(h, step, exercises, routines) })).filter((x) => x.drift);
-      return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.historyCard }, /* @__PURE__ */ React.createElement("button", { style: s.historyHead, onClick: () => setExpandedHistoryId(expanded ? null : h.id), "aria-expanded": expanded }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, h.refName), h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.badge }, "Routine")), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), (drifts.length > 0 || expanded) && /* @__PURE__ */ React.createElement("div", { style: s.historyBody }, drifts.map(({ step, drift }, i) => /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: { ...s.drift, marginTop: i === 0 ? 0 : 8 } }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyDrift(drift) }, "Update"))), expanded && /* @__PURE__ */ React.createElement("div", { style: { ...s.historySteps, ...drifts.length > 0 ? { marginTop: 12 } : {} } }, h.steps.map((step, i) => {
+      return /* @__PURE__ */ React.createElement("div", { key: h.id, style: s.historyCard }, /* @__PURE__ */ React.createElement("button", { style: s.historyHead, onClick: () => setExpandedHistoryId(expanded ? null : h.id), "aria-expanded": expanded }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: s.rowTitle }, /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } }, h.refName), h.kind === "routine" && /* @__PURE__ */ React.createElement("span", { style: s.badge }, isStretchRoutine(routines.find((r) => r.id === h.refId)) || h.steps.every((st) => st.performed.type === "stretch") ? "Stretching" : "Routine")), /* @__PURE__ */ React.createElement("div", { style: s.rowMeta }, formatDate(h.date), h.durationSec != null ? ` \xB7 ${formatDuration(h.durationSec)}` : "")), /* @__PURE__ */ React.createElement("span", { style: { color: C.dim, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.chevronDown, { size: 20 }))), (drifts.length > 0 || expanded) && /* @__PURE__ */ React.createElement("div", { style: s.historyBody }, drifts.map(({ step, drift }, i) => /* @__PURE__ */ React.createElement("div", { key: `drift-${i}`, style: { ...s.drift, marginTop: i === 0 ? 0 : 8 } }, /* @__PURE__ */ React.createElement("span", { style: s.driftText }, h.kind === "routine" ? `${step.exerciseName}: ` : "", "differs from template (", formatDriftSummary(drift), ")"), /* @__PURE__ */ React.createElement("button", { style: s.driftBtn, onClick: () => applyDrift(drift) }, "Update"))), expanded && /* @__PURE__ */ React.createElement("div", { style: { ...s.historySteps, ...drifts.length > 0 ? { marginTop: 12 } : {} } }, h.steps.map((step, i) => {
         const exists = exercises.some((e) => e.id === step.exerciseId);
         return /* @__PURE__ */ React.createElement("div", { key: i, style: s.historyStep }, h.kind === "routine" && (exists ? /* @__PURE__ */ React.createElement("button", { style: { ...s.historyStepName, ...s.historyStepLink }, onClick: () => openStats(step.exerciseId) }, step.exerciseName) : /* @__PURE__ */ React.createElement("span", { style: s.historyStepName }, step.exerciseName)), /* @__PURE__ */ React.createElement("span", { style: s.historyStepValue }, formatPerformedSummary(step)));
       }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", marginTop: 6, marginLeft: -14 } }, h.kind === "exercise" && exercises.some((e) => e.id === h.refId) && /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => openStats(h.refId) }, /* @__PURE__ */ React.createElement(Icon.chart, { size: 16 }), " Stats"), /* @__PURE__ */ React.createElement("button", { style: { ...s.textBtn, ...s.btnSmall, marginLeft: 0 }, onClick: () => setEditingHistoryId(h.id) }, /* @__PURE__ */ React.createElement(Icon.pencil, { size: 16 }), " Edit"), /* @__PURE__ */ React.createElement(
@@ -8440,11 +9841,13 @@ Now generate the exercises and/or routines described by the user's request that 
         onChange: (e) => setNewCategory(e.target.value),
         onKeyDown: (e) => e.key === "Enter" && submitNewCategory()
       }
-    ), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flexShrink: 0 }, onClick: submitNewCategory, disabled: !newCategory.trim() }, "Add"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, 'Copy this prompt into an LLM along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into Import below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: copyLlmGuidance }, llmCopied ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.check, { size: 18 }), " Copied") : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Imported items are added to (or update) your existing ones \u2014 nothing is deleted."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("partial") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Full backup including history. Importing replaces everything."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("all") }, "Import"))), history.length > 0 && /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Danger zone"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Permanently delete all ", history.length, " logged workouts."), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, color: C.danger }, onClick: requestClearHistory }, "Clear history"))))))), !desktop && !editingRoutine && !editingDay && !statsExercise && /* @__PURE__ */ React.createElement(TabBar, { tabs: TABS, active: tab, onChange: changeTab }), formOpen && /* @__PURE__ */ React.createElement(Sheet, { title: editingId ? "Edit exercise" : "New exercise", onClose: () => setFormOpen(false) }, /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flexShrink: 0 }, onClick: submitNewCategory, disabled: !newCategory.trim() }, "Add"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Generate with AI"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, 'Copy this prompt into an LLM along with what you want (e.g. "a finger-strength routine with dead hangs and weighted pull-ups"), then paste the JSON it gives you into Import below.'), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock }, onClick: copyLlmGuidance }, llmCopied ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon.check, { size: 18 }), " Copied") : "Copy AI prompt")), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Exercises & routines"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Imported items are added to (or update) your existing ones \u2014 nothing is deleted."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("partial") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("partial") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "All data"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Full backup including history. Importing replaces everything."), /* @__PURE__ */ React.createElement("div", { style: s.btnRow }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openExport("all") }, "Export"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: () => openImport("all") }, "Import"))), /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Credits"), /* @__PURE__ */ React.createElement("div", { style: { ...s.hint, marginBottom: 0 } }, "Stretch library: ", /* @__PURE__ */ React.createElement("a", { href: LIBRARY_CREDIT.url, target: "_blank", rel: "noopener nofollow", style: { color: C.accent } }, LIBRARY_CREDIT.text), ".")), history.length > 0 && /* @__PURE__ */ React.createElement("div", { style: cardStyle }, /* @__PURE__ */ React.createElement("div", { style: s.sectionTitle }, "Danger zone"), /* @__PURE__ */ React.createElement("div", { style: s.hint }, "Permanently delete all ", history.length, " logged workouts."), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnBlock, color: C.danger }, onClick: requestClearHistory }, "Clear history"))))))), !desktop && !editingRoutine && !editingDay && !statsExercise && /* @__PURE__ */ React.createElement(TabBar, { tabs: TABS, active: tab, onChange: changeTab }), formOpen && /* @__PURE__ */ React.createElement(Sheet, { title: editingId ? "Edit exercise" : "New exercise", onClose: () => setFormOpen(false) }, /* @__PURE__ */ React.createElement(
       ExerciseForm,
       {
         draft,
         categories,
+        saving: savingExercise,
+        saveError: exerciseSaveError,
         onChange: setDraft,
         onSave: saveExercise,
         onDelete: editingId ? () => requestConfirm(
@@ -8457,7 +9860,17 @@ Now generate the exercises and/or routines described by the user's request that 
           }
         ) : null
       }
-    )), transferMode && /* @__PURE__ */ React.createElement(
+    )), libraryOpen && /* @__PURE__ */ React.createElement(
+      StretchLibraryPicker,
+      {
+        addedIds: new Set(exercises.map((e) => {
+          var _a2;
+          return (_a2 = e.photo) == null ? void 0 : _a2.library;
+        }).filter(Boolean)),
+        onPick: addFromLibrary,
+        onClose: () => setLibraryOpen(false)
+      }
+    ), routineKindOpen && /* @__PURE__ */ React.createElement(Sheet, { title: "New routine", onClose: () => setRoutineKindOpen(false) }, /* @__PURE__ */ React.createElement("button", { style: s.pickerItem, onClick: () => createRoutine("workout") }, /* @__PURE__ */ React.createElement("span", { style: { color: C.accent, display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.exercises, { size: 26 })), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 16, fontWeight: 600 } }, "Workout"), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, "Sets, reps and intervals, logged as you go"))), /* @__PURE__ */ React.createElement("button", { style: { ...s.pickerItem, borderBottom: "none" }, onClick: () => createRoutine("stretch") }, /* @__PURE__ */ React.createElement("span", { style: { color: C.green, display: "flex" } }, /* @__PURE__ */ React.createElement(Icon.stretch, { size: 26 })), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 16, fontWeight: 600 } }, "Stretching"), /* @__PURE__ */ React.createElement("span", { style: { display: "block", fontSize: 13, color: C.muted, marginTop: 2 } }, "Timed holds that play full screen, one after another")))), viewingPhoto && /* @__PURE__ */ React.createElement(PhotoViewer, { exercise: viewingPhoto, onClose: () => setViewingPhoto(null) }), transferMode && /* @__PURE__ */ React.createElement(
       Sheet,
       {
         title: `${transferMode === "export" ? "Export" : "Import"} ${transferScope === "all" ? "all data" : "exercises & routines"}`,
