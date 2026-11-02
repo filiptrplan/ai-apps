@@ -7,6 +7,8 @@
 //   check    corrections for a short text, with gap sentences for cards
 //   words    words tapped in a podcast transcript → card fields, using the
 //            sentence each came from
+//   explain  text selected in a podcast transcript → its English meaning
+//            there, plus a note on the structure when that's not obvious
 // Everything is pitched at the user's level (A1.1–B2.2).
 //
 // Needs OPENAI_API_KEY (see _shared/openai.js).
@@ -235,7 +237,32 @@ For both, the example is the podcast line itself, shortened with … to at most 
   return { items: result.items.slice(0, picks.length) };
 }
 
-const TASKS = { fill, example, suggest, prompt, check, words };
+const MAX_SELECTION = 500;
+
+async function explain(body) {
+  const text = str(body.text, MAX_SELECTION);
+  if (!text) throw new HttpError(400, "Select some words first.");
+  const context = str(body.context, 1500);
+  const result = await structuredCompletion({
+    system: `${SYSTEM_BASE(level(body.level), ["reading", "language"])}
+
+The learner selected some text in the transcript of a German podcast (two hosts, Lena and Jonas) because they don't understand it. It may be one word, a few words, a phrase or idiom, or a whole sentence; it may start or end mid-sentence. You also get the line(s) it is from.
+- translation: what the selection means here, in natural English, as it is meant in this context (not a word-by-word gloss). For a single word, its meaning here, with the base form in brackets when it's inflected (e.g. "decided (entscheiden)").
+- notes: only when something would trip up a learner at this level, 1–3 short, plain English sentences on why it means that: an idiom or fixed phrase, a separable verb split across the sentence, the verb at the end of a subordinate clause, a case or a word that changes the meaning, a literal translation when it helps. Name the German words you're talking about. Empty string when the translation says it all.`,
+    user: `Selected: ${text}\nFrom: ${context || "-"}`,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["translation", "notes"],
+      properties: { translation: { type: "string" }, notes: { type: "string" } },
+    },
+    schemaName: "explanation",
+    maxTokens: 1500,
+  });
+  return result;
+}
+
+const TASKS = { fill, example, suggest, prompt, check, words, explain };
 
 export const signedOut = "Sign in to use the AI features.";
 

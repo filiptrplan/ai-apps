@@ -74,3 +74,9 @@ export async function wordsFromTranscript(items, settings) {
   const { items: out } = await callAI("german-ai", { task: "words", items, level: settings.level });
   return out;
 }
+
+// Text selected in a transcript and the line(s) it's from →
+// { translation, notes } (notes on the structure, or "").
+export function explainSelection(text, context, settings) {
+  return callAI("german-ai", { task: "explain", text, context, level: settings.level });
+}

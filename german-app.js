@@ -837,12 +837,17 @@
     };
     return [...interests].sort((a, b) => last(b) - last(a))[0];
   }
-  function podcastInput(cards, writing) {
+  var PODCAST_POOL = { fresh: 10, shaky: 20, other: 10 };
+  function podcastInput(cards, writing, random = Math.random) {
     const words = cards.filter((c) => c.kind !== "gap" && c.kind !== "rule");
-    const fresh = words.filter(isNew).sort(newOrder).slice(0, 5);
-    const shaky = words.filter((c) => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, 7);
+    const fresh = words.filter(isNew).sort(newOrder).slice(0, PODCAST_POOL.fresh);
+    const shaky = words.filter((c) => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, PODCAST_POOL.shaky);
+    const taken = /* @__PURE__ */ new Set([...fresh, ...shaky]);
+    const rest = words.filter((c) => !taken.has(c));
+    const other = [];
+    while (rest.length && other.length < PODCAST_POOL.other) other.push(rest.splice(Math.floor(random() * rest.length), 1)[0]);
     const mistakes = fixCounts(writing).slice(0, 3).map((f) => pointById(f.point)).filter(Boolean).map((p) => `${p.label} (e.g. ${p.model})`);
-    return { words: [...fresh, ...shaky].map(germanOf), mistakes };
+    return { words: [...fresh, ...shaky, ...other].map(germanOf), mistakes };
   }
   function logEpisode(listening, ep, key) {
     const entry = { id: uid(), day: key, res: "podcast", episode: ep.id, title: ep.title, min: episodeMinutes(ep) };
@@ -939,6 +944,9 @@
     const { items: out } = await callAI("german-ai", { task: "words", items, level: settings.level });
     return out;
   }
+  function explainSelection(text2, context, settings) {
+    return callAI("german-ai", { task: "explain", text: text2, context, level: settings.level });
+  }
 
   // german/ui.jsx
   var { useEffect: useEffect2 } = React;
@@ -961,11 +969,17 @@
     up: /* @__PURE__ */ React.createElement("path", { d: "M6 15l6-6 6 6" }),
     down: /* @__PURE__ */ React.createElement("path", { d: "M6 9l6 6 6-6" }),
     external: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M14 4h6v6M20 4l-9 9" }), /* @__PURE__ */ React.createElement("path", { d: "M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" })),
-    headphones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M4 15v-3a8 8 0 0 1 16 0v3" }), /* @__PURE__ */ React.createElement("rect", { x: "3", y: "14", width: "5", height: "7", rx: "2" }), /* @__PURE__ */ React.createElement("rect", { x: "16", y: "14", width: "5", height: "7", rx: "2" }))
+    headphones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M4 15v-3a8 8 0 0 1 16 0v3" }), /* @__PURE__ */ React.createElement("rect", { x: "3", y: "14", width: "5", height: "7", rx: "2" }), /* @__PURE__ */ React.createElement("rect", { x: "16", y: "14", width: "5", height: "7", rx: "2" })),
+    // Skip back/forward 10 seconds: a circling arrow around a small "10".
+    back10: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M4.5 9.5A8 8 0 1 1 4 13" }), /* @__PURE__ */ React.createElement("path", { d: "M4 4.5v5h5" }), /* @__PURE__ */ React.createElement("text", { x: "12.5", y: "15.6", textAnchor: "middle", fontSize: "7.5", fontWeight: "800", fill: "currentColor", stroke: "none" }, "10")),
+    fwd10: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M19.5 9.5A8 8 0 1 0 20 13" }), /* @__PURE__ */ React.createElement("path", { d: "M20 4.5v5h-5" }), /* @__PURE__ */ React.createElement("text", { x: "11.5", y: "15.6", textAnchor: "middle", fontSize: "7.5", fontWeight: "800", fill: "currentColor", stroke: "none" }, "10"))
   };
   function Icon({ name, size = 20, stroke = 2.2 }) {
     if (name === "play") {
       return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M8 5v14l11-7z" }));
+    }
+    if (name === "pause") {
+      return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("rect", { x: "6", y: "5", width: "4", height: "14", rx: "1.5" }), /* @__PURE__ */ React.createElement("rect", { x: "14", y: "5", width: "4", height: "14", rx: "1.5" }));
     }
     return /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: stroke, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, PATHS[name]);
   }
@@ -1745,7 +1759,7 @@
   }
 
   // german/Podcast.jsx
-  var { useState: useState9, useEffect: useEffect7, useRef: useRef4, Fragment } = React;
+  var { useState: useState9, useEffect: useEffect7, useRef: useRef4, useCallback: useCallback3, Fragment } = React;
   var shortDate2 = (ms) => new Date(ms).toLocaleDateString("de-DE", { day: "numeric", month: "short" });
   var cardLabel = (c) => c.kind === "noun" ? `${c.article} ${c.de}` : c.de;
   function NewEpisode({ app, history: history2, pending, failed, onStarted }) {
@@ -1823,6 +1837,116 @@
       return /* @__PURE__ */ React.createElement("li", { key: i, className: adds[i].add ? void 0 : "off" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 4, flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("b", null, c.kind === "noun" ? /* @__PURE__ */ React.createElement(Noun, { article: c.article }, c.de) : c.de), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, c.en, adds[i].dup ? " \xB7 already in your deck" : ""), r.alt && /* @__PURE__ */ React.createElement("div", { className: "g-chips" }, /* @__PURE__ */ React.createElement(Chip, { pressed: !r.useAlt, onClick: () => set2(i, { useAlt: false }) }, cardLabel(r.main)), /* @__PURE__ */ React.createElement(Chip, { pressed: r.useAlt, onClick: () => set2(i, { useAlt: true }) }, cardLabel(r.alt)))), !adds[i].dup && /* @__PURE__ */ React.createElement(IconButton, { icon: r.skip ? "plus" : "close", label: r.skip ? `Add ${cardLabel(c)}` : `Skip ${cardLabel(c)}`, variant: "ghost", small: true, onClick: () => set2(i, { skip: !r.skip }) }));
     })), /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !count, onClick: add }, "Add ", count, " ", count === 1 ? "card" : "cards"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: onCancel }, "Cancel")));
   }
+  var SKIP = 10;
+  var clock = (sec) => {
+    const t = Math.max(0, Math.floor(sec || 0));
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+  };
+  function Player({ url, rate, title, fallbackSeconds, onEnded }) {
+    const audio = useRef4(null);
+    const [playing, setPlaying] = useState9(false);
+    const [time, setTime] = useState9(0);
+    const [duration, setDuration] = useState9(fallbackSeconds || 0);
+    useEffect7(() => {
+      if (audio.current) audio.current.playbackRate = rate;
+    }, [rate, url]);
+    const skip = useCallback3((by) => {
+      const a = audio.current;
+      if (!a) return;
+      const end = Number.isFinite(a.duration) ? a.duration : Infinity;
+      a.currentTime = Math.min(end, Math.max(0, a.currentTime + by));
+      setTime(a.currentTime);
+    }, []);
+    const toggle = () => {
+      const a = audio.current;
+      if (!a) return;
+      if (a.paused) a.play().catch(() => {
+      });
+      else a.pause();
+    };
+    useEffect7(() => {
+      const ms = navigator.mediaSession;
+      if (!ms) return;
+      const set2 = (action, fn) => {
+        try {
+          ms.setActionHandler(action, fn);
+        } catch {
+        }
+      };
+      if (window.MediaMetadata) ms.metadata = new MediaMetadata({ title, artist: "Lena & Jonas" });
+      set2("seekbackward", () => skip(-SKIP));
+      set2("seekforward", () => skip(SKIP));
+      return () => {
+        set2("seekbackward", null);
+        set2("seekforward", null);
+      };
+    }, [title, skip]);
+    const seek = (to) => {
+      if (audio.current) audio.current.currentTime = to;
+      setTime(to);
+    };
+    const shown = Math.min(time, duration || time);
+    return /* @__PURE__ */ React.createElement("div", { className: "g-player" }, /* @__PURE__ */ React.createElement(
+      "audio",
+      {
+        ref: audio,
+        src: url,
+        preload: "metadata",
+        onPlay: () => setPlaying(true),
+        onPause: () => setPlaying(false),
+        onTimeUpdate: (e) => setTime(e.currentTarget.currentTime),
+        onLoadedMetadata: (e) => Number.isFinite(e.currentTarget.duration) && setDuration(e.currentTarget.duration),
+        onEnded: () => {
+          setPlaying(false);
+          onEnded();
+        }
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "range",
+        className: "g-seek",
+        "aria-label": "Position",
+        min: 0,
+        max: duration || 1,
+        step: 0.1,
+        value: shown,
+        style: { "--p": `${duration ? shown / duration * 100 : 0}%` },
+        onChange: (e) => seek(Number(e.target.value))
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "g-between g-small" }, /* @__PURE__ */ React.createElement("span", null, clock(shown)), /* @__PURE__ */ React.createElement("span", null, "\u2212", clock((duration || 0) - shown))), /* @__PURE__ */ React.createElement("div", { className: "g-player-buttons" }, /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": `Back ${SKIP} seconds`, title: `Back ${SKIP} seconds`, onClick: () => skip(-SKIP) }, /* @__PURE__ */ React.createElement(Icon, { name: "back10", size: 28, stroke: 2 })), /* @__PURE__ */ React.createElement("button", { type: "button", className: "play", "aria-label": playing ? "Pause" : "Play", onClick: toggle }, /* @__PURE__ */ React.createElement(Icon, { name: playing ? "pause" : "play", size: 30 })), /* @__PURE__ */ React.createElement("button", { type: "button", "aria-label": `Forward ${SKIP} seconds`, title: `Forward ${SKIP} seconds`, onClick: () => skip(SKIP) }, /* @__PURE__ */ React.createElement(Icon, { name: "fwd10", size: 28, stroke: 2 }))));
+  }
+  function Explanation({ app, sel, onClose, onPick }) {
+    const [out, setOut] = useState9(null);
+    const [error, setError] = useState9(null);
+    useEffect7(() => {
+      let alive = true;
+      setOut(null);
+      setError(null);
+      explainSelection(sel.text, sel.context, app.settings).then((r) => alive && setOut(r)).catch((e) => alive && setError(e.message));
+      return () => {
+        alive = false;
+      };
+    }, [sel.text, sel.context]);
+    const short = sel.text.split(/\s+/).length <= 5 && !sel.multiLine;
+    return /* @__PURE__ */ React.createElement("div", { className: "g-explain", role: "region", "aria-label": "Translation", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { alignItems: "flex-start", gap: 8 } }, /* @__PURE__ */ React.createElement("b", { className: "q" }, sel.text), /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Close", variant: "ghost", small: true, onClick: onClose })), !out && !error && /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, "Translating\u2026")), error && /* @__PURE__ */ React.createElement("p", { className: "g-error" }, error), out && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "t" }, out.translation), out.notes && /* @__PURE__ */ React.createElement("p", { className: "g-muted" }, out.notes)), short && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: onPick }, "Pick for your deck")));
+  }
+  function readSelection(root) {
+    const s = window.getSelection();
+    if (!root || !s || s.isCollapsed || !s.rangeCount) return null;
+    const range = s.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) return null;
+    const text2 = s.toString().replace(/\s+/g, " ").trim();
+    if (!text2 || !/[\p{L}]/u.test(text2)) return null;
+    const lineOf = (node) => {
+      var _a;
+      return (_a = node.nodeType === 1 ? node : node.parentElement) == null ? void 0 : _a.closest("[data-line]");
+    };
+    const a = lineOf(range.startContainer), b = lineOf(range.endContainer);
+    const from = a ? Number(a.dataset.line) : 0;
+    const to = b ? Number(b.dataset.line) : from;
+    return { text: text2.slice(0, 500), from, to: Math.min(to, from + 3), multiLine: from !== to };
+  }
   function EpisodeView({ app, ep }) {
     var _a;
     const [url, setUrl] = useState9(null);
@@ -1831,7 +1955,9 @@
     const [showText, setShowText] = useState9(false);
     const [picks, setPicks] = useState9({});
     const [reviewing, setReviewing] = useState9(false);
-    const audio = useRef4(null);
+    const [selection, setSelection] = useState9(null);
+    const [explaining, setExplaining] = useState9(null);
+    const transcript = useRef4(null);
     const signedIn = !!app.session;
     useEffect7(() => {
       let alive = true;
@@ -1848,8 +1974,20 @@
       };
     }, [ep.path, signedIn]);
     useEffect7(() => {
-      if (audio.current) audio.current.playbackRate = rate;
-    }, [rate, url]);
+      if (!showText) return;
+      let timer;
+      const onChange = () => {
+        clearTimeout(timer);
+        const sel = readSelection(transcript.current);
+        if (sel) setSelection(sel);
+        else timer = setTimeout(() => setSelection(readSelection(transcript.current)), 600);
+      };
+      document.addEventListener("selectionchange", onChange);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("selectionchange", onChange);
+      };
+    }, [showText]);
     const listened = app.listening.log.some((e) => e.episode === ep.id && e.day === app.today);
     const toggle = (key, pick) => setPicks((p) => {
       const next = { ...p };
@@ -1863,10 +2001,52 @@
       return ((_a2 = ep.lines.find((l) => l.text.toLowerCase().includes(stem))) == null ? void 0 : _a2.text) || "";
     };
     const picked = Object.values(picks);
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Card, { big: true, label: "Episode" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { className: "g-small" }, ep.interest, " \xB7 ", shortDate2(ep.started), " \xB7 ", episodeMinutes(ep), " min", listened ? " \xB7 listened today" : ""), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" } }, ep.title)), url ? /* @__PURE__ */ React.createElement("audio", { ref: audio, src: url, controls: true, preload: "metadata", style: { width: "100%" }, onEnded: () => app.finishEpisode(ep) }) : loadError ? /* @__PURE__ */ React.createElement("p", { className: "g-error" }, loadError) : /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, "Loading the episode\u2026")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("div", { style: { width: 210 } }, /* @__PURE__ */ React.createElement(Choice, { label: "Speed", value: rate, onChange: setRate, options: [[0.75, "0.75\xD7"], [0.9, "0.9\xD7"], [1, "1\xD7"]] })), !listened && /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => app.finishEpisode(ep) }, "Mark as listened"))), ((_a = ep.keyWords) == null ? void 0 : _a.length) > 0 && /* @__PURE__ */ React.createElement("section", { "aria-label": "Key words", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Key words \xB7 tap to pick"), /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, ep.keyWords.map((k, i) => /* @__PURE__ */ React.createElement("li", { key: i }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "g-kw", "aria-pressed": !!picks[`k${i}`], onClick: () => toggle(`k${i}`, { word: k.de, sentence: lineWith(k.de) }) }, /* @__PURE__ */ React.createElement("span", { className: "t" }, /* @__PURE__ */ React.createElement("b", null, k.de), /* @__PURE__ */ React.createElement("span", null, k.en)), /* @__PURE__ */ React.createElement("span", { className: "r" }, picks[`k${i}`] ? "Picked" : "")))))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Transcript", className: "g-stack" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "Transcript"), /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setShowText((v) => !v) }, showText ? "Hide" : "Show")), showText && /* @__PURE__ */ React.createElement(Card, { className: "g-transcript" }, /* @__PURE__ */ React.createElement("p", { className: "g-small" }, "Tap words to pick them for your deck."), ep.lines.map((l, li) => /* @__PURE__ */ React.createElement("p", { key: li }, /* @__PURE__ */ React.createElement("b", { className: l.speaker === "Lena" ? "lena" : "jonas" }, l.speaker), " ", tokenize(l.text).map((t, ti) => /* @__PURE__ */ React.createElement(Fragment, { key: ti }, t.pre, t.word && /* @__PURE__ */ React.createElement("button", { type: "button", className: "g-word", "aria-pressed": !!picks[`${li}:${ti}`], onClick: () => toggle(`${li}:${ti}`, { word: t.word, sentence: l.text }) }, t.word), t.post, " ")))))), reviewing ? /* @__PURE__ */ React.createElement(AddWords, { app, items: picked, onCancel: () => setReviewing(false), onDone: () => {
+    const contextOf = (sel) => ep.lines.slice(sel.from, sel.to + 1).map((l) => `${l.speaker}: ${l.text}`).join("\n");
+    const translate = () => {
+      var _a2;
+      if (!selection) return;
+      setExplaining({ ...selection, context: contextOf(selection) });
+      (_a2 = window.getSelection()) == null ? void 0 : _a2.removeAllRanges();
+      setSelection(null);
+    };
+    const pickSelection = () => {
+      const key = `s:${explaining.from}:${explaining.text}`;
+      setPicks((p) => {
+        var _a2;
+        return { ...p, [key]: { word: explaining.text, sentence: ((_a2 = ep.lines[explaining.from]) == null ? void 0 : _a2.text) || "" } };
+      });
+      setExplaining(null);
+    };
+    const tapWord = (key, pick) => {
+      var _a2;
+      if (((_a2 = window.getSelection()) == null ? void 0 : _a2.isCollapsed) === false) return;
+      toggle(key, pick);
+    };
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Card, { big: true, label: "Episode" }, /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { className: "g-small" }, ep.interest, " \xB7 ", shortDate2(ep.started), " \xB7 ", episodeMinutes(ep), " min", listened ? " \xB7 listened today" : ""), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" } }, ep.title)), url ? /* @__PURE__ */ React.createElement(Player, { url, rate, title: ep.title, fallbackSeconds: ep.seconds, onEnded: () => app.finishEpisode(ep) }) : loadError ? /* @__PURE__ */ React.createElement("p", { className: "g-error" }, loadError) : /* @__PURE__ */ React.createElement("div", { className: "g-row" }, /* @__PURE__ */ React.createElement(Spinner, null), /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, "Loading the episode\u2026")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("div", { style: { width: 210 } }, /* @__PURE__ */ React.createElement(Choice, { label: "Speed", value: rate, onChange: setRate, options: [[0.75, "0.75\xD7"], [0.9, "0.9\xD7"], [1, "1\xD7"]] })), !listened && /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => app.finishEpisode(ep) }, "Mark as listened"))), ((_a = ep.keyWords) == null ? void 0 : _a.length) > 0 && /* @__PURE__ */ React.createElement("section", { "aria-label": "Key words", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Key words \xB7 tap to pick"), /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, ep.keyWords.map((k, i) => /* @__PURE__ */ React.createElement("li", { key: i }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "g-kw", "aria-pressed": !!picks[`k${i}`], onClick: () => toggle(`k${i}`, { word: k.de, sentence: lineWith(k.de) }) }, /* @__PURE__ */ React.createElement("span", { className: "t" }, /* @__PURE__ */ React.createElement("b", null, k.de), /* @__PURE__ */ React.createElement("span", null, k.en)), /* @__PURE__ */ React.createElement("span", { className: "r" }, picks[`k${i}`] ? "Picked" : "")))))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Transcript", className: "g-stack" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "Transcript"), /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setShowText((v) => !v) }, showText ? "Hide" : "Show")), showText && /* @__PURE__ */ React.createElement(Card, { className: "g-transcript" }, /* @__PURE__ */ React.createElement("p", { className: "g-small" }, "Tap words to pick them for your deck. Select any words or sentences (press and hold, then drag) to see what they mean."), /* @__PURE__ */ React.createElement("div", { ref: transcript }, ep.lines.map((l, li) => /* @__PURE__ */ React.createElement("p", { key: li, "data-line": li }, /* @__PURE__ */ React.createElement("b", { className: l.speaker === "Lena" ? "lena" : "jonas" }, l.speaker), " ", tokenize(l.text).map((t, ti) => {
+      const key = `${li}:${ti}`;
+      const pick = () => tapWord(key, { word: t.word, sentence: l.text });
+      return /* @__PURE__ */ React.createElement(Fragment, { key: ti }, t.pre, t.word && // A span, not a button, so the text stays selectable.
+      /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          role: "button",
+          tabIndex: 0,
+          className: "g-word",
+          "aria-pressed": !!picks[key],
+          onClick: pick,
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggle(key, { word: t.word, sentence: l.text });
+            }
+          }
+        },
+        t.word
+      ), t.post, " ");
+    })))))), reviewing && /* @__PURE__ */ React.createElement(AddWords, { app, items: picked, onCancel: () => setReviewing(false), onDone: () => {
       setPicks({});
       setReviewing(false);
-    } }) : picked.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "g-selbar", role: "region", "aria-label": "Picked words" }, /* @__PURE__ */ React.createElement("span", null, picked.length, " ", picked.length === 1 ? "word" : "words", " picked"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => setPicks({}) }, "Clear"), /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !signedIn, onClick: () => setReviewing(true) }, "Add to deck")));
+    } }), (explaining || selection && showText || picked.length > 0 && !reviewing) && /* @__PURE__ */ React.createElement("div", { className: "g-dock" }, explaining && /* @__PURE__ */ React.createElement(Explanation, { key: `${explaining.from}:${explaining.text}`, app, sel: explaining, onClose: () => setExplaining(null), onPick: pickSelection }), selection && showText ? /* @__PURE__ */ React.createElement("div", { className: "g-selbar", role: "region", "aria-label": "Selected text" }, /* @__PURE__ */ React.createElement("span", { className: "q" }, "\u201C", selection.text, "\u201D"), /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !signedIn, onClick: translate }, "Translate")) : picked.length > 0 && !reviewing && /* @__PURE__ */ React.createElement("div", { className: "g-selbar", role: "region", "aria-label": "Picked words" }, /* @__PURE__ */ React.createElement("span", null, picked.length, " ", picked.length === 1 ? "word" : "words", " picked"), /* @__PURE__ */ React.createElement(LinkButton, { onClick: () => setPicks({}) }, "Clear"), /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "mint", disabled: !signedIn, onClick: () => setReviewing(true) }, "Add to deck"))));
   }
   function Podcast({ app, episodeId }) {
     var _a;

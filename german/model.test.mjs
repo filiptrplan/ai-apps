@@ -75,6 +75,17 @@ test("podcast: episode input uses new and shaky words and top mistakes", () => {
   assert.match(mistakes[0], /würde/);
 });
 
+test("podcast: the word pool tops up with other words, never repeating one", () => {
+  const cards = Array.from({ length: 60 }, (_, i) =>
+    ({ ...makeCard({ kind: "word", de: `w${i}`, en: "x" }, "own", i), srs: i < 15 ? null : { stability: i } }));
+  const { words } = podcastInput(cards, [], () => 0);
+  assert.equal(words.length, 40);
+  assert.equal(new Set(words).size, 40);
+  assert.deepEqual(words.slice(0, 10), cards.slice(0, 10).map(c => c.de));
+  assert.deepEqual(words.slice(10, 30), cards.slice(15, 35).map(c => c.de));
+  assert.deepEqual(words.slice(30), cards.slice(10, 15).concat(cards.slice(35, 40)).map(c => c.de));
+});
+
 test("podcast: finishing logs the episode's minutes", () => {
   const listening = { resources: [], current: null, log: [] };
   const next = logEpisode(listening, { id: "ep1", title: "Klettern in Zürich", seconds: 371 }, "2026-10-28");

@@ -385,16 +385,23 @@ export function nextInterest(interests, history) {
   return [...interests].sort((a, b) => last(b) - last(a))[0];
 }
 
-// What the next episode is built from: some of your words (the next new
-// cards and the studied ones you hold least well) and the grammar you're
-// corrected on most.
-export function podcastInput(cards, writing) {
+// What the next episode is built from: a pool of your words for the script
+// to pick the few that suit the topic from (the next new cards, the studied
+// ones you hold least well, and a random handful of the rest, so a topic
+// can find words that fit it) and the grammar you're corrected on most.
+export const PODCAST_POOL = { fresh: 10, shaky: 20, other: 10 };
+
+export function podcastInput(cards, writing, random = Math.random) {
   const words = cards.filter(c => c.kind !== "gap" && c.kind !== "rule");
-  const fresh = words.filter(isNew).sort(newOrder).slice(0, 5);
-  const shaky = words.filter(c => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, 7);
+  const fresh = words.filter(isNew).sort(newOrder).slice(0, PODCAST_POOL.fresh);
+  const shaky = words.filter(c => c.srs).sort((a, b) => a.srs.stability - b.srs.stability).slice(0, PODCAST_POOL.shaky);
+  const taken = new Set([...fresh, ...shaky]);
+  const rest = words.filter(c => !taken.has(c));
+  const other = [];
+  while (rest.length && other.length < PODCAST_POOL.other) other.push(rest.splice(Math.floor(random() * rest.length), 1)[0]);
   const mistakes = fixCounts(writing).slice(0, 3).map(f => pointById(f.point)).filter(Boolean)
     .map(p => `${p.label} (e.g. ${p.model})`);
-  return { words: [...fresh, ...shaky].map(germanOf), mistakes };
+  return { words: [...fresh, ...shaky, ...other].map(germanOf), mistakes };
 }
 
 // A finished episode: its length goes in the listening log.

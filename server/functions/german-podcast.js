@@ -179,14 +179,14 @@ Search the web for the topic first, so facts, names and numbers are real and cur
 Language: natural spoken standard German (Hochdeutsch) that a learner at level ${lvl} can follow (about 90%).
 ${levelGuide(lvl, ["listening", "language"])}
 - Words above ${lvl} are fine on purpose, but at most 6 in the whole episode: the first time one comes up, a host explains it in simple German. Exactly those words go in keyWords. Everything else stays at the level.
-- Use some of the listener's flashcard words where they fit naturally (don't force them all in).
+- The listener's flashcard words are a pool to choose from, not a list to get through. Pick the few (about 3–6, fewer is fine) that suit this topic and this conversation, words a native speaker would really use here, and use each in its usual meaning and a natural context. Leave out every word that doesn't belong; never bend a sentence or the topic to fit one in.
 - Use the listener's problem grammar correctly, several times each, without pointing it out.
 - No English in the dialogue. Write numbers as they're spoken.
 
 Length and shape: short, three to four minutes of audio: about ${words} words in total (stay within ±10%), 20–35 turns, most of them 1–2 sentences; nobody talks for more than about 3 sentences in a row. Stick to one focused angle on the topic rather than covering everything. Lena opens by greeting the listener and naming today's topic in one line ("Hallo und willkommen …"); the end is a quick wrap-up and goodbye.`,
     user: `Topic: ${input.interest}
 Earlier episodes on this topic (take a different angle): ${earlier.length ? `\n${earlier.map(s => `- ${s}`).join("\n")}` : "none"}
-Flashcard words: ${input.words.join(", ") || "-"}
+Flashcard words (pick only the few that fit): ${input.words.join(", ") || "-"}
 Grammar to use correctly: ${input.mistakes.join("; ") || "-"}`,
     schema: SCRIPT_SCHEMA,
     schemaName: "podcast_episode",
@@ -297,7 +297,7 @@ export async function handle(body, ctx) {
     interest,
     level: LEVELS.includes(body.level) ? body.level : "A2.2",
     pace: Object.hasOwn(PACES, body.pace) ? body.pace : "slower",
-    words: list(body.words, 20, 80),
+    words: list(body.words, 40, 80),
     mistakes: list(body.mistakes, 5, 200),
   };
   if (running.has(user.id)) throw new HttpError(409, "An episode is already being made.");

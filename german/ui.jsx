@@ -28,11 +28,17 @@ const PATHS = {
   down: <path d="M6 9l6 6 6-6" />,
   external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
   headphones: <><path d="M4 15v-3a8 8 0 0 1 16 0v3" /><rect x="3" y="14" width="5" height="7" rx="2" /><rect x="16" y="14" width="5" height="7" rx="2" /></>,
+  // Skip back/forward 10 seconds: a circling arrow around a small "10".
+  back10: <><path d="M4.5 9.5A8 8 0 1 1 4 13" /><path d="M4 4.5v5h5" /><text x="12.5" y="15.6" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="currentColor" stroke="none">10</text></>,
+  fwd10: <><path d="M19.5 9.5A8 8 0 1 0 20 13" /><path d="M20 4.5v5h-5" /><text x="11.5" y="15.6" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="currentColor" stroke="none">10</text></>,
 };
 
 export function Icon({ name, size = 20, stroke = 2.2 }) {
   if (name === "play") {
     return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>;
+  }
+  if (name === "pause") {
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5" /><rect x="14" y="5" width="4" height="14" rx="1.5" /></svg>;
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
