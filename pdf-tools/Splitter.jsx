@@ -3,13 +3,17 @@ import { usePdfFile, PdfDrop } from "./PdfDrop.jsx";
 import { downloadBlob, downloadPdf } from "./download.js";
 import { zipFiles } from "./zip.js";
 import { useLocalStorage } from "./useLocalStorage.js";
+import { PageViewer } from "./PageViewer.jsx";
 
 const { useState, useEffect, useRef } = React;
 
-const DEFAULT_SETTINGS = { mode: "ranges", every: 1 };
+const DEFAULT_SETTINGS = { mode: "ranges", every: 1, thumbs: "s" };
 
-// Thumbnails are rendered at this width (CSS px, doubled for sharpness).
-const THUMB_PX = 150;
+const THUMB_SIZES = [
+  ["s", "S"],
+  ["m", "M"],
+  ["l", "L"],
+];
 
 // Parts cycle through these so neighbouring files are easy to tell apart.
 const PART_COLORS = ["#2B5FD9", "#D2602A", "#1E9468", "#9C3FC4", "#B3870F", "#CC3A68", "#2795A6", "#6E7F22"];
@@ -22,9 +26,10 @@ export function Splitter() {
   const [active, setActive] = useState(0); // the file clicks add pages to
   const [busy, setBusy] = useState(null); // "all" or a part index
   const [error, setError] = useState("");
+  const [viewing, setViewing] = useState(null); // page open in the viewer
   const anchorRef = useRef(null); // last clicked page, for shift-click
 
-  const { mode, every } = settings;
+  const { mode, every, thumbs } = settings;
   const update = (patch) => setSettings({ ...settings, ...patch });
   const pageCount = file?.doc.numPages ?? 0;
   const everyN = Math.max(1, Math.floor(Number(every)) || 1);
@@ -80,6 +85,7 @@ export function Splitter() {
     try {
       await open(f);
       selectPart(0);
+      setViewing(null);
     } catch (err) {
       setError(err.message);
     }
@@ -224,11 +230,20 @@ export function Splitter() {
       <section className="pt-preview">
         {file ? (
           <>
-            <p className="pt-muted pt-small pt-hint" style={{ "--part": partColor(activePart) }}>
-              <span className="pt-dot" aria-hidden="true" />
-              Click pages to add them to file {activePart + 1}. Shift-click to add a whole run of pages.
-            </p>
-            <div className="pt-thumbs">
+            <div className="pt-preview-head">
+              <p className="pt-muted pt-small pt-hint" style={{ "--part": partColor(activePart) }}>
+                <span className="pt-dot" aria-hidden="true" />
+                Click pages to add them to file {activePart + 1}. Shift-click to add a whole run of pages, 🔍 to see a page up close.
+              </p>
+              <div className="pt-segmented" role="group" aria-label="Thumbnail size">
+                {THUMB_SIZES.map(([id, label]) => (
+                  <button key={id} className={id === thumbs ? "on" : ""} aria-pressed={id === thumbs} onClick={() => update({ thumbs: id })}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className={`pt-thumbs size-${thumbs}`}>
               {pageParts.map((inParts, i) => (
                 <Thumb
                   key={i}
@@ -236,10 +251,25 @@ export function Splitter() {
                   pageIndex={i}
                   parts={inParts}
                   activePart={activePart}
+                  size={thumbs}
                   onClick={(shift) => clickPage(i, shift)}
+                  onZoom={() => setViewing(i)}
                 />
               ))}
             </div>
+            {viewing !== null && (
+              <PageViewer
+                doc={file.doc}
+                pageIndex={viewing}
+                onPage={setViewing}
+                onClose={() => setViewing(null)}
+                parts={pageParts[viewing]}
+                partColor={partColor}
+                activePart={activePart}
+                canToggle={!rangeError}
+                onToggle={() => clickPage(viewing, false)}
+              />
+            )}
           </>
         ) : (
           <div className="pt-placeholder">Page thumbnails show up here.</div>
@@ -250,8 +280,9 @@ export function Splitter() {
 }
 
 // A page thumbnail that renders only once it scrolls into view, so long
-// documents don't render every page up front.
-function Thumb({ doc, pageIndex, parts, activePart, onClick }) {
+// documents don't render every page up front. It's drawn at twice its
+// on-screen width, and again when the thumbnail size changes.
+function Thumb({ doc, pageIndex, parts, activePart, size, onClick, onZoom }) {
   const ref = useRef(null);
   const canvasRef = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -271,44 +302,55 @@ function Thumb({ doc, pageIndex, parts, activePart, onClick }) {
       const page = await doc.getPage(pageIndex + 1);
       if (cancelled) return;
       const base = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: (THUMB_PX * 2) / base.width });
-      const canvas = canvasRef.current;
-      canvas.width = Math.round(viewport.width);
-      canvas.height = Math.round(viewport.height);
-      task = page.render({ canvasContext: canvas.getContext("2d"), viewport });
+      const width = Math.max(ref.current.clientWidth, 110) * 2;
+      const viewport = page.getViewport({ scale: width / base.width });
+      // Drawn offscreen first, so a resize doesn't blank the old thumbnail.
+      const off = document.createElement("canvas");
+      off.width = Math.round(viewport.width);
+      off.height = Math.round(viewport.height);
+      task = page.render({ canvasContext: off.getContext("2d"), viewport });
       await task.promise;
-      if (!cancelled) setReady(true);
+      if (cancelled) return;
+      const canvas = canvasRef.current;
+      canvas.width = off.width;
+      canvas.height = off.height;
+      canvas.getContext("2d").drawImage(off, 0, 0);
+      setReady(true);
     })().catch(() => {});
     return () => {
       cancelled = true;
       task?.cancel();
     };
-  }, [visible, doc, pageIndex]);
+  }, [visible, doc, pageIndex, size]);
 
   const used = parts.length > 0;
   const selected = parts.includes(activePart);
   return (
-    <button
-      ref={ref}
-      className={`pt-thumb${used ? "" : " unused"}`}
-      style={used ? { "--part": partColor(selected ? activePart : parts[0]) } : undefined}
-      aria-pressed={selected}
-      aria-label={`Page ${pageIndex + 1}`}
-      onClick={(e) => onClick(e.shiftKey)}
-    >
-      <span className="pt-thumb-page">
-        <canvas ref={canvasRef} className={ready ? "" : "pending"} />
-        {used && (
-          <span className="pt-badges">
-            {parts.map((p) => (
-              <span key={p} className="pt-badge" style={{ "--part": partColor(p) }}>
-                {p + 1}
-              </span>
-            ))}
-          </span>
-        )}
-      </span>
-      <span className="pt-muted">{pageIndex + 1}</span>
-    </button>
+    <div className="pt-thumb-wrap" ref={ref}>
+      <button
+        className={`pt-thumb${used ? "" : " unused"}`}
+        style={used ? { "--part": partColor(selected ? activePart : parts[0]) } : undefined}
+        aria-pressed={selected}
+        aria-label={`Page ${pageIndex + 1}`}
+        onClick={(e) => onClick(e.shiftKey)}
+      >
+        <span className="pt-thumb-page">
+          <canvas ref={canvasRef} className={ready ? "" : "pending"} />
+          {used && (
+            <span className="pt-badges">
+              {parts.map((p) => (
+                <span key={p} className="pt-badge" style={{ "--part": partColor(p) }}>
+                  {p + 1}
+                </span>
+              ))}
+            </span>
+          )}
+        </span>
+        <span className="pt-muted">{pageIndex + 1}</span>
+      </button>
+      <button className="pt-zoom" aria-label={`View page ${pageIndex + 1} larger`} onClick={onZoom}>
+        🔍
+      </button>
+    </div>
   );
 }

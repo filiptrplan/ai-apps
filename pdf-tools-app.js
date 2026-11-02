@@ -20073,22 +20073,121 @@
     return new Blob([...local, ...central, end], { type: "application/zip" });
   }
 
-  // pdf-tools/Splitter.jsx
+  // pdf-tools/PageViewer.jsx
   var { useState: useState4, useEffect: useEffect3, useRef: useRef3 } = React;
-  var DEFAULT_SETTINGS2 = { mode: "ranges", every: 1 };
-  var THUMB_PX = 150;
+  var ZOOMS = [1, 1.5, 2, 3];
+  var MAX_PIXELS = 24e6;
+  function PageViewer({ doc, pageIndex, onPage, onClose, parts, partColor: partColor2, activePart, onToggle, canToggle }) {
+    const pageCount = doc.numPages;
+    const stageRef = useRef3(null);
+    const holderRef = useRef3(null);
+    const [zoom, setZoom] = useState4(0);
+    const [screen, setScreen] = useState4(() => [window.innerWidth, window.innerHeight]);
+    const [size, setSize] = useState4(null);
+    useEffect3(() => {
+      const onResize = () => setScreen([window.innerWidth, window.innerHeight]);
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }, []);
+    const go = (step) => onPage(Math.min(pageCount - 1, Math.max(0, pageIndex + step)));
+    const zoomBy = (step) => setZoom((z) => Math.min(ZOOMS.length - 1, Math.max(0, z + step)));
+    useEffect3(() => {
+      function onKey(e) {
+        if (e.key === "Escape") onClose();
+        else if (e.key === "ArrowRight" || e.key === "PageDown") go(1);
+        else if (e.key === "ArrowLeft" || e.key === "PageUp") go(-1);
+        else if (e.key === "+" || e.key === "=") zoomBy(1);
+        else if (e.key === "-") zoomBy(-1);
+        else return;
+        e.preventDefault();
+      }
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    });
+    useEffect3(() => {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => document.body.style.overflow = prev;
+    }, []);
+    useEffect3(() => {
+      let cancelled = false;
+      let task = null;
+      (async () => {
+        const page = await doc.getPage(pageIndex + 1);
+        if (cancelled) return;
+        const base = page.getViewport({ scale: 1 });
+        const stage = stageRef.current;
+        const fit = Math.min((stage.clientWidth - 32) / base.width, (stage.clientHeight - 32) / base.height);
+        const cssScale = Math.max(fit, 0.1) * ZOOMS[zoom];
+        const dpr = window.devicePixelRatio || 1;
+        const pixelScale = Math.min(cssScale * dpr, Math.sqrt(MAX_PIXELS / (base.width * base.height)));
+        const viewport = page.getViewport({ scale: pixelScale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        task = page.render({ canvasContext: canvas.getContext("2d"), viewport });
+        await task.promise;
+        if (cancelled) return;
+        holderRef.current.replaceChildren(canvas);
+        setSize([Math.round(base.width * cssScale), Math.round(base.height * cssScale)]);
+      })().catch(() => {
+      });
+      return () => {
+        cancelled = true;
+        task == null ? void 0 : task.cancel();
+      };
+    }, [doc, pageIndex, zoom, screen]);
+    const selected = parts.includes(activePart);
+    return /* @__PURE__ */ React.createElement("div", { className: "pt-viewer", role: "dialog", "aria-modal": "true", "aria-label": `Page ${pageIndex + 1}` }, /* @__PURE__ */ React.createElement("div", { className: "pt-viewer-bar" }, /* @__PURE__ */ React.createElement("span", { className: "pt-viewer-title" }, "Page ", pageIndex + 1, " ", /* @__PURE__ */ React.createElement("span", { className: "pt-viewer-dim" }, "of ", pageCount), parts.map((p) => /* @__PURE__ */ React.createElement("span", { key: p, className: "pt-badge", style: { "--part": partColor2(p) } }, p + 1))), /* @__PURE__ */ React.createElement("span", { className: "pt-viewer-tools" }, /* @__PURE__ */ React.createElement("button", { onClick: () => zoomBy(-1), disabled: zoom === 0, "aria-label": "Zoom out" }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "pt-viewer-zoom" }, ZOOMS[zoom] * 100, "%"), /* @__PURE__ */ React.createElement("button", { onClick: () => zoomBy(1), disabled: zoom === ZOOMS.length - 1, "aria-label": "Zoom in" }, "+"), /* @__PURE__ */ React.createElement("button", { onClick: onClose, "aria-label": "Close" }, "\u2715"))), /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: `pt-viewer-stage${zoom === ZOOMS.length - 1 ? " max" : ""}`,
+        ref: stageRef,
+        onClick: (e) => e.target === e.currentTarget && onClose()
+      },
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          className: "pt-viewer-page",
+          ref: holderRef,
+          style: size ? { width: size[0], height: size[1] } : void 0,
+          onClick: () => zoomBy(zoom === ZOOMS.length - 1 ? -ZOOMS.length : 1)
+        }
+      )
+    ), /* @__PURE__ */ React.createElement("div", { className: "pt-viewer-bar pt-viewer-foot" }, /* @__PURE__ */ React.createElement("button", { onClick: () => go(-1), disabled: pageIndex === 0, "aria-label": "Previous page" }, "\u2039"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "pt-viewer-toggle",
+        style: { "--part": partColor2(activePart) },
+        disabled: !canToggle,
+        onClick: onToggle
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }),
+      selected ? `Remove from file ${activePart + 1}` : `Add to file ${activePart + 1}`
+    ), /* @__PURE__ */ React.createElement("button", { onClick: () => go(1), disabled: pageIndex === pageCount - 1, "aria-label": "Next page" }, "\u203A")));
+  }
+
+  // pdf-tools/Splitter.jsx
+  var { useState: useState5, useEffect: useEffect4, useRef: useRef4 } = React;
+  var DEFAULT_SETTINGS2 = { mode: "ranges", every: 1, thumbs: "s" };
+  var THUMB_SIZES = [
+    ["s", "S"],
+    ["m", "M"],
+    ["l", "L"]
+  ];
   var PART_COLORS = ["#2B5FD9", "#D2602A", "#1E9468", "#9C3FC4", "#B3870F", "#CC3A68", "#2795A6", "#6E7F22"];
   var partColor = (i) => PART_COLORS[i % PART_COLORS.length];
   function Splitter() {
     var _a;
     const [settings, setSettings] = useLocalStorage("pdf-tools-split", DEFAULT_SETTINGS2);
     const { file, loading: loading2, open } = usePdfFile();
-    const [ranges, setRanges] = useState4("");
-    const [active, setActive] = useState4(0);
-    const [busy, setBusy] = useState4(null);
-    const [error2, setError] = useState4("");
-    const anchorRef = useRef3(null);
-    const { mode, every } = settings;
+    const [ranges, setRanges] = useState5("");
+    const [active, setActive] = useState5(0);
+    const [busy, setBusy] = useState5(null);
+    const [error2, setError] = useState5("");
+    const [viewing, setViewing] = useState5(null);
+    const anchorRef = useRef4(null);
+    const { mode, every, thumbs } = settings;
     const update = (patch) => setSettings({ ...settings, ...patch });
     const pageCount = (_a = file == null ? void 0 : file.doc.numPages) != null ? _a : 0;
     const everyN = Math.max(1, Math.floor(Number(every)) || 1);
@@ -20129,6 +20228,7 @@
       try {
         await open(f);
         selectPart(0);
+        setViewing(null);
       } catch (err) {
         setError(err.message);
       }
@@ -20192,7 +20292,7 @@
         value: every,
         onChange: (e) => update({ every: e.target.value })
       }
-    ))), (rangeError || error2) && /* @__PURE__ */ React.createElement("p", { className: "pt-error" }, rangeError || error2), file && !rangeError && /* @__PURE__ */ React.createElement("div", { className: "pt-card pt-files" }, /* @__PURE__ */ React.createElement("div", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", { className: "pt-label" }, parts.length || "No", " ", parts.length === 1 ? "file" : "files", unused > 0 && parts.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "pt-muted pt-small pt-unused" }, " ", "\xB7 ", unused, " ", unused === 1 ? "page" : "pages", " left out")), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: activePart === parts.length, onClick: () => selectPart(parts.length) }, "+ New file")), /* @__PURE__ */ React.createElement("ol", { className: "pt-file-list" }, parts.map(({ pages }, i) => /* @__PURE__ */ React.createElement("li", { key: i, className: `pt-file${i === activePart ? " active" : ""}`, style: { "--part": partColor(i) } }, /* @__PURE__ */ React.createElement("button", { className: "pt-file-select", "aria-pressed": i === activePart, onClick: () => selectPart(i) }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages" }, pages.length === 1 ? "Page" : "Pages", " ", describePages(pages))), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: busy !== null, onClick: () => downloadPart(i) }, busy === i ? "Saving\u2026" : "Download"))), activePart === parts.length && /* @__PURE__ */ React.createElement("li", { className: "pt-file active", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-file-select" }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages pt-muted" }, "New file \xB7 click pages to add them"))))), /* @__PURE__ */ React.createElement("button", { className: "pt-primary", disabled: !canSave, onClick: downloadAll }, busy === "all" ? "Saving\u2026" : parts.length > 1 ? "Download all (.zip)" : "Download PDF"), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "Your PDF never leaves this device. Pages keep their text, links and annotations; bookmarks aren't carried over.")), /* @__PURE__ */ React.createElement("section", { className: "pt-preview" }, file ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small pt-hint", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), "Click pages to add them to file ", activePart + 1, ". Shift-click to add a whole run of pages."), /* @__PURE__ */ React.createElement("div", { className: "pt-thumbs" }, pageParts.map((inParts, i) => /* @__PURE__ */ React.createElement(
+    ))), (rangeError || error2) && /* @__PURE__ */ React.createElement("p", { className: "pt-error" }, rangeError || error2), file && !rangeError && /* @__PURE__ */ React.createElement("div", { className: "pt-card pt-files" }, /* @__PURE__ */ React.createElement("div", { className: "pt-row" }, /* @__PURE__ */ React.createElement("span", { className: "pt-label" }, parts.length || "No", " ", parts.length === 1 ? "file" : "files", unused > 0 && parts.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "pt-muted pt-small pt-unused" }, " ", "\xB7 ", unused, " ", unused === 1 ? "page" : "pages", " left out")), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: activePart === parts.length, onClick: () => selectPart(parts.length) }, "+ New file")), /* @__PURE__ */ React.createElement("ol", { className: "pt-file-list" }, parts.map(({ pages }, i) => /* @__PURE__ */ React.createElement("li", { key: i, className: `pt-file${i === activePart ? " active" : ""}`, style: { "--part": partColor(i) } }, /* @__PURE__ */ React.createElement("button", { className: "pt-file-select", "aria-pressed": i === activePart, onClick: () => selectPart(i) }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages" }, pages.length === 1 ? "Page" : "Pages", " ", describePages(pages))), /* @__PURE__ */ React.createElement("button", { className: "pt-link", disabled: busy !== null, onClick: () => downloadPart(i) }, busy === i ? "Saving\u2026" : "Download"))), activePart === parts.length && /* @__PURE__ */ React.createElement("li", { className: "pt-file active", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-file-select" }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "pt-file-pages pt-muted" }, "New file \xB7 click pages to add them"))))), /* @__PURE__ */ React.createElement("button", { className: "pt-primary", disabled: !canSave, onClick: downloadAll }, busy === "all" ? "Saving\u2026" : parts.length > 1 ? "Download all (.zip)" : "Download PDF"), /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small" }, "Your PDF never leaves this device. Pages keep their text, links and annotations; bookmarks aren't carried over.")), /* @__PURE__ */ React.createElement("section", { className: "pt-preview" }, file ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "pt-preview-head" }, /* @__PURE__ */ React.createElement("p", { className: "pt-muted pt-small pt-hint", style: { "--part": partColor(activePart) } }, /* @__PURE__ */ React.createElement("span", { className: "pt-dot", "aria-hidden": "true" }), "Click pages to add them to file ", activePart + 1, ". Shift-click to add a whole run of pages, \u{1F50D} to see a page up close."), /* @__PURE__ */ React.createElement("div", { className: "pt-segmented", role: "group", "aria-label": "Thumbnail size" }, THUMB_SIZES.map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, className: id === thumbs ? "on" : "", "aria-pressed": id === thumbs, onClick: () => update({ thumbs: id }) }, label)))), /* @__PURE__ */ React.createElement("div", { className: `pt-thumbs size-${thumbs}` }, pageParts.map((inParts, i) => /* @__PURE__ */ React.createElement(
       Thumb,
       {
         key: i,
@@ -20200,21 +20300,36 @@
         pageIndex: i,
         parts: inParts,
         activePart,
-        onClick: (shift) => clickPage(i, shift)
+        size: thumbs,
+        onClick: (shift) => clickPage(i, shift),
+        onZoom: () => setViewing(i)
       }
-    )))) : /* @__PURE__ */ React.createElement("div", { className: "pt-placeholder" }, "Page thumbnails show up here.")));
+    ))), viewing !== null && /* @__PURE__ */ React.createElement(
+      PageViewer,
+      {
+        doc: file.doc,
+        pageIndex: viewing,
+        onPage: setViewing,
+        onClose: () => setViewing(null),
+        parts: pageParts[viewing],
+        partColor,
+        activePart,
+        canToggle: !rangeError,
+        onToggle: () => clickPage(viewing, false)
+      }
+    )) : /* @__PURE__ */ React.createElement("div", { className: "pt-placeholder" }, "Page thumbnails show up here.")));
   }
-  function Thumb({ doc, pageIndex, parts, activePart, onClick }) {
-    const ref = useRef3(null);
-    const canvasRef = useRef3(null);
-    const [visible, setVisible] = useState4(false);
-    const [ready, setReady] = useState4(false);
-    useEffect3(() => {
+  function Thumb({ doc, pageIndex, parts, activePart, size, onClick, onZoom }) {
+    const ref = useRef4(null);
+    const canvasRef = useRef4(null);
+    const [visible, setVisible] = useState5(false);
+    const [ready, setReady] = useState5(false);
+    useEffect4(() => {
       const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && setVisible(true), { rootMargin: "400px" });
       observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!visible) return;
       let cancelled = false;
       let task = null;
@@ -20222,26 +20337,31 @@
         const page = await doc.getPage(pageIndex + 1);
         if (cancelled) return;
         const base = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: THUMB_PX * 2 / base.width });
-        const canvas = canvasRef.current;
-        canvas.width = Math.round(viewport.width);
-        canvas.height = Math.round(viewport.height);
-        task = page.render({ canvasContext: canvas.getContext("2d"), viewport });
+        const width = Math.max(ref.current.clientWidth, 110) * 2;
+        const viewport = page.getViewport({ scale: width / base.width });
+        const off = document.createElement("canvas");
+        off.width = Math.round(viewport.width);
+        off.height = Math.round(viewport.height);
+        task = page.render({ canvasContext: off.getContext("2d"), viewport });
         await task.promise;
-        if (!cancelled) setReady(true);
+        if (cancelled) return;
+        const canvas = canvasRef.current;
+        canvas.width = off.width;
+        canvas.height = off.height;
+        canvas.getContext("2d").drawImage(off, 0, 0);
+        setReady(true);
       })().catch(() => {
       });
       return () => {
         cancelled = true;
         task == null ? void 0 : task.cancel();
       };
-    }, [visible, doc, pageIndex]);
+    }, [visible, doc, pageIndex, size]);
     const used = parts.length > 0;
     const selected = parts.includes(activePart);
-    return /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "pt-thumb-wrap", ref }, /* @__PURE__ */ React.createElement(
       "button",
       {
-        ref,
         className: `pt-thumb${used ? "" : " unused"}`,
         style: used ? { "--part": partColor(selected ? activePart : parts[0]) } : void 0,
         "aria-pressed": selected,
@@ -20250,11 +20370,11 @@
       },
       /* @__PURE__ */ React.createElement("span", { className: "pt-thumb-page" }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: ready ? "" : "pending" }), used && /* @__PURE__ */ React.createElement("span", { className: "pt-badges" }, parts.map((p) => /* @__PURE__ */ React.createElement("span", { key: p, className: "pt-badge", style: { "--part": partColor(p) } }, p + 1)))),
       /* @__PURE__ */ React.createElement("span", { className: "pt-muted" }, pageIndex + 1)
-    );
+    ), /* @__PURE__ */ React.createElement("button", { className: "pt-zoom", "aria-label": `View page ${pageIndex + 1} larger`, onClick: onZoom }, "\u{1F50D}"));
   }
 
   // pdf-tools/App.jsx
-  var { useState: useState5, useEffect: useEffect4 } = React;
+  var { useState: useState6, useEffect: useEffect5 } = React;
   var TOOLS = [
     {
       id: "margins",
@@ -20275,13 +20395,13 @@
     return (_a = TOOLS.find((t) => t.id === id)) != null ? _a : null;
   }
   function PdfToolsApp() {
-    const [tool, setTool] = useState5(currentTool);
-    useEffect4(() => {
+    const [tool, setTool] = useState6(currentTool);
+    useEffect5(() => {
       const onHash = () => setTool(currentTool());
       window.addEventListener("hashchange", onHash);
       return () => window.removeEventListener("hashchange", onHash);
     }, []);
-    useEffect4(() => {
+    useEffect5(() => {
       document.title = tool ? `${tool.title} \xB7 PDF Tools` : "PDF Tools";
     }, [tool]);
     return /* @__PURE__ */ React.createElement("div", { className: `pt${tool ? " pt-wide" : ""}` }, /* @__PURE__ */ React.createElement("header", { className: "pt-header" }, /* @__PURE__ */ React.createElement("a", { className: "pt-back", href: tool ? "#" : "./", "aria-label": tool ? "All PDF tools" : "All apps" }, "\u2039"), /* @__PURE__ */ React.createElement("h1", null, tool ? tool.title : "PDF Tools")), tool ? /* @__PURE__ */ React.createElement(tool.Component, null) : /* @__PURE__ */ React.createElement("main", { className: "pt-list" }, TOOLS.map((t) => /* @__PURE__ */ React.createElement("a", { className: "pt-item", key: t.id, href: `#${t.id}` }, /* @__PURE__ */ React.createElement("span", { className: "pt-item-title" }, t.title), /* @__PURE__ */ React.createElement("span", { className: "pt-muted" }, t.desc)))));
