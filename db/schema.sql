@@ -846,6 +846,20 @@ CREATE TABLE public.mo_admin_sessions (
 
 
 --
+-- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_subscriptions (
+    endpoint text NOT NULL,
+    user_id uuid NOT NULL,
+    app_id text NOT NULL,
+    p256dh text NOT NULL,
+    auth text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -968,6 +982,14 @@ ALTER TABLE ONLY public.mo_settings
 
 
 --
+-- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_pkey PRIMARY KEY (endpoint);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1040,6 +1062,13 @@ CREATE INDEX mo_chores_category_id_idx ON public.mo_chores USING btree (category
 --
 
 CREATE INDEX mo_reward_requests_status_idx ON public.mo_reward_requests USING btree (status);
+
+
+--
+-- Name: push_subscriptions_user_app_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX push_subscriptions_user_app_idx ON public.push_subscriptions USING btree (user_id, app_id);
 
 
 --
@@ -1145,6 +1174,14 @@ ALTER TABLE ONLY public.mo_reward_requests
 
 
 --
+-- Name: push_subscriptions push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1165,4 +1202,5 @@ ALTER TABLE ONLY public.sessions
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20261030130000'),
-    ('20261030150000');
+    ('20261030150000'),
+    ('20261102120000');

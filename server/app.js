@@ -5,12 +5,15 @@
 // jose key set, see mcp.js); without it /mcp isn't served.
 // `moNtfyUrl`: where Marsova opravila's reward requests are announced (see
 // routes/mo.js); without it, they aren't.
+// `vapid`: { publicKey, privateKey, subject } for Web Push (see push.js);
+// without it push is off. `sendNotification` replaces web-push's in tests.
 
 import express from "express";
 import { createAppDataStore } from "./appData.js";
 import { createAuth } from "./auth.js";
 import { createEventHub } from "./events.js";
 import { createTokenVerifier, MCP_PATH, mcpRoutes } from "./mcp.js";
+import { createPush, pushRoutes } from "./push.js";
 import { createStorage } from "./storage.js";
 import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
@@ -20,11 +23,12 @@ import { mapsRoutes } from "./routes/maps.js";
 import { moRoutes } from "./routes/mo.js";
 import { storageRoutes } from "./routes/storage.js";
 
-export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, mcp, moNtfyUrl, sha = "dev" }) {
+export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig, mcp, moNtfyUrl, vapid, sendNotification, sha = "dev" }) {
   const appData = createAppDataStore(sql);
   const auth = createAuth({ sql, getOidcConfig, publicUrl });
   const storage = createStorage(storageDir);
   const events = createEventHub();
+  const push = createPush({ sql, vapid, sendNotification });
   const fn = fnRoutes({ appData, storage });
   const { requireUser } = auth;
 
@@ -49,10 +53,11 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   app.use(auth.loadUser);
   app.use(auth.router);
   // Storage takes raw bodies, so JSON parsing is limited to the JSON APIs.
-  app.use(["/api/data", "/api/backups", "/api/mo"], express.json({ limit: "20mb" }));
+  app.use(["/api/data", "/api/backups", "/api/mo", "/api/push"], express.json({ limit: "20mb" }));
   app.use(dataRoutes({ appData, requireUser }));
   app.use(backupRoutes({ appData, requireUser }));
   app.use(storageRoutes({ storage, requireUser }));
+  app.use(pushRoutes({ push, requireUser }));
   app.use(moRoutes({ sql, ntfyUrl: moNtfyUrl, publicUrl }));
   app.use(fn.router);
   app.use(events.router);
@@ -70,5 +75,5 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
     res.status(500).json({ error: "Something went wrong on the server." });
   });
 
-  return { app, appData, auth, events, fn };
+  return { app, appData, auth, events, fn, push };
 }

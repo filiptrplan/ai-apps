@@ -74,3 +74,7 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// Push notifications sent by the server (see shared/push-sw.js).
+self.PUSH_APP = { id: "recipes", name: "Recipes", icon: "./recipes/icon.png" };
+importScripts("./shared/push-sw.js");
