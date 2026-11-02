@@ -5,8 +5,14 @@
 //   importScripts("./shared/push-sw.js");
 //
 // A push carries JSON: { title, body?, tag?, url?, icon?, renotify?,
-// requireInteraction?, silent?, vibrate? }. Tapping the notification
-// focuses the app (on `url` if given) or opens it.
+// requireInteraction?, silent?, vibrate?, key?, close? }. Tapping the
+// notification focuses the app (on `url` if given) or opens it.
+//
+// `key` names what the notification is about: if the page already showed
+// one with the same tag and key (a page that was still running got there
+// first), the push replaces it without alerting again. The page sets the key
+// in its notification's `data`. `close` lists tags of the app's own
+// notifications to close (e.g. a countdown that's now over).
 
 self.addEventListener("push", (event) => {
   let data = {};
@@ -16,20 +22,33 @@ self.addEventListener("push", (event) => {
     data = { body: event.data.text() };
   }
   const app = self.PUSH_APP || {};
-  const options = {
-    body: data.body,
-    icon: data.icon || app.icon,
-    tag: data.tag,
-    // Re-alerting needs a tag to replace; without one it's a TypeError.
-    renotify: Boolean(data.renotify && data.tag),
-    requireInteraction: Boolean(data.requireInteraction),
-    silent: Boolean(data.silent),
-    vibrate: data.vibrate,
-    data: { push: true, url: new URL(data.url || self.registration.scope, self.registration.scope).href },
-  };
-  // A push must show something: browsers penalise (Chrome) or revoke
-  // (Safari) silent pushes, so even an empty one gets a title.
-  event.waitUntil(self.registration.showNotification(data.title || app.name || "Notification", options));
+  event.waitUntil(
+    (async () => {
+      const reg = self.registration;
+      let seen = false;
+      if (data.tag && data.key) {
+        const same = await reg.getNotifications({ tag: data.tag }).catch(() => []);
+        seen = same.some((n) => n.data && n.data.key === data.key);
+      }
+      for (const tag of Array.isArray(data.close) ? data.close : []) {
+        const open = await reg.getNotifications({ tag }).catch(() => []);
+        open.forEach((n) => n.close());
+      }
+      // A push must show something: browsers penalise (Chrome) or revoke
+      // (Safari) pushes that don't, so even an empty or repeated one does.
+      await reg.showNotification(data.title || app.name || "Notification", {
+        body: data.body,
+        icon: data.icon || app.icon,
+        tag: data.tag,
+        // Re-alerting needs a tag to replace; without one it's a TypeError.
+        renotify: Boolean(data.renotify && data.tag && !seen),
+        requireInteraction: Boolean(data.requireInteraction),
+        silent: Boolean(data.silent || seen),
+        vibrate: seen ? undefined : data.vibrate,
+        data: { push: true, key: data.key, url: new URL(data.url || reg.scope, reg.scope).href },
+      });
+    })()
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

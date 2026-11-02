@@ -54,7 +54,7 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const { app, appData, auth, events, fn, push } = createApp({
+  const { app, appData, auth, events, fn, push, reminders } = createApp({
     sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig, mcp, moNtfyUrl, vapid, sendNotification,
   });
   server.on("request", app);
@@ -139,5 +139,5 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
     await rm(storageDir, { recursive: true, force: true });
   }
 
-  return { sql, base, appData, auth, events, fn, push, listener, storageDir, addUser, signedIn, request, stream, close };
+  return { sql, base, appData, auth, events, fn, push, reminders, listener, storageDir, addUser, signedIn, request, stream, close };
 }

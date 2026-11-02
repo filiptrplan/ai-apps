@@ -4,6 +4,7 @@
 // data and the actions on it.
 import { useSyncedStorage } from "../shared/syncStorage.js";
 import { useSession } from "../shared/auth.js";
+import { syncPush } from "../shared/push.js";
 import {
   APP_ID, KEYS, DEFAULT_SETTINGS, DEFAULT_LISTENING, DEFAULT_PODCAST, SUGGEST_BUFFER,
   dayKey, normSettings, normListening, normPodcast, makeCard, findDuplicate, logEpisode, episodeMinutes,
@@ -85,6 +86,10 @@ export function GermanApp() {
   const settings = useMemo(() => normSettings(storedSettings), [storedSettings]);
   const listening = useMemo(() => normListening(storedListening), [storedListening]);
   const podcast = useMemo(() => normPodcast(storedPodcast, settings), [storedPodcast, settings]);
+
+  // Keeps this device's push subscription (for the daily reminder) with
+  // whoever is signed in.
+  useEffect(() => { if (session) syncPush(APP_ID); }, [session?.user.id]);
 
   const [toast, setToast] = useState(null);
   const toastT = useRef(null);

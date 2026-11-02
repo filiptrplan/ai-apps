@@ -40,7 +40,7 @@ CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the mi
 - `backup.js`: restoring the daily snapshots of the user's `app_data` (the server takes them and keeps 7 days), from `index.html`.
 - `ai.js`: `callAI(functionName, body)` calls an AI function (`POST /api/fn/<name>`) and throws an `Error` carrying the function's `{ error }` message, so apps can show it as is.
 - `prices.js`: Aldi price estimates for the Recipes and Shopping List apps.
-- `push.js` and `push-sw.js`: push notifications. A page turns them on with `enablePush(appId)` (from a tap) and calls `syncPush(appId)` on load; the app's service worker sets `self.PUSH_APP` and imports `push-sw.js`; the server sends with `push.send(userId, appId, payload)` (`server/push.js`). Subscriptions are per app and per device.
+- `push.js` and `push-sw.js`: push notifications. A page turns them on with `enablePush(appId)` (from a tap) and calls `syncPush(appId)` on load; the app's service worker sets `self.PUSH_APP` and imports `push-sw.js`; the server sends with `push.send(userId, appId, payload)` (`server/push.js`), and a page can have one sent later with `PUT /api/push/scheduled/:app/:id` (the climbing tracker's "Rest over" while it's in the background). Subscriptions are per app and per device.
 
 ### Saving data: `app_data` and `useSyncedStorage`
 

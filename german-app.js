@@ -74,9 +74,9 @@
     });
   }
   function useSession() {
-    const { useState: useState12, useEffect: useEffect9 } = React;
+    const { useState: useState12, useEffect: useEffect10 } = React;
     const [session, setSession] = useState12(current);
-    useEffect9(() => {
+    useEffect10(() => {
       let cancelled = false;
       getSession().then((s) => {
         if (!cancelled) setSession(s);
@@ -247,7 +247,7 @@
         queue.inFlight = false;
       }
     }, [appId, key]);
-    const save = useCallback((val) => {
+    const save2 = useCallback((val) => {
       setConflict(null);
       const next = typeof val === "function" ? val(dataRef.current) : val;
       dataRef.current = next;
@@ -330,7 +330,60 @@
         stopSession();
       };
     }, [appId, key, pushRemote, reconcile]);
-    return [data, save, conflict];
+    return [data, save2, conflict];
+  }
+
+  // shared/push.js
+  function pushSupported() {
+    return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  }
+  async function registration() {
+    return navigator.serviceWorker.ready;
+  }
+  function keyBytes(base64url) {
+    const b64 = (base64url + "=".repeat((4 - base64url.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+    return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  }
+  function sameKey(buffer, bytes) {
+    if (!buffer) return false;
+    const a = new Uint8Array(buffer);
+    return a.length === bytes.length && a.every((v, i) => v === bytes[i]);
+  }
+  async function pushState() {
+    if (!pushSupported()) return "unsupported";
+    if (Notification.permission === "denied") return "denied";
+    if (Notification.permission !== "granted") return "off";
+    const sub = await (await registration()).pushManager.getSubscription();
+    return sub ? "on" : "off";
+  }
+  function save(appId, sub) {
+    return apiFetch("/api/push/subscriptions", { json: { appId, subscription: sub.toJSON() } });
+  }
+  async function enablePush(appId) {
+    var _a;
+    if (!pushSupported()) return "unsupported";
+    const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (permission !== "granted") return permission === "denied" ? "denied" : "off";
+    const { publicKey } = await apiFetch("/api/push/key");
+    const key = keyBytes(publicKey);
+    const reg = await registration();
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && !sameKey((_a = sub.options) == null ? void 0 : _a.applicationServerKey, key)) {
+      await sub.unsubscribe().catch(() => {
+      });
+      sub = null;
+    }
+    sub != null ? sub : sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await save(appId, sub);
+    return "on";
+  }
+  async function syncPush(appId) {
+    try {
+      if (!pushSupported() || Notification.permission !== "granted") return;
+      const sub = await (await registration()).pushManager.getSubscription();
+      if (sub) await save(appId, sub);
+    } catch {
+    }
   }
 
   // german/fsrs.js
@@ -611,7 +664,12 @@
     // Mo, Mi, Fr
     podcastPace: "slower",
     // how fast the podcast hosts speak: one of PODCAST_PACES
-    newPerDay: 6
+    newPerDay: 6,
+    // A daily push notification at `time` (in the time zone `tz`, the
+    // device's when it was turned on) listing what's left of today's tasks.
+    // Sent by the server (server/reminders.js), to every device with
+    // notifications on for the app.
+    reminder: { on: false, time: "18:00", tz: "" }
   };
   var DEFAULT_LISTENING = {
     resources: [
@@ -659,8 +717,14 @@
       writingDays: Array.isArray(v.writingDays) ? v.writingDays.filter((d) => d >= 0 && d < 7) : [],
       podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter((d) => d >= 0 && d < 7) : [],
       podcastPace: PODCAST_PACES.includes(v.podcastPace) ? v.podcastPace : "slower",
-      newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0)))
+      newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0))),
+      reminder: normReminder(v.reminder)
     };
+  }
+  function normReminder(r) {
+    const v = r && typeof r === "object" ? r : {};
+    const time = typeof v.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.time) ? v.time : DEFAULT_SETTINGS.reminder.time;
+    return { on: v.on === true, time, tz: typeof v.tz === "string" ? v.tz : "" };
   }
   var levelIndex = (l) => Math.max(0, LEVELS.indexOf(l));
   function tasksFor(key, settings) {
@@ -1444,7 +1508,7 @@
     };
     const current3 = editing ? f : { ...f, de: input };
     const canSave = current3.kind === "gap" ? current3.text.includes("___") && current3.answer.trim() : current3.de.trim() && current3.en.trim();
-    const save = () => {
+    const save2 = () => {
       const fields = cleanFields(current3);
       if (editing) {
         app.updateCard(existing.id, (c) => {
@@ -1469,7 +1533,7 @@
     return /* @__PURE__ */ React.createElement(Screen, { label: editing ? "Edit card" : "Add word" }, /* @__PURE__ */ React.createElement("header", { className: "g-head" }, /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Close", onClick: back }), /* @__PURE__ */ React.createElement("h1", { style: { fontSize: 20 } }, editing ? "Edit card" : "Add word"), editing && /* @__PURE__ */ React.createElement("div", { className: "g-head-right" }, /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "outline", className: confirmDelete ? "danger" : void 0, onClick: remove }, confirmDelete ? "Delete?" : "Delete"))), !editing && /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 6 } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "word", className: "g-label" }, "German or English"), /* @__PURE__ */ React.createElement("form", { className: "g-bigfield", onSubmit: (e) => {
       e.preventDefault();
       fill();
-    } }, /* @__PURE__ */ React.createElement("input", { id: "word", value: input, autoFocus: true, autoComplete: "off", autoCapitalize: "off", spellCheck: "false", onChange: (e) => setInput(e.target.value) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "wand", label: "Fill in details", variant: "wand", busy: busy === "fill", disabled: !input.trim(), onClick: fill }))), error && /* @__PURE__ */ React.createElement("p", { className: "g-error", role: "alert" }, error), stage === "empty" && /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Type a word and tap the wand: article, plural, English and an example get filled in."), /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: byHand }, "Fill in by hand")), stage === "choose" && /* @__PURE__ */ React.createElement(Options, { options, onPick: pick }), stage === "form" && /* @__PURE__ */ React.createElement(Card, { label: "Card details" }, !editing && (filled ? /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { fontWeight: 700, color: "var(--mint)" } }, "Filled in \u2014 check and save") : /* @__PURE__ */ React.createElement(Choice, { label: "Kind of word", value: f.kind, onChange: (kind) => set2({ kind }), options: [["noun", "Noun"], ["verb", "Verb"], ["word", "Other"]] })), /* @__PURE__ */ React.createElement(Form, { f, set: set2, onExample: regenerate, exampleBusy: busy === "example", editing })), stage === "form" && /* @__PURE__ */ React.createElement("div", { className: "g-push" }, /* @__PURE__ */ React.createElement(Button, { variant: "mint", disabled: !canSave, onClick: save }, editing ? "Save" : "Save card")));
+    } }, /* @__PURE__ */ React.createElement("input", { id: "word", value: input, autoFocus: true, autoComplete: "off", autoCapitalize: "off", spellCheck: "false", onChange: (e) => setInput(e.target.value) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "wand", label: "Fill in details", variant: "wand", busy: busy === "fill", disabled: !input.trim(), onClick: fill }))), error && /* @__PURE__ */ React.createElement("p", { className: "g-error", role: "alert" }, error), stage === "empty" && /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Type a word and tap the wand: article, plural, English and an example get filled in."), /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: byHand }, "Fill in by hand")), stage === "choose" && /* @__PURE__ */ React.createElement(Options, { options, onPick: pick }), stage === "form" && /* @__PURE__ */ React.createElement(Card, { label: "Card details" }, !editing && (filled ? /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { fontWeight: 700, color: "var(--mint)" } }, "Filled in \u2014 check and save") : /* @__PURE__ */ React.createElement(Choice, { label: "Kind of word", value: f.kind, onChange: (kind) => set2({ kind }), options: [["noun", "Noun"], ["verb", "Verb"], ["word", "Other"]] })), /* @__PURE__ */ React.createElement(Form, { f, set: set2, onExample: regenerate, exampleBusy: busy === "example", editing })), stage === "form" && /* @__PURE__ */ React.createElement("div", { className: "g-push" }, /* @__PURE__ */ React.createElement(Button, { variant: "mint", disabled: !canSave, onClick: save2 }, editing ? "Save" : "Save card")));
   }
 
   // german/Deck.jsx
@@ -1682,7 +1746,7 @@
     const [adding, setAdding] = useState7(false);
     const res = resources.find((r) => r.id === current3);
     const idx = resources.indexOf(res);
-    const save = (patch) => app.setListening((l) => ({ ...listening, ...patch }));
+    const save2 = (patch) => app.setListening((l) => ({ ...listening, ...patch }));
     const week = weekKeys(today);
     const weekLog = log.filter((e) => week.includes(e.day));
     const name = (e) => {
@@ -1690,18 +1754,18 @@
       return e.res === "podcast" ? `Podcast \xB7 ${e.title}` : ((_a = resources.find((r) => r.id === e.res)) == null ? void 0 : _a.name) || "Removed resource";
     };
     const logMinutes = (min) => {
-      save({ log: [{ id: uid(), day: today, res: current3, min }, ...log] });
+      save2({ log: [{ id: uid(), day: today, res: current3, min }, ...log] });
       app.showToast(`Logged ${min} min \xB7 ${res.name}`);
     };
     const move = (i, d) => {
       const next = [...resources];
       [next[i], next[i + d]] = [next[i + d], next[i]];
-      save({ resources: next });
+      save2({ resources: next });
     };
-    return /* @__PURE__ */ React.createElement(Screen, { label: "Listening" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Listening", big: true }), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { margin: "0 4px" } }, "Aim to follow about 70%. German subtitles, not English. Doesn't count toward your daily time."), /* @__PURE__ */ React.createElement(NavList, { label: "Podcast", items: [{ href: "#/podcast", label: "AI podcast", note: "Episodes about your interests" }] }), res && /* @__PURE__ */ React.createElement(Card, { big: true, label: "Current resource" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "var(--mint)" } }, "Listening now"), res.level && /* @__PURE__ */ React.createElement(Tag, null, res.level)), /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 24, fontWeight: 800 } }, res.name), res.desc && /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, res.desc)), /* @__PURE__ */ React.createElement("div", { className: "g-grid2", style: { gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "mint", onClick: () => logMinutes(15) }, "+15 min"), /* @__PURE__ */ React.createElement(Button, { size: "md", onClick: () => logMinutes(30) }, "+30 min")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, res.url ? /* @__PURE__ */ React.createElement(LinkButton, { href: res.url }, "Open \u2197") : /* @__PURE__ */ React.createElement("span", null), idx < resources.length - 1 && /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "outline", onClick: () => save({ current: resources[idx + 1].id }) }, "Feels easy \u2014 move up"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Your list", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Your list"), resources.length > 0 && /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, resources.map((r, i) => /* @__PURE__ */ React.createElement("li", { key: r.id }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { padding: "10px 8px 10px 18px", borderBottom: i < resources.length - 1 ? "1px solid var(--line)" : 0 } }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "t", style: { background: "none", border: 0, padding: 0, textAlign: "left", flex: 1 }, onClick: () => save({ current: r.id }), "aria-label": `Listen to ${r.name} now` }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15, color: r.id === current3 ? "var(--mint)" : void 0 } }, r.name), /* @__PURE__ */ React.createElement("span", null, [r.level, r.desc].filter(Boolean).join(" \xB7 "))), /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 0 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "up", label: `Move ${r.name} up`, variant: "ghost", small: true, disabled: i === 0, onClick: () => move(i, -1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "down", label: `Move ${r.name} down`, variant: "ghost", small: true, disabled: i === resources.length - 1, onClick: () => move(i, 1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "trash", label: `Remove ${r.name}`, variant: "ghost", small: true, iconSize: 16, onClick: () => save({ resources: resources.filter((x) => x.id !== r.id) }) })))))), adding ? /* @__PURE__ */ React.createElement(AddResource, { onCancel: () => setAdding(false), onAdd: (r) => {
-      save({ resources: [...resources, r], current: current3 || r.id });
+    return /* @__PURE__ */ React.createElement(Screen, { label: "Listening" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Listening", big: true }), /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { margin: "0 4px" } }, "Aim to follow about 70%. German subtitles, not English. Doesn't count toward your daily time."), /* @__PURE__ */ React.createElement(NavList, { label: "Podcast", items: [{ href: "#/podcast", label: "AI podcast", note: "Episodes about your interests" }] }), res && /* @__PURE__ */ React.createElement(Card, { big: true, label: "Current resource" }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "var(--mint)" } }, "Listening now"), res.level && /* @__PURE__ */ React.createElement(Tag, null, res.level)), /* @__PURE__ */ React.createElement("div", { className: "g-stack", style: { gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 24, fontWeight: 800 } }, res.name), res.desc && /* @__PURE__ */ React.createElement("span", { className: "g-muted" }, res.desc)), /* @__PURE__ */ React.createElement("div", { className: "g-grid2", style: { gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "mint", onClick: () => logMinutes(15) }, "+15 min"), /* @__PURE__ */ React.createElement(Button, { size: "md", onClick: () => logMinutes(30) }, "+30 min")), /* @__PURE__ */ React.createElement("div", { className: "g-between" }, res.url ? /* @__PURE__ */ React.createElement(LinkButton, { href: res.url }, "Open \u2197") : /* @__PURE__ */ React.createElement("span", null), idx < resources.length - 1 && /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "outline", onClick: () => save2({ current: resources[idx + 1].id }) }, "Feels easy \u2014 move up"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "Your list", className: "g-stack" }, /* @__PURE__ */ React.createElement(Label, null, "Your list"), resources.length > 0 && /* @__PURE__ */ React.createElement("ul", { className: "g-list" }, resources.map((r, i) => /* @__PURE__ */ React.createElement("li", { key: r.id }, /* @__PURE__ */ React.createElement("div", { className: "g-between", style: { padding: "10px 8px 10px 18px", borderBottom: i < resources.length - 1 ? "1px solid var(--line)" : 0 } }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "t", style: { background: "none", border: 0, padding: 0, textAlign: "left", flex: 1 }, onClick: () => save2({ current: r.id }), "aria-label": `Listen to ${r.name} now` }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15, color: r.id === current3 ? "var(--mint)" : void 0 } }, r.name), /* @__PURE__ */ React.createElement("span", null, [r.level, r.desc].filter(Boolean).join(" \xB7 "))), /* @__PURE__ */ React.createElement("div", { className: "g-row", style: { gap: 0 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "up", label: `Move ${r.name} up`, variant: "ghost", small: true, disabled: i === 0, onClick: () => move(i, -1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "down", label: `Move ${r.name} down`, variant: "ghost", small: true, disabled: i === resources.length - 1, onClick: () => move(i, 1) }), /* @__PURE__ */ React.createElement(IconButton, { icon: "trash", label: `Remove ${r.name}`, variant: "ghost", small: true, iconSize: 16, onClick: () => save2({ resources: resources.filter((x) => x.id !== r.id) }) })))))), adding ? /* @__PURE__ */ React.createElement(AddResource, { onCancel: () => setAdding(false), onAdd: (r) => {
+      save2({ resources: [...resources, r], current: current3 || r.id });
       setAdding(false);
-    } }) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setAdding(true) }, "+ Add a resource"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "This week", className: "g-stack", style: { gap: 6 } }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "This week"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, minutesIn(log, week), " min")), weekLog.length ? weekLog.map((e) => /* @__PURE__ */ React.createElement("div", { key: e.id, className: "g-between", style: { fontSize: 14, padding: "0 4px" } }, /* @__PURE__ */ React.createElement("span", null, wd(e.day), " \xB7 ", name(e)), /* @__PURE__ */ React.createElement("span", { className: "g-row", style: { gap: 4, color: "var(--muted)" } }, e.min, " min", /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Remove this entry", variant: "ghost", small: true, iconSize: 14, onClick: () => save({ log: log.filter((x) => x.id !== e.id) }) })))) : /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Nothing logged yet this week.")));
+    } }) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(LinkButton, { mint: true, onClick: () => setAdding(true) }, "+ Add a resource"))), /* @__PURE__ */ React.createElement("section", { "aria-label": "This week", className: "g-stack", style: { gap: 6 } }, /* @__PURE__ */ React.createElement("div", { className: "g-between" }, /* @__PURE__ */ React.createElement(Label, null, "This week"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, minutesIn(log, week), " min")), weekLog.length ? weekLog.map((e) => /* @__PURE__ */ React.createElement("div", { key: e.id, className: "g-between", style: { fontSize: 14, padding: "0 4px" } }, /* @__PURE__ */ React.createElement("span", null, wd(e.day), " \xB7 ", name(e)), /* @__PURE__ */ React.createElement("span", { className: "g-row", style: { gap: 4, color: "var(--muted)" } }, e.min, " min", /* @__PURE__ */ React.createElement(IconButton, { icon: "close", label: "Remove this entry", variant: "ghost", small: true, iconSize: 14, onClick: () => save2({ log: log.filter((x) => x.id !== e.id) }) })))) : /* @__PURE__ */ React.createElement("p", { className: "g-muted", style: { padding: "0 4px" } }, "Nothing logged yet this week.")));
   }
 
   // german/episodes.js
@@ -1904,7 +1968,57 @@
   }
 
   // german/Settings.jsx
-  var { useState: useState10 } = React;
+  var { useState: useState10, useEffect: useEffect8 } = React;
+  var deviceZone = () => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch {
+      return "";
+    }
+  };
+  var isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  function ReminderCard({ app, update: update2 }) {
+    const r = app.settings.reminder;
+    const [device, setDevice] = useState10(null);
+    const [busy, setBusy] = useState10(false);
+    useEffect8(() => {
+      pushState().then(setDevice, () => setDevice("unsupported"));
+    }, []);
+    const turnOnHere = async () => {
+      setBusy(true);
+      try {
+        const state = await enablePush(APP_ID);
+        setDevice(state);
+        if (state === "on") return true;
+        app.showToast(state === "denied" ? "Notifications are blocked for this site" : "Notifications weren't allowed");
+      } catch (err) {
+        app.showToast(err.message);
+      } finally {
+        setBusy(false);
+      }
+      return false;
+    };
+    const setOn = async (on) => {
+      if (!on) return update2({ reminder: { ...r, on: false } });
+      if (await turnOnHere()) update2({ reminder: { ...r, on: true, tz: deviceZone() } });
+    };
+    let note = null;
+    if (!app.session) note = "Sign in to get reminders.";
+    else if (device === "unsupported") note = isIOS() ? "Add this app to your Home Screen (Share \u2192 Add to Home Screen) to get notifications." : "This browser can't show notifications.";
+    else if (device === "denied") note = "Notifications are blocked for this site. Allow them in your browser or system settings.";
+    const canUse = app.session && device !== "unsupported" && device !== "denied";
+    return /* @__PURE__ */ React.createElement(Card, { tight: true, label: "Reminder" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "Daily reminder"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "What's left of today, if anything")), /* @__PURE__ */ React.createElement("div", { style: { width: 132 } }, /* @__PURE__ */ React.createElement(Choice, { label: "Daily reminder", value: r.on ? "on" : "off", onChange: (v) => !busy && canUse && setOn(v === "on"), options: [["off", "Off"], ["on", "On"]] }))), r.on && /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "reminder-time" }, /* @__PURE__ */ React.createElement("b", null, "Time")), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, r.tz || "UTC")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "reminder-time",
+        type: "time",
+        className: "g-input",
+        style: { width: 120 },
+        value: r.time,
+        onChange: (e) => e.target.value && update2({ reminder: { ...r, time: e.target.value, tz: deviceZone() } })
+      }
+    )), note && /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { padding: "10px 0" } }, note), !note && r.on && device === "off" && /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Notifications aren't on for this device."), /* @__PURE__ */ React.createElement(Button, { variant: "outline", size: "sm", busy, onClick: turnOnHere }, "Turn on here")));
+  }
   function exportCards(cards) {
     const clean = (v) => (v || "").replace(/[\t\n]+/g, " ").trim();
     const rows = cards.filter((c) => c.kind !== "rule").map((c) => [germanOf(c), c.kind === "noun" ? [c.en, c.plural].filter(Boolean).join(" \xB7 ") : c.en, c.example].map(clean).join("	"));
@@ -1930,16 +2044,16 @@
     return /* @__PURE__ */ React.createElement(Screen, { label: "Settings" }, /* @__PURE__ */ React.createElement(ScreenHeader, { back: "#/progress", title: "Settings", big: true }), /* @__PURE__ */ React.createElement(Card, { label: "Level and topics" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("label", { htmlFor: "level" }, /* @__PURE__ */ React.createElement("b", null, "Your level")), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Words, prompts, examples, corrections")), /* @__PURE__ */ React.createElement("select", { id: "level", className: "g-input", value: settings.level, onChange: (e) => update2({ level: e.target.value }) }, LEVELS.map((l) => /* @__PURE__ */ React.createElement("option", { key: l }, l)))), /* @__PURE__ */ React.createElement("span", { className: "g-muted", style: { fontSize: 13 } }, "Topics for new words (mixed with general words)"), /* @__PURE__ */ React.createElement("div", { className: "g-chips" }, settings.topics.map((t) => /* @__PURE__ */ React.createElement(Chip, { key: t, removeLabel: `Remove ${t}`, onRemove: () => update2({ topics: settings.topics.filter((x) => x !== t) }) }, t)), topic === null ? /* @__PURE__ */ React.createElement(Chip, { dashed: true, onClick: () => setTopic("") }, "+ Topic") : /* @__PURE__ */ React.createElement("form", { onSubmit: (e) => {
       e.preventDefault();
       addTopic();
-    }, style: { display: "flex" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic", className: "sr" }, "New topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", className: "g-input", style: { minHeight: 36, padding: "0 12px", borderRadius: 999, width: 160 }, autoFocus: true, value: topic, onChange: (e) => setTopic(e.target.value), onBlur: addTopic })))), /* @__PURE__ */ React.createElement(Card, { label: "Routine" }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Writing days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Writing days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.writingDays.includes(i), onClick: () => toggleDay("writingDays", i) }, d))), /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Podcast days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Podcast days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.podcastDays.includes(i), onClick: () => toggleDay("podcastDays", i) }, d))), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Cards are every weekday; weekends are optional.")), /* @__PURE__ */ React.createElement(Card, { label: "Podcast" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Podcast pace"), /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { display: "block" } }, "How fast new episodes are spoken")), /* @__PURE__ */ React.createElement(Choice, { label: "Podcast pace", value: settings.podcastPace, onChange: (v) => update2({ podcastPace: v }), options: [["slowest", "Slowest"], ["slower", "Slower"], ["natural", "Natural"]] })), /* @__PURE__ */ React.createElement(Card, { tight: true, label: "Cards" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "New cards per day"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Your words first, AI fills the rest")), /* @__PURE__ */ React.createElement(Stepper, { value: settings.newPerDay, onChange: (n) => update2({ newPerDay: n }) }))), /* @__PURE__ */ React.createElement("nav", { className: "g-navlist", "aria-label": "Data", style: { display: "flex" } }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => exportCards(app.cards), disabled: !app.cards.length }, "Export cards"), app.session ? /* @__PURE__ */ React.createElement("button", { type: "button", className: "danger", onClick: () => signOut() }, "Sign out") : /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page")));
+    }, style: { display: "flex" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "topic", className: "sr" }, "New topic"), /* @__PURE__ */ React.createElement("input", { id: "topic", className: "g-input", style: { minHeight: 36, padding: "0 12px", borderRadius: 999, width: 160 }, autoFocus: true, value: topic, onChange: (e) => setTopic(e.target.value), onBlur: addTopic })))), /* @__PURE__ */ React.createElement(Card, { label: "Routine" }, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Writing days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Writing days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.writingDays.includes(i), onClick: () => toggleDay("writingDays", i) }, d))), /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Podcast days"), /* @__PURE__ */ React.createElement("div", { className: "g-days", role: "group", "aria-label": "Podcast days" }, WEEKDAYS.map((d, i) => /* @__PURE__ */ React.createElement("button", { key: d, type: "button", "aria-pressed": settings.podcastDays.includes(i), onClick: () => toggleDay("podcastDays", i) }, d))), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Cards are every weekday; weekends are optional.")), /* @__PURE__ */ React.createElement(Card, { label: "Podcast" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", { style: { fontSize: 15 } }, "Podcast pace"), /* @__PURE__ */ React.createElement("span", { className: "g-small", style: { display: "block" } }, "How fast new episodes are spoken")), /* @__PURE__ */ React.createElement(Choice, { label: "Podcast pace", value: settings.podcastPace, onChange: (v) => update2({ podcastPace: v }), options: [["slowest", "Slowest"], ["slower", "Slower"], ["natural", "Natural"]] })), /* @__PURE__ */ React.createElement(Card, { tight: true, label: "Cards" }, /* @__PURE__ */ React.createElement("div", { className: "g-setting" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "New cards per day"), /* @__PURE__ */ React.createElement("span", { className: "g-small" }, "Your words first, AI fills the rest")), /* @__PURE__ */ React.createElement(Stepper, { value: settings.newPerDay, onChange: (n) => update2({ newPerDay: n }) }))), /* @__PURE__ */ React.createElement(ReminderCard, { app, update: update2 }), /* @__PURE__ */ React.createElement("nav", { className: "g-navlist", "aria-label": "Data", style: { display: "flex" } }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => exportCards(app.cards), disabled: !app.cards.length }, "Export cards"), app.session ? /* @__PURE__ */ React.createElement("button", { type: "button", className: "danger", onClick: () => signOut() }, "Sign out") : /* @__PURE__ */ React.createElement("a", { href: "./" }, "Sign in on the home page")));
   }
 
   // german/App.jsx
-  var { useState: useState11, useEffect: useEffect8, useRef: useRef5, useMemo: useMemo3 } = React;
+  var { useState: useState11, useEffect: useEffect9, useRef: useRef5, useMemo: useMemo3 } = React;
   var NONE = [];
   var NO_LOG = {};
   function useToday() {
     const [key, setKey] = useState11(() => dayKey());
-    useEffect8(() => {
+    useEffect9(() => {
       const t = setInterval(() => setKey(dayKey()), 60 * 1e3);
       return () => clearInterval(t);
     }, []);
@@ -1968,6 +2082,9 @@
     const settings = useMemo3(() => normSettings(storedSettings), [storedSettings]);
     const listening = useMemo3(() => normListening(storedListening), [storedListening]);
     const podcast = useMemo3(() => normPodcast(storedPodcast, settings), [storedPodcast, settings]);
+    useEffect9(() => {
+      if (session) syncPush(APP_ID);
+    }, [session == null ? void 0 : session.user.id]);
     const [toast, setToast] = useState11(null);
     const toastT = useRef5(null);
     function showToast(msg) {
@@ -1981,7 +2098,7 @@
     const [retry, setRetry] = useState11(0);
     const cardsRef = useRef5(cards);
     cardsRef.current = cards;
-    useEffect8(() => {
+    useEffect9(() => {
       const missing = SUGGEST_BUFFER - usable.length;
       if (!session || missing <= 0 || refilling || !navigator.onLine) return;
       setRefilling(true);

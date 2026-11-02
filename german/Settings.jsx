@@ -1,12 +1,81 @@
 // Settings: level (steers every AI word, prompt, example, podcast episode
 // and how picky corrections are), topics for suggested words, writing and
-// podcast days, how fast the podcast hosts speak, new cards per day, export
-// and sign out.
-import { LEVELS, WEEKDAYS, germanOf } from "./model.js";
+// podcast days, how fast the podcast hosts speak, new cards per day, the
+// daily reminder, export and sign out.
+import { APP_ID, LEVELS, WEEKDAYS, germanOf } from "./model.js";
 import { signOut } from "../shared/auth.js";
-import { Screen, ScreenHeader, Card, Chip, Choice, Stepper } from "./ui.jsx";
+import { enablePush, pushState } from "../shared/push.js";
+import { Screen, ScreenHeader, Card, Chip, Choice, Stepper, Button } from "./ui.jsx";
 
-const { useState } = React;
+const { useState, useEffect } = React;
+
+const deviceZone = () => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
+};
+
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// The daily reminder: a push notification at a chosen time listing what's
+// left of today's tasks (sent by the server, see server/reminders.js). The
+// setting is synced; notifications are per device, so a device without
+// them gets offered to turn them on.
+function ReminderCard({ app, update }) {
+  const r = app.settings.reminder;
+  const [device, setDevice] = useState(null); // pushState(), null while checking
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { pushState().then(setDevice, () => setDevice("unsupported")); }, []);
+
+  // Must run straight from the tap: it may ask for permission.
+  const turnOnHere = async () => {
+    setBusy(true);
+    try {
+      const state = await enablePush(APP_ID);
+      setDevice(state);
+      if (state === "on") return true;
+      app.showToast(state === "denied" ? "Notifications are blocked for this site" : "Notifications weren't allowed");
+    } catch (err) {
+      app.showToast(err.message);
+    } finally {
+      setBusy(false);
+    }
+    return false;
+  };
+  const setOn = async on => {
+    if (!on) return update({ reminder: { ...r, on: false } });
+    if (await turnOnHere()) update({ reminder: { ...r, on: true, tz: deviceZone() } });
+  };
+
+  let note = null;
+  if (!app.session) note = "Sign in to get reminders.";
+  else if (device === "unsupported") note = isIOS() ? "Add this app to your Home Screen (Share → Add to Home Screen) to get notifications." : "This browser can't show notifications.";
+  else if (device === "denied") note = "Notifications are blocked for this site. Allow them in your browser or system settings.";
+  const canUse = app.session && device !== "unsupported" && device !== "denied";
+
+  return (
+    <Card tight label="Reminder">
+      <div className="g-setting">
+        <span><b>Daily reminder</b><span className="g-small">What's left of today, if anything</span></span>
+        <div style={{ width: 132 }}>
+          <Choice label="Daily reminder" value={r.on ? "on" : "off"} onChange={v => !busy && canUse && setOn(v === "on")} options={[["off", "Off"], ["on", "On"]]} />
+        </div>
+      </div>
+      {r.on && (
+        <div className="g-setting">
+          <span><label htmlFor="reminder-time"><b>Time</b></label><span className="g-small">{r.tz || "UTC"}</span></span>
+          <input id="reminder-time" type="time" className="g-input" style={{ width: 120 }} value={r.time}
+            onChange={e => e.target.value && update({ reminder: { ...r, time: e.target.value, tz: deviceZone() } })} />
+        </div>
+      )}
+      {note && <span className="g-small" style={{ padding: "10px 0" }}>{note}</span>}
+      {!note && r.on && device === "off" && (
+        <div className="g-setting">
+          <span className="g-small">Notifications aren't on for this device.</span>
+          <Button variant="outline" size="sm" busy={busy} onClick={turnOnHere}>Turn on here</Button>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 // Tab-separated, one card per line: German, English, example. Anki and
 // spreadsheets import it as is.
@@ -91,6 +160,8 @@ export function Settings({ app }) {
           <Stepper value={settings.newPerDay} onChange={n => update({ newPerDay: n })} />
         </div>
       </Card>
+
+      <ReminderCard app={app} update={update} />
 
       <nav className="g-navlist" aria-label="Data" style={{ display: "flex" }}>
         <button type="button" onClick={() => exportCards(app.cards)} disabled={!app.cards.length}>Export cards</button>

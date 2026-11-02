@@ -36,6 +36,7 @@ import { stretchExerciseFromLibrary, LIBRARY_CREDIT } from "./stretchLibrary.js"
 import { uploadPhoto, removePhoto, exercisePhotoUrls } from "./photos.js";
 import { getAudioCtx } from "./sounds.js";
 import { useSession } from "../shared/auth.js";
+import { subscribePush } from "./restAlert.js";
 import { s, d, C } from "./styles.js";
 import { ExerciseForm } from "./components/ExerciseForm.jsx";
 import { SessionPage } from "./components/SessionPage.jsx";
@@ -126,6 +127,9 @@ export function ClimbingTrackerApp() {
   // A newly picked photo (draft.photoUpload) is uploaded first; the photo it
   // replaces, if it was an upload, is removed once the exercise is saved.
   const session = useSession();
+  // With notifications allowed, this device gets pushes too: they bring
+  // "Rest over" when the backgrounded app has been frozen.
+  useEffect(() => { if (session) subscribePush(); }, [session?.user.id]);
   const [savingExercise, setSavingExercise] = useState(false);
   const [exerciseSaveError, setExerciseSaveError] = useState("");
   const saveExercise = async () => {

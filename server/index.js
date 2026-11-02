@@ -30,7 +30,7 @@ const databaseUrl = env("DATABASE_URL");
 const sql = createDb(databaseUrl);
 const issuer = env("OIDC_ISSUER", "https://id.trplan.si");
 const publicUrl = env("PUBLIC_URL");
-const { app, appData, auth, events, fn } = createApp({
+const { app, appData, auth, events, fn, push, reminders } = createApp({
   sql,
   storageDir: env("STORAGE_DIR", "/data/storage"),
   siteRoot: path.resolve(fileURLToPath(import.meta.url), "../.."),
@@ -52,6 +52,8 @@ const { app, appData, auth, events, fn } = createApp({
 });
 
 startSnapshotJob(appData);
+push.startScheduler();
+reminders.start();
 fn.recover().catch((err) => console.error("fn: couldn't recover interrupted episodes:", err));
 const listener = listenForChanges(databaseUrl, { onChange: events.publish, onResync: events.resync });
 setInterval(() => auth.pruneSessions().catch(() => {}), 24 * 60 * 60 * 1000).unref();

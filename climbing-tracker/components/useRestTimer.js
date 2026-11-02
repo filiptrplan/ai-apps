@@ -52,7 +52,7 @@ export function useRestTimer({ saved, onSave } = {}) {
     clearTimers();
     untrackRest(idRef.current);
     sounds.workStart();
-    notifyRestOver(noticeRef.current, overTitleRef.current);
+    notifyRestOver(noticeRef.current, overTitleRef.current, endsAtRef.current);
     setRest(null);
     save(null);
   };
@@ -71,7 +71,7 @@ export function useRestTimer({ saved, onSave } = {}) {
     lastSecRef.current = Math.ceil(ms / 1000);
     tickRef.current = setInterval(tick, 250);
     endRef.current = setTimeout(finish, ms);
-    trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
+    trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current, overTitle: overTitleRef.current });
   };
 
   // notice: body text for the countdown and "Rest over" notifications;

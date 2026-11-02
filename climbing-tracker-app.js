@@ -238,7 +238,7 @@
         queue.inFlight = false;
       }
     }, [appId, key]);
-    const save = useCallback((val) => {
+    const save2 = useCallback((val) => {
       setConflict(null);
       const next = typeof val === "function" ? val(dataRef.current) : val;
       dataRef.current = next;
@@ -321,7 +321,7 @@
         stopSession();
       };
     }, [appId, key, pushRemote, reconcile]);
-    return [data, save, conflict];
+    return [data, save2, conflict];
   }
 
   // climbing-tracker/data.js
@@ -1606,6 +1606,233 @@ Now generate the exercises and/or routines described by the user's request that 
       beep(784, 0.3, 0.24, "sine", 0.3);
     }
   };
+
+  // shared/push.js
+  function pushSupported() {
+    return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  }
+  async function registration() {
+    return navigator.serviceWorker.ready;
+  }
+  function keyBytes(base64url) {
+    const b64 = (base64url + "=".repeat((4 - base64url.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+    return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  }
+  function sameKey(buffer, bytes) {
+    if (!buffer) return false;
+    const a = new Uint8Array(buffer);
+    return a.length === bytes.length && a.every((v, i) => v === bytes[i]);
+  }
+  function save(appId, sub) {
+    return apiFetch("/api/push/subscriptions", { json: { appId, subscription: sub.toJSON() } });
+  }
+  async function enablePush(appId) {
+    var _a;
+    if (!pushSupported()) return "unsupported";
+    const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (permission !== "granted") return permission === "denied" ? "denied" : "off";
+    const { publicKey } = await apiFetch("/api/push/key");
+    const key = keyBytes(publicKey);
+    const reg = await registration();
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && !sameKey((_a = sub.options) == null ? void 0 : _a.applicationServerKey, key)) {
+      await sub.unsubscribe().catch(() => {
+      });
+      sub = null;
+    }
+    sub != null ? sub : sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await save(appId, sub);
+    return "on";
+  }
+
+  // climbing-tracker/restAlert.js
+  var OVER_TAG = "climbing-tracker-rest";
+  var COUNTDOWN_TAG = "climbing-tracker-rest-countdown";
+  var ICON = "./climbing-tracker/icon.svg";
+  function isInstalled() {
+    return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  }
+  function notificationsSupported() {
+    return "Notification" in window && "serviceWorker" in navigator;
+  }
+  function notificationState() {
+    return notificationsSupported() ? Notification.permission : "unsupported";
+  }
+  async function requestNotifications() {
+    if (!notificationsSupported()) return "unsupported";
+    let state;
+    try {
+      state = await Notification.requestPermission();
+    } catch {
+      state = Notification.permission;
+    }
+    if (state === "granted") subscribePush();
+    return state;
+  }
+  function subscribePush() {
+    if (!canNotify()) return;
+    enablePush(APP_ID).catch(() => {
+    });
+    syncPushes();
+  }
+  function canNotify() {
+    return notificationsSupported() && Notification.permission === "granted";
+  }
+  var restKey = (endsAt) => `rest-${endsAt}`;
+  async function show(title, options) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { icon: ICON, ...options });
+    } catch {
+    }
+  }
+  async function close(tag) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      (await reg.getNotifications({ tag })).forEach((n) => n.close());
+    } catch {
+    }
+  }
+  var rests = /* @__PURE__ */ new Map();
+  var ticker = null;
+  var lastShown = "";
+  function mmss(sec) {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  }
+  function secondsLeft(r) {
+    return Math.max(0, Math.ceil((r.paused ? r.remainingMs : r.endsAt - Date.now()) / 1e3));
+  }
+  function updateCountdown() {
+    if (!canNotify() || document.visibilityState === "visible" || rests.size === 0) return;
+    const r = [...rests.values()].sort((a, b) => secondsLeft(a) - secondsLeft(b))[0];
+    const sec = secondsLeft(r);
+    if (sec <= 0) return;
+    const title = r.paused ? `Rest paused \xB7 ${mmss(sec)} left` : `Rest \xB7 ${mmss(sec)}`;
+    if (title === lastShown) return;
+    lastShown = title;
+    show(title, { body: r.label, tag: COUNTDOWN_TAG, silent: true, renotify: false });
+  }
+  function clearCountdown() {
+    lastShown = "";
+    if (canNotify()) close(COUNTDOWN_TAG);
+  }
+  function syncTicker() {
+    const want = rests.size > 0 && document.visibilityState !== "visible";
+    if (want && !ticker) {
+      ticker = setInterval(updateCountdown, 500);
+      updateCountdown();
+    } else if (!want && ticker) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+    if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
+  }
+  var DEVICE_KEY = "climbing-tracker:push-device";
+  var device = null;
+  function deviceId() {
+    if (device) return device;
+    try {
+      device = localStorage.getItem(DEVICE_KEY);
+      if (!device) localStorage.setItem(DEVICE_KEY, device = Math.random().toString(36).slice(2, 12));
+    } catch {
+      device = Math.random().toString(36).slice(2, 12);
+    }
+    return device;
+  }
+  var scheduled = /* @__PURE__ */ new Map();
+  var clearedStale = false;
+  function request(path, init) {
+    return apiFetch(path, { keepalive: true, ...init }).catch(() => {
+    });
+  }
+  function syncPushes() {
+    if (!canNotify()) return;
+    const hidden = document.visibilityState !== "visible";
+    const want = /* @__PURE__ */ new Map();
+    if (hidden) {
+      [...rests.values()].filter((r) => !r.paused && r.endsAt > Date.now()).sort((a, b) => a.endsAt - b.endsAt).forEach((r, i) => want.set(`${deviceId()}-${i}`, r));
+    }
+    if (!hidden && !clearedStale) {
+      clearedStale = true;
+      request(`/api/push/scheduled/${APP_ID}?prefix=${deviceId()}-`, { method: "DELETE" });
+      scheduled = /* @__PURE__ */ new Map();
+    }
+    for (const [id, r] of want) {
+      if (scheduled.get(id) === restKey(r.endsAt)) continue;
+      request(`/api/push/scheduled/${APP_ID}/${id}`, {
+        method: "PUT",
+        json: {
+          at: r.endsAt,
+          ttl: 5 * 60,
+          urgency: "high",
+          payload: {
+            title: r.overTitle || "Rest over",
+            body: r.label,
+            tag: OVER_TAG,
+            key: restKey(r.endsAt),
+            close: [COUNTDOWN_TAG],
+            renotify: true,
+            requireInteraction: true,
+            vibrate: [400, 150, 400, 150, 400],
+            url: "/climbing-tracker"
+          }
+        }
+      });
+    }
+    for (const id of scheduled.keys()) {
+      if (!want.has(id)) request(`/api/push/scheduled/${APP_ID}/${id}`, { method: "DELETE" });
+    }
+    scheduled = new Map([...want].map(([id, r]) => [id, restKey(r.endsAt)]));
+  }
+  function trackRest(id, { endsAt = 0, remainingMs: remainingMs2 = 0, paused = false, label = "", overTitle }) {
+    rests.set(id, { endsAt, remainingMs: remainingMs2, paused, label, overTitle });
+    lastShown = "";
+    syncTicker();
+    updateCountdown();
+    syncPushes();
+  }
+  function untrackRest(id) {
+    if (!rests.delete(id)) return;
+    syncTicker();
+    if (rests.size > 0) {
+      lastShown = "";
+      updateCountdown();
+    }
+    syncPushes();
+  }
+  async function notifyRestOver(body, title = "Rest over", endsAt) {
+    if (!canNotify()) return;
+    if (document.visibilityState === "visible") return;
+    const key = endsAt ? restKey(endsAt) : void 0;
+    if (key) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if ((await reg.getNotifications({ tag: OVER_TAG })).some((n) => {
+          var _a;
+          return ((_a = n.data) == null ? void 0 : _a.key) === key;
+        })) return;
+      } catch {
+      }
+    }
+    await show(title, {
+      body,
+      tag: OVER_TAG,
+      data: { key },
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [400, 150, 400, 150, 400]
+    });
+  }
+  async function clearRestAlerts() {
+    if (canNotify()) close(OVER_TAG);
+  }
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") clearRestAlerts();
+      syncTicker();
+      syncPushes();
+    });
+  }
 
   // climbing-tracker/styles.js
   var C = {
@@ -2995,113 +3222,6 @@ Now generate the exercises and/or routines described by the user's request that 
     return dock ? ReactDOM.createPortal(bar, dock) : bar;
   }
 
-  // climbing-tracker/restAlert.js
-  var OVER_TAG = "climbing-tracker-rest";
-  var COUNTDOWN_TAG = "climbing-tracker-rest-countdown";
-  var ICON = "./climbing-tracker/icon.svg";
-  function isInstalled() {
-    return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  }
-  function notificationsSupported() {
-    return "Notification" in window && "serviceWorker" in navigator;
-  }
-  function notificationState() {
-    return notificationsSupported() ? Notification.permission : "unsupported";
-  }
-  async function requestNotifications() {
-    if (!notificationsSupported()) return "unsupported";
-    try {
-      return await Notification.requestPermission();
-    } catch {
-      return Notification.permission;
-    }
-  }
-  function canNotify() {
-    return notificationsSupported() && Notification.permission === "granted";
-  }
-  async function show(title, options) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(title, { icon: ICON, ...options });
-    } catch {
-    }
-  }
-  async function close(tag) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      (await reg.getNotifications({ tag })).forEach((n) => n.close());
-    } catch {
-    }
-  }
-  var rests = /* @__PURE__ */ new Map();
-  var ticker = null;
-  var lastShown = "";
-  function mmss(sec) {
-    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-  }
-  function secondsLeft(r) {
-    return Math.max(0, Math.ceil((r.paused ? r.remainingMs : r.endsAt - Date.now()) / 1e3));
-  }
-  function updateCountdown() {
-    if (!canNotify() || document.visibilityState === "visible" || rests.size === 0) return;
-    const r = [...rests.values()].sort((a, b) => secondsLeft(a) - secondsLeft(b))[0];
-    const sec = secondsLeft(r);
-    if (sec <= 0) return;
-    const title = r.paused ? `Rest paused \xB7 ${mmss(sec)} left` : `Rest \xB7 ${mmss(sec)}`;
-    if (title === lastShown) return;
-    lastShown = title;
-    show(title, { body: r.label, tag: COUNTDOWN_TAG, silent: true, renotify: false });
-  }
-  function clearCountdown() {
-    lastShown = "";
-    if (canNotify()) close(COUNTDOWN_TAG);
-  }
-  function syncTicker() {
-    const want = rests.size > 0 && document.visibilityState !== "visible";
-    if (want && !ticker) {
-      ticker = setInterval(updateCountdown, 500);
-      updateCountdown();
-    } else if (!want && ticker) {
-      clearInterval(ticker);
-      ticker = null;
-    }
-    if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
-  }
-  function trackRest(id, { endsAt = 0, remainingMs: remainingMs2 = 0, paused = false, label = "" }) {
-    rests.set(id, { endsAt, remainingMs: remainingMs2, paused, label });
-    lastShown = "";
-    syncTicker();
-    updateCountdown();
-  }
-  function untrackRest(id) {
-    if (!rests.delete(id)) return;
-    syncTicker();
-    if (rests.size > 0) {
-      lastShown = "";
-      updateCountdown();
-    }
-  }
-  async function notifyRestOver(body, title = "Rest over") {
-    if (!canNotify()) return;
-    if (document.visibilityState === "visible") return;
-    await show(title, {
-      body,
-      tag: OVER_TAG,
-      renotify: true,
-      requireInteraction: true,
-      vibrate: [400, 150, 400, 150, 400]
-    });
-  }
-  async function clearRestAlerts() {
-    if (canNotify()) close(OVER_TAG);
-  }
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") clearRestAlerts();
-      syncTicker();
-    });
-  }
-
   // climbing-tracker/components/useRestTimer.js
   var { useState: useState6, useEffect: useEffect4, useRef: useRef3 } = React;
   function useRestTimer({ saved, onSave } = {}) {
@@ -3118,7 +3238,7 @@ Now generate the exercises and/or routines described by the user's request that 
     const idRef = useRef3({});
     const onSaveRef = useRef3(onSave);
     onSaveRef.current = onSave;
-    const save = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
+    const save2 = (paused) => onSaveRef.current && onSaveRef.current(paused == null ? null : {
       total: totalRef.current,
       notice: noticeRef.current,
       overTitle: overTitleRef.current,
@@ -3140,9 +3260,9 @@ Now generate the exercises and/or routines described by the user's request that 
       clearTimers();
       untrackRest(idRef.current);
       sounds.workStart();
-      notifyRestOver(noticeRef.current, overTitleRef.current);
+      notifyRestOver(noticeRef.current, overTitleRef.current, endsAtRef.current);
       setRest(null);
-      save(null);
+      save2(null);
     };
     const tick = () => {
       const sec = Math.ceil((endsAtRef.current - Date.now()) / 1e3);
@@ -3160,7 +3280,7 @@ Now generate the exercises and/or routines described by the user's request that 
       lastSecRef.current = Math.ceil(ms / 1e3);
       tickRef.current = setInterval(tick, 250);
       endRef.current = setTimeout(finish, ms);
-      trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current });
+      trackRest(idRef.current, { endsAt: endsAtRef.current, label: noticeRef.current, overTitle: overTitleRef.current });
     };
     const start = (sec, { notice = "", overTitle, ...meta } = {}) => {
       clearTimers();
@@ -3171,26 +3291,26 @@ Now generate the exercises and/or routines described by the user's request that 
       setRest({ ...meta, total: sec, timeLeft: sec, remainingMs: sec * 1e3, paused: false });
       sounds.restStart();
       run(sec * 1e3);
-      save(false);
+      save2(false);
     };
     const stop = () => {
       clearTimers();
       untrackRest(idRef.current);
       setRest(null);
-      save(null);
+      save2(null);
     };
     const togglePause2 = () => {
       if (!rest) return;
       if (rest.paused) {
         run(remainingMsRef.current);
         setRest({ ...rest, remainingMs: remainingMsRef.current, paused: false });
-        save(false);
+        save2(false);
       } else {
         remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
         clearTimers();
         trackRest(idRef.current, { paused: true, remainingMs: remainingMsRef.current, label: noticeRef.current });
         setRest({ ...rest, remainingMs: remainingMsRef.current, paused: true });
-        save(true);
+        save2(true);
       }
     };
     useEffect4(() => {
@@ -3201,7 +3321,7 @@ Now generate the exercises and/or routines described by the user's request that 
       totalRef.current = saved.total;
       const ms = saved.paused ? saved.remainingMs : saved.endsAt - Date.now();
       if (!(ms > 0)) {
-        save(null);
+        save2(null);
         return;
       }
       const base = { ...metaRef.current, total: saved.total, timeLeft: Math.ceil(ms / 1e3), remainingMs: ms };
@@ -3752,15 +3872,15 @@ Now generate the exercises and/or routines described by the user's request that 
         if (saved && saved.id === sessionId && saved.y > 0) requestAnimationFrame(() => window.scrollTo(0, saved.y));
       } catch {
       }
-      const save = () => {
+      const save2 = () => {
         if (document.visibilityState !== "hidden") return;
         try {
           localStorage.setItem(SCROLL_KEY, JSON.stringify({ id: sessionId, y: window.scrollY }));
         } catch {
         }
       };
-      document.addEventListener("visibilitychange", save);
-      return () => document.removeEventListener("visibilitychange", save);
+      document.addEventListener("visibilitychange", save2);
+      return () => document.removeEventListener("visibilitychange", save2);
     }, [sessionId]);
   }
   function SessionPage({ session, initialLogs = [], initialOrder, initialInterRest, initialTimer, notesById, onCancel, onLogChange, onOrderChange, onInterRestChange, onTimerChange, onFinish, onNotesChange }) {
@@ -8998,7 +9118,7 @@ Now generate the exercises and/or routines described by the user's request that 
     };
     const removeSet = (i, j) => updatePerformed(i, { sets: steps[i].performed.sets.filter((_2, k) => k !== j) });
     const removeStep = (i) => setSteps(steps.filter((_2, k) => k !== i));
-    const save = () => {
+    const save2 = () => {
       const cleaned = steps.map((st) => {
         const p = st.performed;
         if (p.type === "stretch") {
@@ -9030,7 +9150,7 @@ Now generate the exercises and/or routines described by the user's request that 
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement("label", { style: s.label }, "Date"), /* @__PURE__ */ React.createElement("input", { style: { ...s.input, colorScheme: "dark" }, type: "datetime-local", value: date, onChange: (e) => setDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: s.field }, /* @__PURE__ */ React.createElement(NumberField, { label: "Duration", value: durationMin, onChange: setDurationMin, min: 0, suffix: "min" })), steps.map((st, i) => {
       const p = st.performed;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { ...s.card, padding: 14, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" } }, st.exerciseName), steps.length > 1 && /* @__PURE__ */ React.createElement("button", { style: { ...s.iconBtn, color: C.danger }, onClick: () => removeStep(i), "aria-label": `Remove ${st.exerciseName}` }, /* @__PURE__ */ React.createElement(Icon.trash, { size: 18 }))), p.type === "stretch" ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Hold", value: p.holdSec, onChange: (v) => updatePerformed(i, { holdSec: v }), min: 1, suffix: "s" }), p.twoSided && /* @__PURE__ */ React.createElement(NumberField, { label: "Sides done", value: p.sidesDone, onChange: (v) => updatePerformed(i, { sidesDone: v }), min: 1 })) : isIntervalType(p.type) ? /* @__PURE__ */ React.createElement("div", { style: { ...s.fieldGrid, marginBottom: 0 } }, /* @__PURE__ */ React.createElement(NumberField, { label: "Sets done", value: p.completedSets, onChange: (v) => updatePerformed(i, { completedSets: v }), min: 0 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Target sets", value: p.targetSets, onChange: (v) => updatePerformed(i, { targetSets: v }), min: 1 }), /* @__PURE__ */ React.createElement(NumberField, { label: "Work", value: p.workSec, onChange: (v) => updatePerformed(i, { workSec: v }), min: 1, suffix: "s" }), /* @__PURE__ */ React.createElement(NumberField, { label: "Rest", value: p.restSec, onChange: (v) => updatePerformed(i, { restSec: v }), min: 0, suffix: "s" }), p.type === "weightedInterval" && /* @__PURE__ */ React.createElement(NumberField, { label: "Weight", value: p.weight, onChange: (v) => updatePerformed(i, { weight: v }), min: 0, step: 0.5, inc: 2.5, suffix: "kg" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.sets.map((set2, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: s.setRow }, /* @__PURE__ */ React.createElement("span", { style: s.setIndex }, j + 1), /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.reps, onChange: (v) => updateSet(i, j, { reps: v }), suffix: "reps", label: `${st.exerciseName} set ${j + 1} reps` }), p.type === "weighted" && /* @__PURE__ */ React.createElement(SetValueInput, { value: set2.weight, onChange: (v) => updateSet(i, j, { weight: v }), suffix: "kg", decimal: true, label: `${st.exerciseName} set ${j + 1} weight` }), /* @__PURE__ */ React.createElement("button", { style: s.iconBtn, onClick: () => removeSet(i, j), disabled: p.sets.length <= 1, "aria-label": `Remove set ${j + 1}` }, /* @__PURE__ */ React.createElement(Icon.minus, { size: 18 })))), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, ...s.btnSmall, ...s.btnBlock }, onClick: () => addSet(i) }, /* @__PURE__ */ React.createElement(Icon.plus, { size: 18 }), " Add set")));
-    }), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: save }, "Save")));
+    }), /* @__PURE__ */ React.createElement("div", { style: { ...s.btnRow, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { style: { ...s.btnSecondary, flex: 1 }, onClick: onCancel }, "Cancel"), /* @__PURE__ */ React.createElement("button", { style: { ...s.btnPrimary, flex: 1 }, onClick: save2 }, "Save")));
   }
 
   // climbing-tracker/App.jsx
@@ -9092,6 +9212,9 @@ Now generate the exercises and/or routines described by the user's request that 
       setFormOpen(true);
     };
     const session = useSession();
+    useEffect13(() => {
+      if (session) subscribePush();
+    }, [session == null ? void 0 : session.user.id]);
     const [savingExercise, setSavingExercise] = useState21(false);
     const [exerciseSaveError, setExerciseSaveError] = useState21("");
     const saveExercise = async () => {

@@ -846,6 +846,32 @@ CREATE TABLE public.mo_admin_sessions (
 
 
 --
+-- Name: push_reminders_sent; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_reminders_sent (
+    user_id uuid NOT NULL,
+    kind text NOT NULL,
+    day date NOT NULL
+);
+
+
+--
+-- Name: push_scheduled; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_scheduled (
+    user_id uuid NOT NULL,
+    app_id text NOT NULL,
+    id text NOT NULL,
+    send_at timestamp with time zone NOT NULL,
+    payload jsonb NOT NULL,
+    ttl integer NOT NULL,
+    urgency text NOT NULL
+);
+
+
+--
 -- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -982,6 +1008,22 @@ ALTER TABLE ONLY public.mo_settings
 
 
 --
+-- Name: push_reminders_sent push_reminders_sent_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_reminders_sent
+    ADD CONSTRAINT push_reminders_sent_pkey PRIMARY KEY (user_id, kind, day);
+
+
+--
+-- Name: push_scheduled push_scheduled_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_scheduled
+    ADD CONSTRAINT push_scheduled_pkey PRIMARY KEY (user_id, app_id, id);
+
+
+--
 -- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1062,6 +1104,13 @@ CREATE INDEX mo_chores_category_id_idx ON public.mo_chores USING btree (category
 --
 
 CREATE INDEX mo_reward_requests_status_idx ON public.mo_reward_requests USING btree (status);
+
+
+--
+-- Name: push_scheduled_send_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX push_scheduled_send_at_idx ON public.push_scheduled USING btree (send_at);
 
 
 --
@@ -1171,6 +1220,22 @@ ALTER TABLE ONLY public.mo_chores
 
 ALTER TABLE ONLY public.mo_reward_requests
     ADD CONSTRAINT mo_reward_requests_reward_id_fkey FOREIGN KEY (reward_id) REFERENCES public.mo_rewards(id) ON DELETE SET NULL;
+
+
+--
+-- Name: push_reminders_sent push_reminders_sent_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_reminders_sent
+    ADD CONSTRAINT push_reminders_sent_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: push_scheduled push_scheduled_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_scheduled
+    ADD CONSTRAINT push_scheduled_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

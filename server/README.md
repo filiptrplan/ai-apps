@@ -13,7 +13,8 @@ An Express app that serves the site, its APIs and the MCP server from one proces
 | `static.js` | The site, from an allowlist of what the pages use. |
 | `events.js` | Live updates: one `LISTEN` connection on the database's `changes` notifications, passed on to the pages over Server-Sent Events at `GET /api/events?topics=data,mo`. |
 | `routes/data.js` | `GET`/`PUT /api/data/:app/:key` |
-| `push.js` | Web Push: `push.send(userId, appId, payload)` notifies every device that turned notifications on for that app, and `/api/push/key`, `/api/push/subscriptions` (`POST`/`DELETE`) and `POST /api/push/test`. Pages subscribe through `shared/push.js`; service workers show what arrives through `shared/push-sw.js`. |
+| `push.js` | Web Push: `push.send(userId, appId, payload)` notifies every device that turned notifications on for that app, `push.schedule()` sends later (the scheduler is started by `index.js`), and `/api/push/key`, `/api/push/subscriptions` (`POST`/`DELETE`), `/api/push/scheduled/:app/:id` (`PUT`/`DELETE`) and `POST /api/push/test`. Pages subscribe through `shared/push.js`; service workers show what arrives through `shared/push-sw.js`. |
+| `reminders.js` | The German app's daily reminder: once a minute, a push to each user whose reminder time just passed in their time zone, listing what's left of today. |
 | `routes/backups.js` | `GET /api/backups`, `POST /api/backups/:date/restore`, and the daily snapshot job. |
 | `routes/storage.js` | `GET`/`PUT`/`DELETE /api/storage/:bucket/<userId>/<path>` |
 | `routes/mo.js` | Marsova opravila: `GET /api/mo/:table`, `POST /api/mo/rpc/:fn` |

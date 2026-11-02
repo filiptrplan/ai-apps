@@ -14,6 +14,7 @@ import { createAuth } from "./auth.js";
 import { createEventHub } from "./events.js";
 import { createTokenVerifier, MCP_PATH, mcpRoutes } from "./mcp.js";
 import { createPush, pushRoutes } from "./push.js";
+import { createReminders } from "./reminders.js";
 import { createStorage } from "./storage.js";
 import { staticRoutes } from "./static.js";
 import { backupRoutes } from "./routes/backups.js";
@@ -29,6 +30,7 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
   const storage = createStorage(storageDir);
   const events = createEventHub();
   const push = createPush({ sql, vapid, sendNotification });
+  const reminders = createReminders({ sql, appData, push });
   const fn = fnRoutes({ appData, storage });
   const { requireUser } = auth;
 
@@ -75,5 +77,5 @@ export function createApp({ sql, storageDir, siteRoot, publicUrl, getOidcConfig,
     res.status(500).json({ error: "Something went wrong on the server." });
   });
 
-  return { app, appData, auth, events, fn, push };
+  return { app, appData, auth, events, fn, push, reminders };
 }
