@@ -33,6 +33,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # The server tests serve the real bundles, and this fails if an app
+      # doesn't bundle.
+      - name: Build the app bundles
+        run: npm run build
+
       - name: App and MCP tests
         run: node --test mcp/*.test.mjs german/*.test.mjs moped-route/*.test.mjs
 
@@ -40,9 +45,6 @@ jobs:
         run: node server/runTests.mjs
         env:
           TEST_DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
-
-      - name: Every app bundles
-        run: npm run build
 
       - name: db/schema.sql matches the migrations
         run: |
