@@ -20,9 +20,11 @@ function NewEpisode({ app, history, pending, failed, onStarted }) {
   const { interests } = app.podcast;
   const [picked, setPicked] = useState(null);
   const [adding, setAdding] = useState(null);
+  const [once, setOnce] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const topic = interests.includes(picked) ? picked : null;
+  const oneOff = once.trim();
+  const topic = oneOff || (interests.includes(picked) ? picked : null);
   const surprise = nextInterest(interests, history);
 
   async function start(interest) {
@@ -32,6 +34,7 @@ function NewEpisode({ app, history, pending, failed, onStarted }) {
       await startEpisode(interest, app.cards, app.writing, app.settings);
       await onStarted();
       setPicked(null);
+      setOnce("");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -77,10 +80,14 @@ function NewEpisode({ app, history, pending, failed, onStarted }) {
           </form>
         )}
       </div>
+      <div>
+        <label htmlFor="once" className="sr">A topic just this once</label>
+        <input id="once" className="g-input" maxLength={80} value={once} placeholder="Or a topic just this once (not saved)" onChange={e => setOnce(e.target.value)} />
+      </div>
       <Button variant="mint" size="md" busy={busy} disabled={!app.session || (!topic && !surprise)} onClick={() => start(topic || surprise)}>
         {topic ? `Make an episode about ${topic}` : surprise ? "Surprise me" : "Add an interest first"}
       </Button>
-      {topic && <div><LinkButton onClick={() => remove(topic)}>Remove “{topic}” from your interests</LinkButton></div>}
+      {topic && !oneOff && <div><LinkButton onClick={() => remove(topic)}>Remove “{topic}” from your interests</LinkButton></div>}
       {!app.session && <p className="g-small">Sign in on the home page to make episodes.</p>}
       {error && <p className="g-error">{error}</p>}
     </Card>
