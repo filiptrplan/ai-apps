@@ -89,6 +89,9 @@ services:
       OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-}
       PODCAST_TTS_MODEL: ${PODCAST_TTS_MODEL:-}
       MO_NTFY_URL: ${MO_NTFY_URL-https://ntfy.sh/marsova-opravila}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     ports:
       - "127.0.0.1:${APP_PORT:-8090}:8090"
     volumes:

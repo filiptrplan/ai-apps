@@ -36,8 +36,9 @@ export function mockFetch(handler) {
 }
 
 // `publicUrl` defaults to the address the app listens on.
-// `mcp` and `moNtfyUrl` are passed on to createApp (see app.js).
-export async function setup({ getOidcConfig = async () => { throw new Error("no OIDC in this test"); }, publicUrl, mcp, moNtfyUrl } = {}) {
+// `mcp`, `moNtfyUrl`, `vapid` and `sendNotification` are passed on to
+// createApp (see app.js).
+export async function setup({ getOidcConfig = async () => { throw new Error("no OIDC in this test"); }, publicUrl, mcp, moNtfyUrl, vapid, sendNotification } = {}) {
   const { TEST_DATABASE_URL, TEST_TEMPLATE_DB } = process.env;
   if (!TEST_DATABASE_URL) throw new Error("Run the server tests with `node server/runTests.mjs`.");
 
@@ -53,7 +54,9 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const { app, appData, auth, events, fn } = createApp({ sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig, mcp, moNtfyUrl });
+  const { app, appData, auth, events, fn, push, reminders } = createApp({
+    sql, storageDir, siteRoot: repo, publicUrl: publicUrl ?? base, getOidcConfig, mcp, moNtfyUrl, vapid, sendNotification,
+  });
   server.on("request", app);
   const listener = listenForChanges(url.toString(), { onChange: events.publish, onResync: events.resync });
   await listener.ready;
@@ -136,5 +139,5 @@ export async function setup({ getOidcConfig = async () => { throw new Error("no 
     await rm(storageDir, { recursive: true, force: true });
   }
 
-  return { sql, base, appData, auth, events, fn, listener, storageDir, addUser, signedIn, request, stream, close };
+  return { sql, base, appData, auth, events, fn, push, reminders, listener, storageDir, addUser, signedIn, request, stream, close };
 }

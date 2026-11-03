@@ -58,6 +58,11 @@ export const DEFAULT_SETTINGS = {
   podcastDays: [0, 2, 4], // Mo, Mi, Fr
   podcastPace: "slower", // how fast the podcast hosts speak: one of PODCAST_PACES
   newPerDay: 6,
+  // A daily push notification at `time` (in the time zone `tz`, the
+  // device's when it was turned on) listing what's left of today's tasks.
+  // Sent by the server (server/reminders.js), to every device with
+  // notifications on for the app.
+  reminder: { on: false, time: "18:00", tz: "" },
 };
 
 export const DEFAULT_LISTENING = {
@@ -129,7 +134,14 @@ export function normSettings(s) {
     podcastDays: Array.isArray(v.podcastDays) ? v.podcastDays.filter(d => d >= 0 && d < 7) : [],
     podcastPace: PODCAST_PACES.includes(v.podcastPace) ? v.podcastPace : "slower",
     newPerDay: Math.min(30, Math.max(0, Math.round(Number(v.newPerDay) || 0))),
+    reminder: normReminder(v.reminder),
   };
+}
+
+function normReminder(r) {
+  const v = r && typeof r === "object" ? r : {};
+  const time = typeof v.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.time) ? v.time : DEFAULT_SETTINGS.reminder.time;
+  return { on: v.on === true, time, tz: typeof v.tz === "string" ? v.tz : "" };
 }
 
 const levelIndex = l => Math.max(0, LEVELS.indexOf(l));
@@ -151,6 +163,20 @@ export function tasksFor(key, settings) {
 export function doneTasks(log, key) {
   const day = log[key] || {};
   return ["cards", "writing", "podcast"].filter(t => day[t]);
+}
+
+// The daily reminder for study day `key`: { title, body } listing the tasks
+// still open, or null when there's nothing left (or nothing to do that day).
+// A card task with no cards to study doesn't count.
+export function reminderFor({ settings, cards = [], suggest = [], log = {} }, key, now = Date.now()) {
+  const done = doneTasks(log, key);
+  const plan = planSession(cards, suggest, settings, key, now);
+  const cardCount = plan.reviews.length + plan.fresh.length + plan.fromSuggestions;
+  const left = tasksFor(key, settings).filter(t => !done.includes(t) && (t !== "cards" || cardCount > 0));
+  if (!left.length) return null;
+  const words = left.map(t => (t === "cards" ? `cards (about ${sessionMinutes(cardCount)} min)` : t === "writing" ? "writing" : "the podcast"));
+  const list = words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : words[0];
+  return { title: "Deutsch", body: `Still to do today: ${list}.` };
 }
 
 // ---------- cards ----------

@@ -29,11 +29,12 @@ function gitShaFile() {
 const databaseUrl = env("DATABASE_URL");
 const sql = createDb(databaseUrl);
 const issuer = env("OIDC_ISSUER", "https://id.trplan.si");
-const { app, appData, auth, events, fn } = createApp({
+const publicUrl = env("PUBLIC_URL");
+const { app, appData, auth, events, fn, push, reminders } = createApp({
   sql,
   storageDir: env("STORAGE_DIR", "/data/storage"),
   siteRoot: path.resolve(fileURLToPath(import.meta.url), "../.."),
-  publicUrl: env("PUBLIC_URL"),
+  publicUrl,
   getOidcConfig: createOidcClient({
     issuer,
     clientId: env("OIDC_CLIENT_ID"),
@@ -41,10 +42,18 @@ const { app, appData, auth, events, fn } = createApp({
   }),
   moNtfyUrl: env("MO_NTFY_URL", "https://ntfy.sh/marsova-opravila") || undefined,
   mcp: { issuer, clientId: env("MCP_CLIENT_ID", "ai-apps-mcp"), keys: pocketIdKeys(issuer) },
+  vapid: {
+    publicKey: env("VAPID_PUBLIC_KEY", ""),
+    privateKey: env("VAPID_PRIVATE_KEY", ""),
+    // Push services contact this if our pushes misbehave: a mailto: or https: URL.
+    subject: env("VAPID_SUBJECT", "") || (publicUrl.startsWith("https:") ? publicUrl : "https://apps.trplan.si"),
+  },
   sha: env("GIT_SHA", gitShaFile() ?? "dev"),
 });
 
 startSnapshotJob(appData);
+push.startScheduler();
+reminders.start();
 fn.recover().catch((err) => console.error("fn: couldn't recover interrupted episodes:", err));
 const listener = listenForChanges(databaseUrl, { onChange: events.publish, onResync: events.resync });
 setInterval(() => auth.pruneSessions().catch(() => {}), 24 * 60 * 60 * 1000).unref();

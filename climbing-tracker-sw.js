@@ -98,6 +98,7 @@ self.addEventListener("fetch", (event) => {
 // Tapping a rest notification (countdown or "Rest over") brings the app back
 // to the front.
 self.addEventListener("notificationclick", (event) => {
+  if (event.notification.data?.push) return; // handled by shared/push-sw.js
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
@@ -106,3 +107,7 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// Push notifications sent by the server (see shared/push-sw.js).
+self.PUSH_APP = { id: "climbing-tracker", name: "Climbing Tracker", icon: "./climbing-tracker/icon.svg" };
+importScripts("./shared/push-sw.js");

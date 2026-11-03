@@ -77,3 +77,7 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// Push notifications sent by the server (see shared/push-sw.js).
+self.PUSH_APP = { id: "german", name: "Deutsch", icon: "./german/icon.png" };
+importScripts("./shared/push-sw.js");

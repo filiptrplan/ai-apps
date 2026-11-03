@@ -2,6 +2,17 @@
 // notification shade while a rest runs with the app in the background, then
 // a loud "Rest over" when it ends. Permission is asked for explicitly from
 // NotificationPrompt rather than sprung on the user mid-workout.
+//
+// A page in the background can be frozen or discarded (iOS does it quickly),
+// and then its own "Rest over" never fires. So while the page is hidden, each
+// running rest also has a push scheduled on the server for when it ends
+// (server/push.js), cancelled as soon as the page is back. Both carry the
+// rest's end time as their key, and whichever comes second replaces the
+// first quietly instead of alerting twice.
+import { apiFetch } from "../shared/api.js";
+import { enablePush } from "../shared/push.js";
+import { APP_ID } from "./data.js";
+
 const OVER_TAG = "climbing-tracker-rest";
 const COUNTDOWN_TAG = "climbing-tracker-rest-countdown";
 const ICON = "./climbing-tracker/icon.svg";
@@ -20,14 +31,30 @@ export function notificationState() {
 }
 
 // Must be called from a tap so the browser treats the prompt as user-initiated.
+// Once allowed, also subscribes this device to pushes (needs a sign-in).
 export async function requestNotifications() {
   if (!notificationsSupported()) return "unsupported";
-  try { return await Notification.requestPermission(); } catch { return Notification.permission; }
+  let state;
+  try { state = await Notification.requestPermission(); } catch { state = Notification.permission; }
+  if (state === "granted") subscribePush();
+  return state;
+}
+
+// Subscribes this device to the app's pushes if notifications are allowed;
+// App calls it once signed in. Quietly does nothing when it can't.
+export function subscribePush() {
+  if (!canNotify()) return;
+  enablePush(APP_ID).catch(() => {});
+  syncPushes(); // also drops what a discarded page left scheduled
 }
 
 function canNotify() {
   return notificationsSupported() && Notification.permission === "granted";
 }
+
+// Which notification a rest's "Rest over" is: the same for the local one
+// and the push.
+const restKey = endsAt => `rest-${endsAt}`;
 
 async function show(title, options) {
   try {
@@ -89,27 +116,109 @@ function syncTicker() {
   if (rests.size === 0 || document.visibilityState === "visible") clearCountdown();
 }
 
-// label: what the rest is for, shown under the countdown.
-export function trackRest(id, { endsAt = 0, remainingMs = 0, paused = false, label = "" }) {
-  rests.set(id, { endsAt, remainingMs, paused, label });
+// ---------- the server-side "Rest over" ----------
+
+// Scheduled push ids are `<device>-<n>`, so a page that comes back (or is
+// reloaded after being discarded) can cancel whatever this device left.
+const DEVICE_KEY = "climbing-tracker:push-device";
+let device = null;
+function deviceId() {
+  if (device) return device;
+  try {
+    device = localStorage.getItem(DEVICE_KEY);
+    if (!device) localStorage.setItem(DEVICE_KEY, (device = Math.random().toString(36).slice(2, 12)));
+  } catch {
+    device = Math.random().toString(36).slice(2, 12);
+  }
+  return device;
+}
+
+let scheduled = new Map(); // push id -> rest key, as last sent to the server
+let clearedStale = false;
+
+// keepalive: these often go out as the page is being hidden.
+function request(path, init) {
+  return apiFetch(path, { keepalive: true, ...init }).catch(() => {});
+}
+
+// Hidden: one push per running rest. Visible: none.
+function syncPushes() {
+  if (!canNotify()) return;
+  const hidden = document.visibilityState !== "visible";
+  const want = new Map();
+  if (hidden) {
+    [...rests.values()]
+      .filter(r => !r.paused && r.endsAt > Date.now())
+      .sort((a, b) => a.endsAt - b.endsAt)
+      .forEach((r, i) => want.set(`${deviceId()}-${i}`, r));
+  }
+  if (!hidden && !clearedStale) {
+    clearedStale = true;
+    request(`/api/push/scheduled/${APP_ID}?prefix=${deviceId()}-`, { method: "DELETE" });
+    scheduled = new Map();
+  }
+  for (const [id, r] of want) {
+    if (scheduled.get(id) === restKey(r.endsAt)) continue;
+    request(`/api/push/scheduled/${APP_ID}/${id}`, {
+      method: "PUT",
+      json: {
+        at: r.endsAt,
+        ttl: 5 * 60,
+        urgency: "high",
+        payload: {
+          title: r.overTitle || "Rest over",
+          body: r.label,
+          tag: OVER_TAG,
+          key: restKey(r.endsAt),
+          close: [COUNTDOWN_TAG],
+          renotify: true,
+          requireInteraction: true,
+          vibrate: [400, 150, 400, 150, 400],
+          url: "/climbing-tracker",
+        },
+      },
+    });
+  }
+  for (const id of scheduled.keys()) {
+    if (!want.has(id)) request(`/api/push/scheduled/${APP_ID}/${id}`, { method: "DELETE" });
+  }
+  scheduled = new Map([...want].map(([id, r]) => [id, restKey(r.endsAt)]));
+}
+
+// label: what the rest is for, shown under the countdown; overTitle: the
+// "Rest over" title, if not that.
+export function trackRest(id, { endsAt = 0, remainingMs = 0, paused = false, label = "", overTitle }) {
+  rests.set(id, { endsAt, remainingMs, paused, label, overTitle });
   lastShown = "";
   syncTicker();
   updateCountdown();
+  syncPushes();
 }
 
 export function untrackRest(id) {
   if (!rests.delete(id)) return;
   syncTicker();
   if (rests.size > 0) { lastShown = ""; updateCountdown(); }
+  syncPushes();
 }
 
-export async function notifyRestOver(body, title = "Rest over") {
+// endsAt: when the rest was due to end, to recognise its push.
+export async function notifyRestOver(body, title = "Rest over", endsAt) {
   if (!canNotify()) return;
   // In the foreground the in-app beep and rest bar already cover it.
   if (document.visibilityState === "visible") return;
+  const key = endsAt ? restKey(endsAt) : undefined;
+  // The push got here first: leave it be.
+  if (key) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if ((await reg.getNotifications({ tag: OVER_TAG })).some(n => n.data?.key === key)) return;
+    } catch {}
+  }
   await show(title, {
     body,
     tag: OVER_TAG,
+    data: { key },
     renotify: true,
     requireInteraction: true,
     vibrate: [400, 150, 400, 150, 400],
@@ -126,5 +235,6 @@ if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") clearRestAlerts();
     syncTicker();
+    syncPushes();
   });
 }

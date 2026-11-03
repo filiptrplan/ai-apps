@@ -4,7 +4,7 @@ import { review, previews } from "./fsrs.js";
 import {
   dayKey, addDays, weekdayOf, tasksFor, normSettings, makeCard, planSession, answerCard,
   nextFocus, cardsFromCheck, fixCounts, searchCards, findDuplicate, sentenceCount, SESSION_CAP,
-  doneTasks, normPodcast, normEpisodes, nextInterest, podcastInput, logEpisode, tokenize, EPISODE_STALE_MS,
+  doneTasks, reminderFor, normPodcast, normEpisodes, nextInterest, podcastInput, logEpisode, tokenize, EPISODE_STALE_MS,
 } from "./model.js";
 
 const MIN = 60 * 1000;
@@ -197,4 +197,26 @@ test("search, filters and duplicates ignore case and umlauts", () => {
   assert.equal(findDuplicate(cards, { kind: "noun", de: "antrag" })?.id, cards[0].id);
   assert.equal(sentenceCount("Gestern ich bin klettern gegangen, weil ich hatte frei. Die Halle war sehr voll."), 2);
   assert.equal(sentenceCount("Eins. Zwei"), 2);
+});
+
+test("reminder settings are normalised", () => {
+  assert.deepEqual(normSettings({}).reminder, { on: false, time: "18:00", tz: "" });
+  assert.deepEqual(normSettings({ reminder: { on: true, time: "07:30", tz: "Europe/Zurich" } }).reminder, { on: true, time: "07:30", tz: "Europe/Zurich" });
+  assert.deepEqual(normSettings({ reminder: { on: "yes", time: "25:00", tz: 3 } }).reminder, { on: false, time: "18:00", tz: "" });
+  assert.deepEqual(normSettings({ reminder: "on" }).reminder, { on: false, time: "18:00", tz: "" });
+});
+
+test("the daily reminder lists what's left, or nothing", () => {
+  const key = "2026-10-29"; // Do: cards, and writing by default
+  const due = { id: "a", kind: "word", en: "x", de: "y", intro: "2026-10-01", srs: { due: NOW - DAY } };
+  assert.deepEqual(reminderFor({ settings, cards: [due], log: {} }, key, NOW), {
+    title: "Deutsch",
+    body: "Still to do today: cards (about 1 min) and writing.",
+  });
+  const done = { [key]: { cards: true, writing: true } };
+  assert.equal(reminderFor({ settings, cards: [due], log: done }, key, NOW), null);
+  // No cards to study: only writing is left.
+  assert.equal(reminderFor({ settings, cards: [], log: {} }, key, NOW).body, "Still to do today: writing.");
+  // Saturday has no tasks.
+  assert.equal(reminderFor({ settings, cards: [due], log: {} }, "2026-10-31", NOW), null);
 });
