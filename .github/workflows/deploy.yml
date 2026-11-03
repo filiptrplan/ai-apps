@@ -41,10 +41,8 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
 
-      - name: Committed bundles match a fresh build
-        run: |
-          npm run build
-          git diff --exit-code --stat -- '*-app.js'
+      - name: Every app bundles
+        run: npm run build
 
       - name: db/schema.sql matches the migrations
         run: |

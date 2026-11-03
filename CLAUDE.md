@@ -10,24 +10,22 @@ Each app `<name>` has:
 - `<name>-app.jsx`: the entry point, usually just `ReactDOM.createRoot(...).render(<App />)`.
 - `<name>/`: the app's code (`App.jsx`, screens, a framework-free `model.js` for data shapes and logic, `*.test.mjs` tests), plus its PWA files (`manifest.json`, icons).
 - `<name>-sw.js`: the service worker for apps that work offline. It has a versioned `CACHE_NAME` and an `ASSETS` list.
-- `<name>-app.js`: the bundle, built by esbuild and **committed**, since the site has no build step.
+- `<name>-app.js`: the bundle, built by esbuild and **not committed** (gitignored): the Dockerfile builds it for deploys, and `npm run build` makes it locally (`npm run dev` and `dev:server` need it).
 
 React is a global (`const { useState } = React;`), not an import. A new app also gets a card on `index.html`.
 
 ### Building
 
-After editing any `.jsx`/`.js` an app imports, rebuild and commit the bundles:
+Bundles are built, not committed. To run an app locally, build them:
 
 ```sh
-npx pnpm@9 install --frozen-lockfile   # pnpm, to match the committed bundles
+npx pnpm@9 install --frozen-lockfile
 npm run build                          # every *-app.jsx → *-app.js
 ```
 
-The build rewrites every app's bundle. With pnpm's `node_modules` every unchanged bundle comes out byte for byte the same, so commit the ones that changed.
-
 Tests: `npm test` (the app and MCP tests, then the server's against a throwaway Postgres in Docker).
 
-CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the migrations (up, rollback, up), and fails if a committed bundle or `db/schema.sql` differs from a fresh build or dump. A green push to `master` then fast-forwards `deploy`, and vps2 redeploys it (see `server/README.md`, Deploying). Migrations only roll forward, so code that the rollback workflow may go back to must still work with the newer schema. The rollback workflow can't go back across a change to `.github/workflows/` (`GITHUB_TOKEN` has no `workflows` permission); force-push `deploy` by hand then.
+CI (`.github/workflows/deploy.yml`) runs on every push and PR: the tests, the migrations (up, rollback, up), and fails if an app doesn't bundle or `db/schema.sql` differs from a fresh dump. A green push to `master` then fast-forwards `deploy`, and vps2 redeploys it (see `server/README.md`, Deploying). Migrations only roll forward, so code that the rollback workflow may go back to must still work with the newer schema. The rollback workflow can't go back across a change to `.github/workflows/` (`GITHUB_TOKEN` has no `workflows` permission); force-push `deploy` by hand then.
 
 ## Shared code
 

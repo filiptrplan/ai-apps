@@ -4,6 +4,9 @@
 # Node
 node_modules/
 
+# Built by `npm run build` (the Dockerfile does it for deploys)
+/*-app.js
+
 # Local env
 .env
 .env.*

@@ -12,12 +12,22 @@ COPY --from=git . /repo/.git
 RUN if [ -n "$GIT_SHA" ]; then echo "$GIT_SHA"; \
     else git -c safe.directory='*' -C /repo rev-parse HEAD; fi > /git-sha
 
+# Compiles the apps' *-app.jsx into the *-app.js bundles the pages load.
+FROM node:22-alpine AS bundles
+WORKDIR /app
+RUN npm install -g pnpm@9 && npm cache clean --force
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm run build
+
 FROM node:22-alpine
 WORKDIR /app
 RUN npm install -g pnpm@9 && npm cache clean --force
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile && pnpm store prune
 COPY . .
+COPY --from=bundles /app/*-app.js ./
 COPY --from=sha /git-sha ./.git-sha
 ENV NODE_ENV=production STORAGE_DIR=/data/storage PORT=8090
 USER node
