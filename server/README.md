@@ -123,3 +123,5 @@ npm run test:server   # or `npm test` for every suite
 ```
 
 `runTests.mjs` starts a throwaway `postgres:17-alpine` container (or uses `TEST_DATABASE_URL`), applies the migrations to a template database with dbmate (up, rollback, up), and runs `server/*.test.mjs`, each file on its own copy. Needs Docker.
+
+<!-- review: harmless PR check, do not merge -->
