@@ -1,5 +1,4 @@
-// Live updates over Server-Sent Events, replacing Supabase Realtime. The
-// database sends a notification on the "changes" channel for every write to
+// Live updates over Server-Sent Events. The database sends a notification on the "changes" channel for every write to
 // app_data and the Marsova tables (see the change_notifications migration);
 // one LISTEN connection receives them and passes each on to the open pages.
 //

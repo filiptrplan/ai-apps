@@ -1,6 +1,6 @@
 // The week plan: numbered days, each with linked routines and free-text
 // notes, ticked off in any order and reset as a new cycle. Pure functions
-// with no React/Supabase imports, so the app and the MCP server share them.
+// with no React imports, so the app and the MCP server share them.
 //
 // plan = { days: [{ id, title, description, doneAt, items: [{ id, routineId } | { id, text }] }],
 //          cycleStartedAt, cycles: [{ startedAt, endedAt }] }

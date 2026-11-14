@@ -1,6 +1,6 @@
 // Wraps raw 16-bit little-endian PCM (as the speech APIs return it) in a WAV
-// file, which every browser plays. Podcast episodes have been stored as WAV
-// since the Supabase days, when there was too little CPU to encode mp3.
+// file, which every browser plays. Podcast episodes are stored as WAV, which
+// needs no encoder.
 
 export function wavFile(chunks, sampleRate, channels) {
   const dataBytes = chunks.reduce((n, c) => n + c.length, 0);

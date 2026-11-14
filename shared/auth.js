@@ -98,7 +98,7 @@ export function signIn(next = location.pathname + location.search + location.has
   location.assign(`/auth/login?next=${encodeURIComponent(next)}`);
 }
 
-// Returns { error } (null on success), like the old Supabase call.
+// Returns { error } (null on success).
 export async function signOut() {
   try {
     await apiFetch("/auth/logout", { method: "POST" });

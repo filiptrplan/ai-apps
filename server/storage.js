@@ -1,7 +1,6 @@
-// File storage on disk, replacing Supabase Storage: a file lives at
-// <storageDir>/<bucket>/<userId>/<path>, and a user may only touch their
-// own folder (the first path segment must be their id, as the Supabase
-// policies required). Bucket limits come from the bucket migrations.
+// File storage on disk: a file lives at <storageDir>/<bucket>/<userId>/<path>,
+// and a user may only touch their own folder (the first path segment must be
+// their id). Bucket limits come from the bucket migrations.
 
 import { createWriteStream } from "node:fs";
 import { mkdir, rename, rm, unlink } from "node:fs/promises";

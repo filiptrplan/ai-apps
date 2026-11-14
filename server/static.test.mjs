@@ -47,8 +47,8 @@ test("nothing outside the allowlist is served", async () => {
   for (const p of [
     "/server/index.js", "/server/auth.js", "/db/migrations/20261030130000_baseline.sql", "/deploy/compose.dev.yaml",
     "/package.json", "/pnpm-lock.yaml", "/.gitignore", "/.git/config", "/.env", "/node_modules/postgres/package.json",
-    "/server/mcp.js", "/build.cjs", "/german-app.jsx", "/german/App.jsx", "/german/model.test.mjs", "/migration-plan/PLAN.md",
-    "/supabase/config.toml", "/mcp/server.js", "/ekg-trainer/tools/build_cases.py", "/README.md", "/%2e%2e/etc/passwd",
+    "/server/mcp.js", "/build.cjs", "/german-app.jsx", "/german/App.jsx", "/german/model.test.mjs", "/server/README.md",
+    "/REVIEW.md", "/mcp/server.js", "/ekg-trainer/tools/build_cases.py", "/README.md", "/%2e%2e/etc/passwd",
     "/german/%2e%2e/server/auth.js", "/shared/..%2Fserver%2Fauth.js",
   ]) {
     const res = await t.request(p);

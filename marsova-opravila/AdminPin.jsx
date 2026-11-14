@@ -9,7 +9,7 @@ const MARS_IDLE = "./marsova-opravila/mars-idle.jpg";
 // Friendly PIN gate: figures out on its own whether this is the very first
 // visit to the admin side (no PIN configured yet - bootstrap flow) or a
 // returning one (login flow). The PIN itself is only ever compared inside
-// the Supabase functions in api.js; nothing here can validate it.
+// the server (the mo_* functions api.js calls); nothing here can validate it.
 export function AdminPin({ onSuccess, onCancel }) {
   const [mode, setMode] = useState(null); // 'login' | 'bootstrap'
   const [checking, setChecking] = useState(true);

@@ -1,5 +1,5 @@
-// Storage keys and id generation, kept free of React/Supabase imports so
-// plain modules (format.js, and the MCP server in the Worker) can use them.
+// Storage keys and id generation, kept free of React imports so plain
+// modules (format.js, and the MCP server) can use them.
 export const APP_ID = "climbing-tracker";
 
 export const STORAGE_KEYS = {

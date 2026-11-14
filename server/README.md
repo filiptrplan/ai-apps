@@ -1,6 +1,6 @@
 # Server
 
-An Express app that serves the site, its APIs and the MCP server from one process, on its own Postgres and file storage. It replaces Supabase and the Cloudflare Worker (see `migration-plan/`).
+An Express app that serves the site, its APIs and the MCP server from one process, on its own Postgres and file storage.
 
 | File | What it does |
 |---|---|

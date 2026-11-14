@@ -1,6 +1,6 @@
 # German levels
 
-What each level means when the German app's AI generates something: new words and example sentences, writing prompts and corrections, and podcast episodes. The prompts get this guidance from `supabase/functions/_shared/cefr.ts`; keep the two in sync.
+What each level means when the German app's AI generates something: new words and example sentences, writing prompts and corrections, and podcast episodes. The prompts get this guidance from `server/functions/_shared/cefr.js`; keep the two in sync.
 
 ## Sources
 

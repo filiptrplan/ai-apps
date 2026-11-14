@@ -7,6 +7,5 @@ node_modules
 .claude
 .github
 deploy
-supabase
 migration-plan
 **/*.test.mjs

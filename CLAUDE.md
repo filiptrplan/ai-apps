@@ -1,6 +1,6 @@
 # Notes for Claude
 
-A collection of small personal apps at apps.trplan.si, served by one self-hosted Node server (`server/`, see `server/README.md`) with its own Postgres and file storage, on vps2. They moved there from Supabase and a Cloudflare Worker on 2026-10-31; `supabase/` and `migration-plan/` stay until that's decommissioned (`migration-plan/07-decommission.md`) and are no longer used.
+A collection of small personal apps at apps.trplan.si, served by one self-hosted Node server (`server/`, see `server/README.md`) with its own Postgres and file storage, on vps2.
 
 ## How an app is laid out
 

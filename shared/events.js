@@ -1,5 +1,4 @@
-// Live updates from the server (server/events.js), replacing Supabase
-// Realtime. One EventSource per page, shared by every subscriber, and
+// Live updates from the server (server/events.js). One EventSource per page, shared by every subscriber, and
 // reopened when the set of topics or the signed-in user changes.
 //
 //   const stop = subscribe("data", (change) => ...);
