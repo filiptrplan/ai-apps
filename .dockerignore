@@ -7,5 +7,4 @@ node_modules
 .claude
 .github
 deploy
-migration-plan
 **/*.test.mjs
