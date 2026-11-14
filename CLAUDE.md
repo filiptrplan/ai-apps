@@ -69,4 +69,4 @@ The keys (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, optional model overrides) live
 
 dbmate, plain SQL in `db/migrations` (`npx dbmate new <name>`, then `npm run db:migrate` against the dev database, which also rewrites `db/schema.sql`; commit both). Every deploy applies new migrations before starting the new app, so a migration is live as soon as it reaches `master`. Never edit a migration that's already on `master`; add a new one instead.
 
-Deploys need nothing by hand: CI moves `deploy`, and Komodo (`ai-apps autodeploy`) deploys it on vps2 within a minute. Don't run `docker compose` or Komodo deploys yourself unless asked. See `server/README.md` for local development, the environment and rollback.
+Deploys need nothing by hand: CI moves `deploy`, and Komodo (procedure `github autodeploy`) deploys it on vps2 within a minute. Don't run `docker compose` or Komodo deploys yourself unless asked. See `server/README.md` for local development, the environment and rollback.

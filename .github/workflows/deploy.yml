@@ -1,5 +1,5 @@
 # Checks every PR and push. After a green push to the deploying branch, it
-# fast-forwards `deploy`; Komodo's `ai-apps autodeploy` procedure notices
+# fast-forwards `deploy`; Komodo's `github autodeploy` procedure notices
 # within a minute and redeploys on vps2, and this waits for /api/health to
 # report the new commit. Only GITHUB_TOKEN is used.
 name: Checks and deploy

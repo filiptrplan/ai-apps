@@ -112,7 +112,7 @@ Compare against the final Supabase dump taken at cutover (on the NAS, see sectio
 - [ ] A PR runs only the checks (tests, bundle check, dbmate check); `deploy` does not move.
 - [ ] A merge to `master` fast-forwards `deploy`, the site is live within a few minutes, `/api/health` shows the new sha, and the workflow job waited for it (its log shows the poll).
 - [ ] A failing test (on a throwaway branch/PR) leaves `deploy` untouched, and nothing redeploys.
-- [ ] A code-only commit, with `deploy/compose.yaml` unchanged, is still picked up by the Komodo autodeploy procedure (it runs the Action `ai-apps autodeploy`, whose code matches `deploy/komodo-autodeploy.ts`).
+- [ ] A code-only commit, with `deploy/compose.yaml` unchanged, is still picked up by the Komodo autodeploy procedure (it runs the Action `github autodeploy`, whose code matches `deploy/komodo-autodeploy.ts`).
 - [ ] The rollback workflow, given an older sha, redeploys it (`/api/health` shows that sha). Roll forward again afterwards.
 - [ ] `gh api repos/filiptrplan/ai-apps/rulesets` shows the `deploy` ruleset blocking deletion. (Force pushes stay allowed for the rollback workflow: a personal repo can't let GitHub Actions bypass a rule.)
 - [ ] `.github/workflows/deploy.yml` promotes from `master` and polls `https://apps.trplan.si/api/health`; the Komodo stack's `PUBLIC_URL` is `https://apps.trplan.si`.
