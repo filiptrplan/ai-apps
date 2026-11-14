@@ -70,7 +70,10 @@ export function createReminders({ sql, appData, push }) {
   // Resolves with how many reminders went out.
   async function run(now = Date.now()) {
     if (!push.enabled) return 0;
-    await sql`delete from public.push_reminders_sent where day < current_date - 7`;
+    // Relative to `now`, not the database clock, so a run for a given time
+    // (as in the tests) never clears that day's record.
+    const today = new Date(now).toISOString().slice(0, 10);
+    await sql`delete from public.push_reminders_sent where day < ${today}::date - 7`;
     let sent = 0;
     for (const userId of await appData.usersWith(APP_ID, KEYS.settings)) {
       try {
