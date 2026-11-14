@@ -13,7 +13,9 @@ name: ai-apps-dev
 
 services:
   db:
-    image: postgres:17-alpine
+    # The same version as CI's schema check (see .github/workflows/deploy.yml),
+    # so `npm run db:migrate` writes the db/schema.sql that CI expects.
+    image: postgres:17.11-alpine
     environment:
       POSTGRES_USER: ai_apps
       POSTGRES_PASSWORD: dev

@@ -17,7 +17,9 @@ jobs:
     runs-on: ubuntu-24.04
     services:
       postgres:
-        image: postgres:17-alpine
+        # Pinned: db/schema.sql is compared byte for byte, and 17.12's pg_dump
+        # adds per-column pg_attver options whose values differ on every run.
+        image: postgres:17.11-alpine
         env:
           POSTGRES_PASSWORD: test
         ports: ["5432:5432"]
