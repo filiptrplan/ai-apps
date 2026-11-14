@@ -68,6 +68,11 @@ export function useSyncedStorage(appId, key, fallback) {
   const [conflict, setConflict] = useState(null);
   const dataRef = useRef(data);
   dataRef.current = data;
+  // Callers often pass a new [] or {} on every render; reading it through a
+  // ref keeps reconcile (and so the pull/subscribe effect) from re-running
+  // on each render.
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
 
   // Pushes go out one at a time: concurrent upserts can land out of order
   // (leaving an older value on the server), and their live echoes can
@@ -146,7 +151,7 @@ export function useSyncedStorage(appId, key, fallback) {
     const lastSynced = readSyncedValue(key);
     const localIsClean = lastSynced !== undefined
       ? sameValue(dataRef.current, lastSynced)
-      : sameValue(dataRef.current, fallback);
+      : sameValue(dataRef.current, fallbackRef.current);
 
     if (localIsClean) {
       setData(row.value);
@@ -169,7 +174,7 @@ export function useSyncedStorage(appId, key, fallback) {
         writeSyncedState(key, row.updated_at, row.value);
       },
     });
-  }, [key, fallback, pushRemote]);
+  }, [key, pushRemote]);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,6 +230,23 @@ export function useSyncedStorage(appId, key, fallback) {
       stopSession();
     };
   }, [appId, key, pushRemote, reconcile]);
+
+  // Tabs of one browser share localStorage, so when another tab saves or
+  // pulls this key, its marker is already ours and the live event above
+  // looks like nothing new: take the value from the storage event instead.
+  useEffect(() => {
+    function onStorage(e) {
+      if (e.storageArea !== localStorage || e.key !== key || e.newValue === null) return;
+      let next;
+      try { next = JSON.parse(e.newValue); } catch { return; }
+      if (sameValue(next, dataRef.current)) return;
+      dataRef.current = next;
+      setData(next);
+      setConflict(null);
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [key]);
 
   return [data, save, conflict];
 }
