@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(pnpm remove *)",
+      "Bash(npm install *)",
+      "Bash(pnpm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Drop Anthropic SDK and rebuild shopping list bundle *)",
+      "Bash(git push *)",
+      "mcp__claude_ai_Supabase__execute_sql"
+    ]
+  }
+}
